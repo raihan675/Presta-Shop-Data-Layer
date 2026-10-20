@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.1.1",
+  "latest_version": "1.1.2",
   "release_date": "2026-10-20",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://raw.githubusercontent.com/raihan675/Presta-Shop-Data-Layer/main/ps_gtm_datalayer.zip",
   "checksum": "",
   "release_type": "patch",
-  "release_notes": "1. Resolved duplicate view_item event during Add to Cart operations.\n2. Synchronized item_id and price between product page and cart additions.\n3. Dynamic dataLayer event prefix setting.\n4. Added 1-Click Update System."
+  "release_notes": "1. Resolved Warehouse theme linkAction add-to-cart property conflict.\n2. Completely suppressed empty raihan_view_item events during cart additions.\n3. Added button click fallback for guaranteed add_to_cart dispatch.\n4. Perfectly synchronized SKU (FB-004-106) and price across all events."
 }
