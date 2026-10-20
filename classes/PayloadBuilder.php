@@ -1,22 +1,23 @@
 <?php
 /**
- * Constructs standard GA4 ecommerce payloads across catalog, cart, and checkout states.
+ * Constructs catalog-accurate GA4 ecommerce payloads across catalog, cart, and checkout states.
  */
 
 if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once __DIR__ . '/ProductIdentityResolver.php';
+require_once __DIR__ . '/CustomerDataEngine.php';
+
 class PayloadBuilder
 {
     private $context;
-    private $useSku;
     private $prefix;
 
     public function __construct(Context $context, $prefix = '')
     {
         $this->context = $context;
-        $this->useSku = (bool)Configuration::get('PS_GTM_USE_SKU');
         $this->prefix = Ps_Gtm_DataLayer::normalizePrefix($prefix);
     }
 
@@ -66,7 +67,7 @@ class PayloadBuilder
             'original_event' => 'view_item',
             'ecommerce' => [
                 'currency' => $this->context->currency->iso_code,
-                'value' => $price,
+                'value' => round($price, 2),
                 'items' => [$item],
             ],
         ];
@@ -163,31 +164,44 @@ class PayloadBuilder
         $items = [];
 
         foreach ($orderProducts as $p) {
-            $itemId = (!empty($p['product_reference']) && $this->useSku)
-                ? (string)$p['product_reference']
-                : (string)$p['product_id'];
+            $productObj = new Product((int)$p['product_id'], false, $this->context->language->id);
+            $idAttr = isset($p['product_attribute_id']) ? (int)$p['product_attribute_id'] : 0;
+            $identifiers = ProductIdentityResolver::resolveIdentifiers($productObj, $idAttr);
 
-            $items[] = [
-                'item_id' => $itemId,
+            $unitPrice = round((float)$p['unit_price_tax_incl'], 2);
+            $qty = (int)$p['product_quantity'];
+
+            $items[] = array_merge($identifiers, [
                 'item_name' => (string)$p['product_name'],
-                'price' => round((float)$p['unit_price_tax_incl'], 2),
-                'quantity' => (int)$p['product_quantity'],
-            ];
+                'price' => $unitPrice,
+                'quantity' => $qty,
+            ]);
         }
 
         $customer = new Customer((int)$order->id_customer);
         $address = new Address((int)$order->id_address_invoice);
-        $userData = UserDataHasher::hashCustomerData($customer, $address);
+        $userData = CustomerDataEngine::buildCustomerPayload($customer, $address);
+
+        $orderTax = round((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), 2);
+        $orderShipping = round((float)$order->total_shipping_tax_incl, 2);
+        $orderTotal = round((float)$order->total_paid_tax_incl, 2);
+
+        $coupon = '';
+        $cartRules = $order->getCartRules();
+        if (!empty($cartRules) && isset($cartRules[0]['name'])) {
+            $coupon = (string)$cartRules[0]['name'];
+        }
 
         return [
             'event' => $this->getEventName('purchase'),
             'original_event' => 'purchase',
             'ecommerce' => [
                 'transaction_id' => !empty($order->reference) ? (string)$order->reference : (string)$order->id,
-                'value' => round((float)$order->total_paid_tax_incl, 2),
-                'tax' => round((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), 2),
-                'shipping' => round((float)$order->total_shipping_tax_incl, 2),
+                'value' => $orderTotal,
+                'tax' => $orderTax,
+                'shipping' => $orderShipping,
                 'currency' => Currency::getIsoCodeById((int)$order->id_currency),
+                'coupon' => $coupon,
                 'items' => $items,
             ],
             'user_data' => $userData,
@@ -215,19 +229,15 @@ class PayloadBuilder
         }
 
         $category = new Category((int)$product->id_category_default, $idLanguage);
+        $identifiers = ProductIdentityResolver::resolveIdentifiers($product, $idAttribute);
 
-        $itemId = (!empty($product->reference) && $this->useSku)
-            ? (string)$product->reference
-            : (string)$product->id;
-
-        return [
-            'item_id' => $itemId,
+        return array_merge($identifiers, [
             'item_name' => (string)$product->name,
             'item_brand' => (string)$product->manufacturer_name,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
             'item_variant' => $variant,
             'price' => round((float)$price, 2),
             'quantity' => (int)$quantity,
-        ];
+        ]);
     }
 }

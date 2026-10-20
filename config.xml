@@ -2,8 +2,8 @@
 <module>
     <name>ps_gtm_datalayer</name>
     <displayName><![CDATA[Enterprise GA4 & sGTM DataLayer]]></displayName>
-    <version><![CDATA[1.0.0]]></version>
-    <description><![CDATA[Standardized GA4 ecommerce DataLayer, Consent Mode v2, and Server-Side GTM support for PrestaShop.]]></description>
+    <version><![CDATA[1.2.0]]></version>
+    <description><![CDATA[Catalog-accurate GA4 ecommerce DataLayer, multi-feed GMC/Meta matching, PII hashing, and sGTM support.]]></description>
     <author><![CDATA[Analytics Engineer]]></author>
     <tab><![CDATA[analytics_stats]]></tab>
     <is_configurable>1</is_configurable>

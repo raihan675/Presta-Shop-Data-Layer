@@ -8,9 +8,10 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once __DIR__ . '/classes/ProductIdentityResolver.php';
+require_once __DIR__ . '/classes/CustomerDataEngine.php';
 require_once __DIR__ . '/classes/PayloadBuilder.php';
 require_once __DIR__ . '/classes/DeduplicationManager.php';
-require_once __DIR__ . '/classes/UserDataHasher.php';
 require_once __DIR__ . '/classes/UpdateManager.php';
 
 class Ps_Gtm_DataLayer extends Module
@@ -19,7 +20,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.1.1';
+        $this->version = '1.2.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -28,7 +29,7 @@ class Ps_Gtm_DataLayer extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Generates standardized GA4 ecommerce DataLayer with dynamic prefixing, sGTM, and automatic 1-click update support.');
+        $this->description = $this->l('Catalog-accurate GA4 ecommerce DataLayer, multi-feed GMC/Meta matching, PII hashing, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
     }
 
@@ -43,7 +44,9 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
             && Configuration::updateValue('PS_GTM_USE_SKU', '1')
-            && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '');
+            && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
+            && Configuration::updateValue('PS_GTM_GMC_ID_STRATEGY', 'sku')
+            && Configuration::updateValue('PS_GTM_META_ID_STRATEGY', 'sku');
     }
 
     public function uninstall()
@@ -54,7 +57,9 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
             && Configuration::deleteByName('PS_GTM_USE_SKU')
-            && Configuration::deleteByName('PS_GTM_EVENT_PREFIX');
+            && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
+            && Configuration::deleteByName('PS_GTM_GMC_ID_STRATEGY')
+            && Configuration::deleteByName('PS_GTM_META_ID_STRATEGY');
     }
 
     public function getContent()
@@ -84,6 +89,9 @@ class Ps_Gtm_DataLayer extends Module
             $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
             $prefix = self::normalizePrefix($rawPrefix);
 
+            $gmcStrategy = Tools::getValue('PS_GTM_GMC_ID_STRATEGY');
+            $metaStrategy = Tools::getValue('PS_GTM_META_ID_STRATEGY');
+
             if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
                 $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (expected GTM-XXXXXX).'));
             } else {
@@ -92,12 +100,13 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
                 Configuration::updateValue('PS_GTM_USE_SKU', $useSku);
                 Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
+                Configuration::updateValue('PS_GTM_GMC_ID_STRATEGY', $gmcStrategy);
+                Configuration::updateValue('PS_GTM_META_ID_STRATEGY', $metaStrategy);
 
                 $output .= $this->displayConfirmation($this->l('Settings updated successfully.'));
             }
         }
 
-        // Render Update Notification Banner
         $updateInfo = $updateManager->checkForUpdates();
         $output .= $this->renderUpdateBanner($updateInfo);
 
@@ -188,6 +197,8 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
                 'PS_GTM_USE_SKU' => Configuration::get('PS_GTM_USE_SKU'),
+                'PS_GTM_GMC_ID_STRATEGY' => Configuration::get('PS_GTM_GMC_ID_STRATEGY', 'sku'),
+                'PS_GTM_META_ID_STRATEGY' => Configuration::get('PS_GTM_META_ID_STRATEGY', 'sku'),
             ],
             'languages' => $this->context->controller->getLanguages(),
             'id_language' => $this->context->language->id,
@@ -201,7 +212,7 @@ class Ps_Gtm_DataLayer extends Module
         return [
             'form' => [
                 'legend' => [
-                    'title' => $this->l('Google Tag Manager & DataLayer Settings'),
+                    'title' => $this->l('Google Tag Manager & Multi-Catalog Settings'),
                     'icon' => 'icon-cogs',
                 ],
                 'input' => [
@@ -220,6 +231,38 @@ class Ps_Gtm_DataLayer extends Module
                         'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for default GA4 event names.'),
                         'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
                         'size' => 30,
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->l('Google Merchant Center Item ID Strategy'),
+                        'name' => 'PS_GTM_GMC_ID_STRATEGY',
+                        'desc' => $this->l('Determines which field matches the id attribute in your Google Shopping / Merchant Center feed.'),
+                        'options' => [
+                            'query' => [
+                                ['id' => 'sku', 'name' => 'SKU / Reference (Recommended for GMC)'],
+                                ['id' => 'id', 'name' => 'Product ID (Simple)'],
+                                ['id' => 'id_attribute', 'name' => 'Compound: ProductID-AttributeID (e.g. 1116-249)'],
+                                ['id' => 'ean13', 'name' => 'GTIN / EAN-13 Barcode'],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
+                        ],
+                    ],
+                    [
+                        'type' => 'select',
+                        'label' => $this->l('Meta Catalog Content ID Strategy'),
+                        'name' => 'PS_GTM_META_ID_STRATEGY',
+                        'desc' => $this->l('Determines which field matches the retailer_id / content_id in your Meta Commerce Manager catalog.'),
+                        'options' => [
+                            'query' => [
+                                ['id' => 'sku', 'name' => 'SKU / Reference (Recommended for Meta)'],
+                                ['id' => 'id', 'name' => 'Product ID (Simple)'],
+                                ['id' => 'id_attribute', 'name' => 'Compound: ProductID-AttributeID'],
+                                ['id' => 'ean13', 'name' => 'GTIN / EAN-13 Barcode'],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
+                        ],
                     ],
                     [
                         'type' => 'text',
@@ -241,10 +284,10 @@ class Ps_Gtm_DataLayer extends Module
                     ],
                     [
                         'type' => 'switch',
-                        'label' => $this->l('Prefer SKU/Reference as Item ID'),
+                        'label' => $this->l('Prefer SKU/Reference as Canonical GA4 Item ID'),
                         'name' => 'PS_GTM_USE_SKU',
                         'is_bool' => true,
-                        'desc' => $this->l('Use product reference/SKU as item_id. If disabled or reference is empty, product ID will be used.'),
+                        'desc' => $this->l('Use product reference/SKU as standard item_id. If disabled or reference is empty, product ID will be used.'),
                         'values' => [
                             ['id' => 'sku_on', 'value' => 1, 'label' => $this->l('SKU / Reference')],
                             ['id' => 'sku_off', 'value' => 0, 'label' => $this->l('Product ID')],
