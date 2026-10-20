@@ -1,5 +1,5 @@
 /**
- * Core DataLayer Engine: canonical normalization, schema validation, and safe dispatch.
+ * Core DataLayer Engine: canonical normalization, schema validation, dynamic prefixing, and safe dispatch.
  */
 (function (root, factory) {
   if (typeof define === 'function' && define.amd) {
@@ -13,6 +13,7 @@
   'use strict';
 
   var DEBUG = false;
+  var eventPrefix = '';
 
   function log(level, message, payload) {
     if (!DEBUG && level === 'info') return;
@@ -20,6 +21,31 @@
     if (window.console && window.console[level]) {
       window.console[level](prefix + message, payload || '');
     }
+  }
+
+  function normalizePrefix(prefix) {
+    if (!prefix || typeof prefix !== 'string') return '';
+    var cleaned = prefix.trim();
+    // Replace spaces, hyphens, and dots with underscores
+    cleaned = cleaned.replace(/[\s\.\-]+/g, '_');
+    // Remove characters other than alphanumeric and underscores
+    cleaned = cleaned.replace(/[^a-zA-Z0-9_]/g, '');
+    // Remove leading and trailing underscores
+    cleaned = cleaned.replace(/^_+|_+$/g, '');
+    return cleaned;
+  }
+
+  function formatEventName(canonicalName, prefixOverride) {
+    var p = prefixOverride !== undefined ? normalizePrefix(prefixOverride) : eventPrefix;
+    if (!p) {
+      return String(canonicalName);
+    }
+    // Avoid double prefixing
+    var prefixToken = p + '_';
+    if (String(canonicalName).indexOf(prefixToken) === 0) {
+      return String(canonicalName);
+    }
+    return p + '_' + String(canonicalName);
   }
 
   function sanitizeFloat(val) {
@@ -76,16 +102,19 @@
     return Math.round(total * 100) / 100;
   }
 
-  function pushEcommerceEvent(eventName, ecommerceData, userData) {
-    if (!eventName || typeof eventName !== 'string') {
+  function pushEcommerceEvent(canonicalEventName, ecommerceData, userData) {
+    if (!canonicalEventName || typeof canonicalEventName !== 'string') {
       log('error', 'Push aborted: Invalid event name');
       return false;
     }
 
     window.dataLayer = window.dataLayer || [];
 
+    var finalEventName = formatEventName(canonicalEventName);
+
     var canonicalPayload = {
-      event: eventName,
+      event: finalEventName,
+      original_event: canonicalEventName,
       ecommerce: ecommerceData || {}
     };
 
@@ -97,14 +126,27 @@
     window.dataLayer.push({ ecommerce: null });
     window.dataLayer.push(canonicalPayload);
 
-    log('info', 'Dispatched ' + eventName, canonicalPayload);
+    log('info', 'Dispatched ' + finalEventName, canonicalPayload);
     return true;
+  }
+
+  // Auto-detect prefix from global config if set by server
+  if (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.eventPrefix) {
+    eventPrefix = normalizePrefix(window.psGtmConfig.eventPrefix);
   }
 
   return {
     setDebug: function (mode) {
       DEBUG = !!mode;
     },
+    setEventPrefix: function (prefix) {
+      eventPrefix = normalizePrefix(prefix);
+    },
+    getEventPrefix: function () {
+      return eventPrefix;
+    },
+    normalizePrefix: normalizePrefix,
+    formatEventName: formatEventName,
     pushEvent: pushEcommerceEvent,
     normalizeItem: normalizeItem,
     normalizeItems: normalizeItems,

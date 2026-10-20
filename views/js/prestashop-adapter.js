@@ -6,6 +6,11 @@
 
   if (!EDL) return;
 
+  // Sync event prefix from server configuration if initialized earlier
+  if (window.psGtmConfig && window.psGtmConfig.eventPrefix) {
+    EDL.setEventPrefix(window.psGtmConfig.eventPrefix);
+  }
+
   function onPrestashopReady() {
     if (!window.prestashop) return;
 

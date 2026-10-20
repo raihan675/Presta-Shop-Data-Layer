@@ -18,7 +18,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.0.0';
+        $this->version = '1.1.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Generates standardized GA4 ecommerce DataLayer and supports Server-Side GTM tracking.');
+        $this->description = $this->l('Generates standardized GA4 ecommerce DataLayer with dynamic prefixing and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
     }
 
@@ -41,7 +41,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
-            && Configuration::updateValue('PS_GTM_USE_SKU', '1');
+            && Configuration::updateValue('PS_GTM_USE_SKU', '1')
+            && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '');
     }
 
     public function uninstall()
@@ -51,7 +52,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
-            && Configuration::deleteByName('PS_GTM_USE_SKU');
+            && Configuration::deleteByName('PS_GTM_USE_SKU')
+            && Configuration::deleteByName('PS_GTM_EVENT_PREFIX');
     }
 
     public function getContent()
@@ -63,6 +65,8 @@ class Ps_Gtm_DataLayer extends Module
             $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
             $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
             $useSku = (int)Tools::getValue('PS_GTM_USE_SKU');
+            $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
+            $prefix = self::normalizePrefix($rawPrefix);
 
             if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
                 $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (expected GTM-XXXXXX).'));
@@ -71,12 +75,50 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_SGTM_TRANSPORT_URL', rtrim($sgtmUrl, '/'));
                 Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
                 Configuration::updateValue('PS_GTM_USE_SKU', $useSku);
+                Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
 
                 $output .= $this->displayConfirmation($this->l('Settings updated successfully.'));
             }
         }
 
         return $output . $this->renderForm();
+    }
+
+    public static function normalizePrefix($prefix)
+    {
+        if (empty($prefix)) {
+            return '';
+        }
+
+        $cleaned = trim((string)$prefix);
+        // Replace spaces, hyphens, and dots with underscores
+        $cleaned = preg_replace('/[\s\.\-]+/', '_', $cleaned);
+        // Remove any characters other than alphanumeric and underscores
+        $cleaned = preg_replace('/[^a-zA-Z0-9_]/', '', $cleaned);
+        // Trim leading or trailing underscores
+        $cleaned = trim($cleaned, '_');
+
+        return $cleaned;
+    }
+
+    public static function formatEventName($originalEventName, $prefix = null)
+    {
+        if ($prefix === null) {
+            $prefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        }
+
+        $prefix = self::normalizePrefix($prefix);
+
+        if (empty($prefix)) {
+            return (string)$originalEventName;
+        }
+
+        // Avoid double-prefixing if already starts with prefix + '_'
+        if (strpos((string)$originalEventName, $prefix . '_') === 0) {
+            return (string)$originalEventName;
+        }
+
+        return $prefix . '_' . (string)$originalEventName;
     }
 
     protected function renderForm()
@@ -99,6 +141,7 @@ class Ps_Gtm_DataLayer extends Module
             'fields_value' => [
                 'PS_GTM_CONTAINER_ID' => Configuration::get('PS_GTM_CONTAINER_ID'),
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
+                'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
                 'PS_GTM_USE_SKU' => Configuration::get('PS_GTM_USE_SKU'),
             ],
@@ -128,9 +171,17 @@ class Ps_Gtm_DataLayer extends Module
                     ],
                     [
                         'type' => 'text',
+                        'name' => 'PS_GTM_EVENT_PREFIX',
+                        'label' => $this->l('Data Layer Event Prefix'),
+                        'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for default GA4 event names.'),
+                        'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
+                        'size' => 30,
+                    ],
+                    [
+                        'type' => 'text',
                         'name' => 'PS_SGTM_TRANSPORT_URL',
                         'label' => $this->l('Server-Side GTM Transport URL (Optional)'),
-                        'desc' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint). Leave blank to use Google directly.'),
+                        'desc' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint).'),
                         'size' => 50,
                     ],
                     [
@@ -169,15 +220,17 @@ class Ps_Gtm_DataLayer extends Module
         $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
         $sgtmUrl = Configuration::get('PS_SGTM_TRANSPORT_URL');
         $consentEnabled = (bool)Configuration::get('PS_GTM_CONSENT_MODE');
+        $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
 
         $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
-        $payloadBuilder = new PayloadBuilder($this->context);
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
         $this->context->smarty->assign([
             'gtm_id' => $gtmId,
             'sgtm_url' => $sgtmUrl,
             'consent_mode_enabled' => $consentEnabled,
+            'event_prefix' => $eventPrefix,
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);
 
@@ -219,7 +272,8 @@ class Ps_Gtm_DataLayer extends Module
             return '<!-- GTM DataLayer: Purchase transaction ' . (int)$order->id . ' already recorded -->';
         }
 
-        $payloadBuilder = new PayloadBuilder($this->context);
+        $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $purchasePayload = $payloadBuilder->buildPurchasePayload($order);
 
         DeduplicationManager::markTransactionTracked($order->id, $order->reference);

@@ -11,11 +11,18 @@ class PayloadBuilder
 {
     private $context;
     private $useSku;
+    private $prefix;
 
-    public function __construct(Context $context)
+    public function __construct(Context $context, $prefix = '')
     {
         $this->context = $context;
         $this->useSku = (bool)Configuration::get('PS_GTM_USE_SKU');
+        $this->prefix = Ps_Gtm_DataLayer::normalizePrefix($prefix);
+    }
+
+    private function getEventName($canonicalName)
+    {
+        return Ps_Gtm_DataLayer::formatEventName($canonicalName, $this->prefix);
     }
 
     public function buildPagePayload($controller, $params)
@@ -55,7 +62,8 @@ class PayloadBuilder
         $price = (float)$item['price'];
 
         return [
-            'event' => 'view_item',
+            'event' => $this->getEventName('view_item'),
+            'original_event' => 'view_item',
             'ecommerce' => [
                 'currency' => $this->context->currency->iso_code,
                 'value' => $price,
@@ -87,7 +95,8 @@ class PayloadBuilder
         }
 
         return [
-            'event' => 'view_item_list',
+            'event' => $this->getEventName('view_item_list'),
+            'original_event' => 'view_item_list',
             'ecommerce' => [
                 'item_list_id' => $listId,
                 'item_list_name' => $listName,
@@ -113,7 +122,8 @@ class PayloadBuilder
         }
 
         return [
-            'event' => 'view_cart',
+            'event' => $this->getEventName('view_cart'),
+            'original_event' => 'view_cart',
             'ecommerce' => [
                 'currency' => $this->context->currency->iso_code,
                 'value' => round($totalValue, 2),
@@ -137,7 +147,8 @@ class PayloadBuilder
         }
 
         return [
-            'event' => 'begin_checkout',
+            'event' => $this->getEventName('begin_checkout'),
+            'original_event' => 'begin_checkout',
             'ecommerce' => [
                 'currency' => $this->context->currency->iso_code,
                 'value' => round((float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS), 2),
@@ -169,7 +180,8 @@ class PayloadBuilder
         $userData = UserDataHasher::hashCustomerData($customer, $address);
 
         return [
-            'event' => 'purchase',
+            'event' => $this->getEventName('purchase'),
+            'original_event' => 'purchase',
             'ecommerce' => [
                 'transaction_id' => !empty($order->reference) ? (string)$order->reference : (string)$order->id,
                 'value' => round((float)$order->total_paid_tax_incl, 2),
