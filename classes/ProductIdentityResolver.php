@@ -1,7 +1,7 @@
 <?php
 /**
  * ProductIdentityResolver: Resolves catalog-accurate product and variant identifiers
- * for GA4 ecommerce tracking.
+ * directly from the PrestaShop database models.
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -11,9 +11,8 @@ if (!defined('_PS_VERSION_')) {
 class ProductIdentityResolver
 {
     /**
-     * Resolves the exact variant/combination reference (SKU).
-     * If combination has a specific reference, returns it.
-     * Otherwise falls back to base product reference.
+     * Resolves the exact variant/combination reference (SKU) from database records.
+     * Checks ps_product_attribute first. If empty, falls back to ps_product.reference.
      *
      * @param Product $product
      * @param int $idProductAttribute
@@ -29,7 +28,6 @@ class ProductIdentityResolver
                 return trim((string)$combination->reference);
             }
 
-            // Fallback check through attribute combination query
             if (method_exists($product, 'getAttributeCombinationsById')) {
                 $langId = (Context::getContext() && Context::getContext()->language) 
                     ? (int)Context::getContext()->language->id 
@@ -53,7 +51,7 @@ class ProductIdentityResolver
     }
 
     /**
-     * Resolves human-readable variant attribute string (e.g. "Stahlblau" or "Farbe: Stahlblau")
+     * Resolves human-readable variant attribute string from database records.
      *
      * @param Product $product
      * @param int $idProductAttribute
@@ -107,7 +105,8 @@ class ProductIdentityResolver
     }
 
     /**
-     * Returns a complete map of all combinations for this product indexed by id_product_attribute.
+     * Returns a database-sourced dictionary of all combinations for this product.
+     * Each entry contains the exact item_id, variant_id, sku_id, item_name, and price.
      *
      * @param Product $product
      * @param int|null $idLanguage
@@ -135,8 +134,10 @@ class ProductIdentityResolver
                     if (!isset($map[$idAttr])) {
                         $price = Product::getPriceStatic($product->id, true, (int)$idAttr, 2);
                         $map[$idAttr] = [
+                            'item_id' => (string)$product->id,
                             'variant_id' => $idAttr,
                             'sku_id' => $ref,
+                            'item_name' => (string)$product->name,
                             'item_variant' => $label,
                             'price' => round((float)$price, 2),
                         ];
@@ -156,8 +157,8 @@ class ProductIdentityResolver
     }
 
     /**
-     * Resolves the full structured identifier set for any product or combination.
-     * item_id is ALWAYS the Base Product ID.
+     * Resolves the full structured identifier set directly from database ObjectModels.
+     * item_id is strictly the primary key from ps_product.
      *
      * @param Product $product
      * @param int $idProductAttribute
@@ -173,7 +174,7 @@ class ProductIdentityResolver
         $variantName = self::resolveVariantName($product, $idAttr, $idLanguage);
 
         return [
-            'item_id' => $idProduct, // ALWAYS Base Product ID (e.g. 68)
+            'item_id' => $idProduct,
             'variant_id' => $idAttr > 0 ? (string)$idAttr : '',
             'sku_id' => $sku,
             'item_variant' => $variantName,

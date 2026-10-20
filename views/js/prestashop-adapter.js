@@ -83,7 +83,6 @@
   }
 
   function getReferenceFromDOM() {
-    // 1. Check exact combination reference from #product-details JSON attributes
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -99,14 +98,12 @@
       } catch (e) {}
     }
 
-    // 2. Check front-office visible product reference elements
     var refElem = document.querySelector('.product-reference span, .product-reference .value, .product-reference dd');
     if (refElem) {
       var text = (refElem.innerText || refElem.getAttribute('content') || '').trim();
       if (text) return text;
     }
 
-    // 3. Fallback to root reference in #product-details
     if (details) {
       try {
         var dataRoot = JSON.parse(details.getAttribute('data-product'));
@@ -144,7 +141,6 @@
   }
 
   function getProductNameFromDOM() {
-    // 1. Try server-hydrated current product name first
     if (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_name) {
       var cached = String(window.psGtmConfig.currentProduct.item_name).trim();
       if (cached && cached !== 'Product') {
@@ -152,7 +148,6 @@
       }
     }
 
-    // 2. Try JSON in #product-details data-product
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -163,14 +158,12 @@
       } catch (e) {}
     }
 
-    // 3. Try DOM headings (Warehouse & Classic themes)
     var titleElem = document.querySelector('h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title, .product-detail-name, h1');
     if (titleElem) {
       var text = (titleElem.innerText || '').trim();
       if (text) return text;
     }
 
-    // 4. Try document title
     if (document.title) {
       var docTitle = document.title.split('-')[0].split('|')[0].trim();
       if (docTitle) return docTitle;
@@ -293,17 +286,20 @@
       ? window.psGtmConfig.productCombinations[variantId]
       : null;
 
-    var skuId = (combo && combo.sku_id) 
+    // Prioritize authoritative combination database record
+    var finalBaseId = (combo && combo.item_id) ? combo.item_id : (cardItem ? cardItem.item_id : baseId);
+    var finalVariantId = (combo && combo.variant_id) ? combo.variant_id : variantId;
+    var finalSkuId = (combo && combo.sku_id) 
       ? combo.sku_id 
       : (domRef || (rawItem && rawItem.reference) || (cardItem ? cardItem.sku_id : '') || (baseProd ? baseProd.sku_id : '') || '');
     
-    var variantName = (combo && combo.item_variant) 
+    var finalVariantName = (combo && combo.item_variant) 
       ? combo.item_variant 
       : (domVariant || (baseProd ? baseProd.item_variant : '') || '');
 
-    var resolvedItemName = (cardItem && cardItem.item_name) 
-      ? cardItem.item_name 
-      : (getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product'));
+    var resolvedItemName = (combo && combo.item_name)
+      ? combo.item_name
+      : ((cardItem && cardItem.item_name) ? cardItem.item_name : (getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product')));
 
     var resolvedBrand = (cardItem && cardItem.item_brand) 
       ? cardItem.item_brand 
@@ -320,13 +316,13 @@
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
 
     var addedItem = {
-      item_id: String(baseId),
-      variant_id: String(variantId),
-      sku_id: String(skuId),
+      item_id: String(finalBaseId),
+      variant_id: String(finalVariantId),
+      sku_id: String(finalSkuId),
       item_name: resolvedItemName,
       item_brand: resolvedBrand,
       item_category: resolvedCategory,
-      item_variant: variantName,
+      item_variant: finalVariantName,
       price: resolvedPrice,
       quantity: resolvedQuantity
     };
@@ -371,7 +367,7 @@
           }
         }
 
-        // If matched from server cart response, use authoritative cart product data!
+        // If matched from server cart response, use authoritative cart database product record
         if (matchedProduct) {
           var resolvedPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
           var item = {
@@ -437,14 +433,16 @@
 
       setTimeout(function () {
         var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
-        var baseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
-        var title = getProductNameFromDOM();
-        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
-        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
+        var domBaseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
 
         var combo = (window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
           ? window.psGtmConfig.productCombinations[variantId]
           : null;
+
+        var finalBaseId = (combo && combo.item_id) ? combo.item_id : domBaseId;
+        var title = (combo && combo.item_name) ? combo.item_name : getProductNameFromDOM();
+        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
+        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
 
         var domPrice = getPriceFromDOM();
         var domRef = getReferenceFromDOM();
@@ -455,7 +453,7 @@
         var resolvedPrice = (combo && combo.price > 0) ? combo.price : (domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0));
 
         var item = {
-          item_id: String(baseId),
+          item_id: String(finalBaseId),
           variant_id: String(variantId),
           sku_id: String(resolvedSku),
           item_name: title,

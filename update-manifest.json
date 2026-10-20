@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.1/ps_gtm_datalayer.zip",
-  "checksum": "47e0a6e4f5f38cca16e83a61485374c96fd7d89e2c4cd738b8a948b35ff9fbe3",
+  "checksum": "4ac59973b5378716ba0db179701e5967900b5c15de3712a17f6c5765d92c0fe3",
   "release_type": "patch",
-  "release_notes": "1. 100% Add-to-Cart Parity: Intercepts PrestaShop CartController response to guarantee that add_to_cart matches view_item with exact item_id, variant_id, sku_id, price, and variant label.\n2. Container Scoping: Fixed base product ID resolution to strictly bind to the active product container and prevent picking IDs from accessory carousels.\n3. Clean GA4 Schema: Base product ID as item_id, combination ID as variant_id, variant reference as sku_id."
+  "release_notes": "1. Database-Accurate Identity Matching: Crosschecks every product and combination with the PrestaShop database to ensure exact item_id, variant_id, sku_id, item_name, and price.\n2. Server Cart Response Priority: Add-to-cart events directly read from PrestaShop CartController response for 100% parity with view_item.\n3. Container-Scoped PDP Isolation: Scopes selectors to active product container to prevent accessory carousels from leaking IDs."
 }
