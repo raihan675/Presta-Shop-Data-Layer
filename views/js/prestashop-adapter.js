@@ -112,15 +112,15 @@
   }
 
   function getProductNameFromDOM() {
-    var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
-    if (baseProd && baseProd.item_name && baseProd.item_name !== 'Product') {
-      return baseProd.item_name;
+    // 1. Try server-hydrated current product name first
+    if (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_name) {
+      var cached = String(window.psGtmConfig.currentProduct.item_name).trim();
+      if (cached && cached !== 'Product') {
+        return cached;
+      }
     }
-    var titleElem = document.querySelector('h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title, .product-detail-name, h1');
-    if (titleElem) {
-      var text = (titleElem.innerText || '').trim();
-      if (text) return text;
-    }
+
+    // 2. Try JSON in #product-details data-product
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -130,6 +130,20 @@
         }
       } catch (e) {}
     }
+
+    // 3. Try DOM headings (Warehouse & Classic themes)
+    var titleElem = document.querySelector('h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title, .product-detail-name, h1');
+    if (titleElem) {
+      var text = (titleElem.innerText || '').trim();
+      if (text) return text;
+    }
+
+    // 4. Try document title
+    if (document.title) {
+      var docTitle = document.title.split('-')[0].split('|')[0].trim();
+      if (docTitle) return docTitle;
+    }
+
     return 'Product';
   }
 
@@ -279,9 +293,9 @@
       setTimeout(function () {
         var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
         var baseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
-        var title = getProductNameFromDOM() || (currentProd ? currentProd.item_name : 'Product');
-        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
-        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
+        var title = getProductNameFromDOM();
+        var brand = (currentProd ? currentProd.item_brand : '') || getProductBrandFromDOM();
+        var category = (currentProd ? currentProd.item_category : '') || getProductCategoryFromDOM();
 
         var combo = (window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
           ? window.psGtmConfig.productCombinations[variantId]
