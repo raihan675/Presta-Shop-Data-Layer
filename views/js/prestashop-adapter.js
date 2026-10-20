@@ -14,12 +14,27 @@
   }
   syncConfig();
 
-  function getBaseProductIdFromDOM() {
-    var elem = document.querySelector('#product_page_product_id, input[name="id_product"], [data-id-product]');
-    if (elem) {
-      var val = elem.value || elem.getAttribute('data-id-product');
-      if (val) return String(val).trim();
+  function getBaseProductIdFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature, [data-id-product]');
+      if (card && card.getAttribute('data-id-product')) {
+        return String(card.getAttribute('data-id-product')).trim();
+      }
     }
+
+    var mainContainer = document.querySelector('#main-product-wrapper, #main, .product-container');
+    if (mainContainer) {
+      var mainInput = mainContainer.querySelector('#product_page_product_id, input[name="id_product"]');
+      if (mainInput && mainInput.value) {
+        return String(mainInput.value).trim();
+      }
+    }
+
+    var ppid = document.querySelector('#product_page_product_id');
+    if (ppid && ppid.value) {
+      return String(ppid.value).trim();
+    }
+
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -29,15 +44,26 @@
         }
       } catch (e) {}
     }
+
     return '';
   }
 
-  function getVariantIdFromDOM() {
-    var elem = document.querySelector('#product_attribute_id, input[name="id_product_attribute"], [data-id-product-attribute]');
-    if (elem) {
-      var val = elem.value || elem.getAttribute('data-id-product-attribute');
-      if (val && parseInt(val, 10) > 0) return String(val).trim();
+  function getVariantIdFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature, [data-id-product-attribute]');
+      if (card && card.getAttribute('data-id-product-attribute')) {
+        return String(card.getAttribute('data-id-product-attribute')).trim();
+      }
     }
+
+    var mainContainer = document.querySelector('#main-product-wrapper, #main, .product-container');
+    if (mainContainer) {
+      var mainAttrInput = mainContainer.querySelector('#product_attribute_id, input[name="id_product_attribute"]');
+      if (mainAttrInput && mainAttrInput.value && parseInt(mainAttrInput.value, 10) > 0) {
+        return String(mainAttrInput.value).trim();
+      }
+    }
+
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -47,6 +73,12 @@
         }
       } catch (e) {}
     }
+
+    var attrElem = document.querySelector('#product_attribute_id, input[name="id_product_attribute"]');
+    if (attrElem && attrElem.value && parseInt(attrElem.value, 10) > 0) {
+      return String(attrElem.value).trim();
+    }
+
     return '';
   }
 
@@ -249,7 +281,6 @@
       ? String(rawItem.id_product_attribute)
       : (domVariantId || (baseProd ? baseProd.variant_id : '') || '');
 
-    // Check if added from a listing card on catalog/home/search pages
     var cardItem = null;
     if (baseId) {
       var matchingCard = document.querySelector('article[data-id-product="' + baseId + '"]');
@@ -323,17 +354,61 @@
       var currencyCode = (cart && cart.currency) ? cart.currency.iso_code : ((window.psGtmConfig && window.psGtmConfig.currency) || 'EUR');
 
       if (action === 'add-to-cart') {
+        var addedIdProduct = reason.idProduct || reason.id_product || '';
+        var addedIdAttr = (reason.idProductAttribute !== undefined) 
+          ? reason.idProductAttribute 
+          : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : '');
+
+        var matchedProduct = null;
+        if (cart && Array.isArray(cart.products) && addedIdProduct) {
+          for (var i = 0; i < cart.products.length; i++) {
+            var cp = cart.products[i];
+            if (String(cp.id_product) === String(addedIdProduct) &&
+                (!addedIdAttr || String(cp.id_product_attribute) === String(addedIdAttr))) {
+              matchedProduct = cp;
+              break;
+            }
+          }
+        }
+
+        // If matched from server cart response, use authoritative cart product data!
+        if (matchedProduct) {
+          var resolvedPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
+          var item = {
+            item_id: String(matchedProduct.id_product),
+            variant_id: (matchedProduct.id_product_attribute && parseInt(matchedProduct.id_product_attribute, 10) > 0) ? String(matchedProduct.id_product_attribute) : '',
+            sku_id: String(matchedProduct.reference || ''),
+            item_name: String(matchedProduct.name || ''),
+            item_brand: String(matchedProduct.manufacturer_name || ''),
+            item_category: String(matchedProduct.category_name || matchedProduct.category || ''),
+            item_variant: String(matchedProduct.attributes || ''),
+            price: Math.round(resolvedPrice * 100) / 100,
+            quantity: parseInt(reason.quantity, 10) || parseInt(matchedProduct.quantity_wanted, 10) || 1
+          };
+
+          var normItems = EDL.normalizeItems([item]);
+          if (normItems.length > 0) {
+            lastAddToCartTimestamp = new Date().getTime();
+            EDL.pushEvent('add_to_cart', {
+              currency: currencyCode,
+              value: EDL.calculateCartValue(normItems),
+              items: normItems
+            });
+            return;
+          }
+        }
+
         var raw = {
-          id_product: reason.idProduct || '',
-          id_product_attribute: reason.idProductAttribute || '',
+          id_product: addedIdProduct,
+          id_product_attribute: addedIdAttr,
           price: reason.price || 0.0,
           quantity: parseInt(reason.quantity, 10) || 1
         };
         handleAddToCart(raw, currencyCode);
       } else if (action === 'delete-from-cart' || action === 'remove-from-cart') {
         var removedItem = {
-          item_id: String(reason.idProduct || ''),
-          variant_id: reason.idProductAttribute ? String(reason.idProductAttribute) : '',
+          item_id: String(reason.idProduct || reason.id_product || ''),
+          variant_id: (reason.idProductAttribute || reason.id_product_attribute) ? String(reason.idProductAttribute || reason.id_product_attribute) : '',
           item_name: 'Product',
           price: 0.0,
           quantity: 1
@@ -406,8 +481,7 @@
       }, 150);
     });
 
-    // Handle QuickView Modal dynamically for any product
-    window.prestashop.on('quickviewOpened', function (event) {
+    window.prestashop.on('quickviewOpened', function () {
       setTimeout(function () {
         var baseId = getBaseProductIdFromDOM();
         var variantId = getVariantIdFromDOM();
@@ -445,13 +519,11 @@
   }
 
   function initListingListeners() {
-    // Dynamically track view_item_list and select_item across Category, Search, and Catalog pages
     var cards = document.querySelectorAll('article.product-miniature, .js-product-miniature');
     if (!cards || cards.length === 0) return;
 
-    // Check if we are on a catalog/listing page (not PDP)
     if (document.querySelector('#product-details') && document.querySelector('#product_page_product_id')) {
-      return; // Already on single product page
+      return;
     }
 
     var items = [];
@@ -462,10 +534,9 @@
         items.push(item);
       }
 
-      // Track select_item when customer clicks a product card
       card.addEventListener('click', function (e) {
         if (e.target.closest('.add-to-cart, [data-button-action="add-to-cart"], .btn-iqitwishlist-add, .js-quick-view-iqit')) {
-          return; // Let specialized buttons handle their own events
+          return;
         }
         var clicked = extractItemFromCard(card);
         if (clicked) {
@@ -500,16 +571,24 @@
         var form = btn.closest('form');
         var qtyInput = form ? form.querySelector('input[name="qty"], #quantity_wanted') : null;
         var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
-        var idProd = (form && form.querySelector('input[name="id_product"]')) ? form.querySelector('input[name="id_product"]').value : (card ? card.getAttribute('data-id-product') : '');
-        var idAttr = (form && form.querySelector('input[name="id_product_attribute"]')) ? form.querySelector('input[name="id_product_attribute"]').value : (card ? card.getAttribute('data-id-product-attribute') : '');
+        var idProd = (form && form.querySelector('input[name="id_product"]')) 
+          ? form.querySelector('input[name="id_product"]').value 
+          : (card ? card.getAttribute('data-id-product') : '');
+        var idAttr = (form && form.querySelector('input[name="id_product_attribute"]')) 
+          ? form.querySelector('input[name="id_product_attribute"]').value 
+          : (card ? card.getAttribute('data-id-product-attribute') : '');
 
         setTimeout(function () {
+          var now = new Date().getTime();
+          if (now - lastAddToCartTimestamp < 800) {
+            return;
+          }
           handleAddToCart({
             id_product: idProd,
             id_product_attribute: idAttr,
             quantity: qty
           });
-        }, 300);
+        }, 500);
       }
     }, true);
   }

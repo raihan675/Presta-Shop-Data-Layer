@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.1/ps_gtm_datalayer.zip",
-  "checksum": "f65d7508833972d80d6e19bf5d4790cf17bdf76ce3bab59d4ce34921b569637d",
+  "checksum": "47e0a6e4f5f38cca16e83a61485374c96fd7d89e2c4cd738b8a948b35ff9fbe3",
   "release_type": "patch",
-  "release_notes": "1. Dynamic Store-Wide Product Tracking: Automatically captures dataLayer parameters for ANY product across the store (PDP, Quick View modals, Category & Search listings, and direct catalog add-to-cart buttons).\n2. Accurate Variant SKU Resolution: Accurately resolves variant SKU (e.g. BHK125-B for Steel Blue, BHK125-R for Rostrot) directly from combination mapping and DOM attributes.\n3. Product Title Reliability: Corrected product title selector to reliably extract the full product name across themes (e.g. Trink und Snack Tasse).\n4. Clean GA4 Schema: Removed item_id_gmc, item_id_meta, content_type, and meta_content_ids to strictly push base product ID as item_id, active combination ID as variant_id, and variant reference as sku_id."
+  "release_notes": "1. 100% Add-to-Cart Parity: Intercepts PrestaShop CartController response to guarantee that add_to_cart matches view_item with exact item_id, variant_id, sku_id, price, and variant label.\n2. Container Scoping: Fixed base product ID resolution to strictly bind to the active product container and prevent picking IDs from accessory carousels.\n3. Clean GA4 Schema: Base product ID as item_id, combination ID as variant_id, variant reference as sku_id."
 }
