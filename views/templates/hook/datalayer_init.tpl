@@ -7,6 +7,15 @@
   {if isset($event_prefix)}
   window.psGtmConfig.eventPrefix = '{$event_prefix|escape:'javascript':'UTF-8'}';
   {/if}
+  {if isset($item_id_mapping)}
+  window.psGtmConfig.itemIdMapping = '{$item_id_mapping|escape:'javascript':'UTF-8'}';
+  {/if}
+  {if isset($gmc_id_mapping)}
+  window.psGtmConfig.gmcIdMapping = '{$gmc_id_mapping|escape:'javascript':'UTF-8'}';
+  {/if}
+  {if isset($meta_id_mapping)}
+  window.psGtmConfig.metaIdMapping = '{$meta_id_mapping|escape:'javascript':'UTF-8'}';
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){

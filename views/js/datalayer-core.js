@@ -18,7 +18,7 @@
   function log(level, message, payload) {
     if (!DEBUG && level === 'info') return;
     var prefix = '[GTM DataLayer] [' + level.toUpperCase() + ']: ';
-    if (window.console && window.console[level]) {
+    if (typeof window !== 'undefined' && window.console && window.console[level]) {
       window.console[level](prefix + message, payload || '');
     }
   }
@@ -58,12 +58,42 @@
     return isNaN(parsed) ? 1 : Math.max(1, parsed);
   }
 
+  function resolveMappedIdentifier(strategy, baseId, variantId, sku) {
+    var base = String(baseId || '');
+    var variant = String(variantId || '');
+    var ref = String(sku || '');
+
+    switch (strategy) {
+      case 'sku':
+        return ref || base;
+      case 'combination_id':
+        return variant || base;
+      case 'compound_dash':
+        return variant ? (base + '-' + variant) : base;
+      case 'compound_underscore':
+        return variant ? (base + '_' + variant) : base;
+      case 'base_id':
+      default:
+        return base;
+    }
+  }
+
   function normalizeItem(raw) {
     if (!raw || typeof raw !== 'object') return null;
 
+    var baseId = String(raw.item_id || raw.base_product_id || raw.id || '');
+    var variantId = (raw.variant_id !== undefined && raw.variant_id !== null)
+      ? String(raw.variant_id)
+      : (raw.id_product_attribute ? String(raw.id_product_attribute) : '');
+    var skuId = String(raw.sku_id || raw.reference || raw.item_sku || '');
+    var variant = (raw.item_variant || raw.variant) ? String(raw.item_variant || raw.variant) : '';
+
     var item = {
-      item_id: String(raw.item_id || raw.id || raw.reference || ''),
+      item_id: baseId,
+      variant_id: variantId,
+      sku_id: skuId,
       item_name: String(raw.item_name || raw.name || ''),
+      item_variant: variant,
       price: sanitizeFloat(raw.price),
       quantity: sanitizeInt(raw.quantity)
     };
@@ -72,7 +102,8 @@
     if (raw.item_category || raw.category) item.item_category = String(raw.item_category || raw.category);
     if (raw.item_category2) item.item_category2 = String(raw.item_category2);
     if (raw.item_category3) item.item_category3 = String(raw.item_category3);
-    if (raw.item_variant || raw.variant) item.item_variant = String(raw.item_variant || raw.variant);
+    if (raw.item_id_gmc) item.item_id_gmc = String(raw.item_id_gmc);
+    if (raw.item_id_meta) item.item_id_meta = String(raw.item_id_meta);
     if (raw.index !== undefined) item.index = parseInt(raw.index, 10);
     if (raw.coupon) item.coupon = String(raw.coupon);
     if (raw.discount !== undefined) item.discount = sanitizeFloat(raw.discount);
@@ -108,7 +139,9 @@
       return false;
     }
 
-    window.dataLayer = window.dataLayer || [];
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+    }
 
     var finalEventName = formatEventName(canonicalEventName);
 
@@ -123,8 +156,10 @@
     }
 
     // Explicitly reset the ecommerce object to purge prior stale properties in GTM
-    window.dataLayer.push({ ecommerce: null });
-    window.dataLayer.push(canonicalPayload);
+    if (typeof window !== 'undefined' && window.dataLayer) {
+      window.dataLayer.push({ ecommerce: null });
+      window.dataLayer.push(canonicalPayload);
+    }
 
     log('info', 'Dispatched ' + finalEventName, canonicalPayload);
     return true;
@@ -150,6 +185,7 @@
     pushEvent: pushEcommerceEvent,
     normalizeItem: normalizeItem,
     normalizeItems: normalizeItems,
-    calculateCartValue: calculateCartValue
+    calculateCartValue: calculateCartValue,
+    resolveMappedIdentifier: resolveMappedIdentifier
   };
 });

@@ -14,17 +14,62 @@
   }
   syncConfig();
 
+  function getBaseProductIdFromDOM() {
+    var elem = document.querySelector('#product_page_product_id, input[name="id_product"], [data-id-product]');
+    if (elem) {
+      var val = elem.value || elem.getAttribute('data-id-product');
+      if (val) return String(val).trim();
+    }
+    var details = document.querySelector('#product-details[data-product]');
+    if (details) {
+      try {
+        var data = JSON.parse(details.getAttribute('data-product'));
+        if (data && (data.id_product || data.id)) {
+          return String(data.id_product || data.id).trim();
+        }
+      } catch (e) {}
+    }
+    return '';
+  }
+
+  function getVariantIdFromDOM() {
+    var elem = document.querySelector('#product_attribute_id, input[name="id_product_attribute"], [data-id-product-attribute]');
+    if (elem) {
+      var val = elem.value || elem.getAttribute('data-id-product-attribute');
+      if (val && parseInt(val, 10) > 0) return String(val).trim();
+    }
+    var details = document.querySelector('#product-details[data-product]');
+    if (details) {
+      try {
+        var data = JSON.parse(details.getAttribute('data-product'));
+        if (data && data.id_product_attribute && parseInt(data.id_product_attribute, 10) > 0) {
+          return String(data.id_product_attribute).trim();
+        }
+      } catch (e) {}
+    }
+    return '';
+  }
+
   function getReferenceFromDOM() {
     var refElem = document.querySelector('.product-reference span, [itemprop="sku"], .product-features .data-sheet dd');
     if (refElem) {
       var text = (refElem.innerText || refElem.getAttribute('content') || '').trim();
       if (text) return text;
     }
+    var details = document.querySelector('#product-details[data-product]');
+    if (details) {
+      try {
+        var data = JSON.parse(details.getAttribute('data-product'));
+        if (data && data.reference) {
+          return String(data.reference).trim();
+        }
+      } catch (e) {}
+    }
     return '';
   }
 
   function getPriceFromDOM() {
-    var priceElem = document.querySelector('.current-price [itemprop="price"], .product-prices [itemprop="price"], .current-price-value');
+    var priceElem = document.querySelector('.product-price.current-price-value, .current-price [itemprop="price"], .product-prices [itemprop="price"]');
     if (priceElem) {
       var contentVal = priceElem.getAttribute('content');
       if (contentVal && !isNaN(parseFloat(contentVal))) {
@@ -35,12 +80,34 @@
         return parseFloat(textVal);
       }
     }
+    var details = document.querySelector('#product-details[data-product]');
+    if (details) {
+      try {
+        var data = JSON.parse(details.getAttribute('data-product'));
+        if (data && data.price_amount) {
+          return parseFloat(data.price_amount);
+        }
+      } catch (e) {}
+    }
     return 0.0;
   }
 
   function getProductNameFromDOM() {
     var titleElem = document.querySelector('h1[itemprop="name"], .product-detail-name');
-    return titleElem ? titleElem.innerText.trim() : 'Product';
+    if (titleElem && titleElem.innerText) {
+      return titleElem.innerText.trim();
+    }
+    return 'Product';
+  }
+
+  function getProductBrandFromDOM() {
+    var brandElem = document.querySelector('[itemprop="brand"], .product-manufacturer a');
+    return brandElem ? brandElem.innerText.trim() : '';
+  }
+
+  function getProductCategoryFromDOM() {
+    var catElem = document.querySelector('.breadcrumb li:nth-last-child(2) a span, .breadcrumb li:nth-last-child(2) a');
+    return catElem ? catElem.innerText.trim() : '';
   }
 
   function getSelectedVariantFromDOM() {
@@ -51,7 +118,7 @@
         var opt = el.options[el.selectedIndex];
         if (opt && opt.text) parts.push(opt.text.trim());
       } else {
-        var container = el.closest('li');
+        var container = el.closest('li') || el.closest('.product-variants-item');
         var label = container ? (container.getAttribute('title') || (container.querySelector('.attribute-name') ? container.querySelector('.attribute-name').innerText : '')) : '';
         if (label) parts.push(label.trim());
       }
@@ -68,35 +135,50 @@
     lastAddToCartTimestamp = now;
 
     syncConfig();
-    var baseProduct = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+    var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+    var domBaseId = getBaseProductIdFromDOM();
+    var domVariantId = getVariantIdFromDOM();
     var domRef = getReferenceFromDOM();
     var domPrice = getPriceFromDOM();
     var domVariant = getSelectedVariantFromDOM();
 
-    var resolvedItemId = '';
-    if (domRef) {
-      resolvedItemId = domRef;
-    } else if (baseProduct && baseProduct.item_id) {
-      resolvedItemId = baseProduct.item_id;
-    } else if (rawItem && rawItem.item_id) {
-      resolvedItemId = String(rawItem.item_id);
-    } else {
-      resolvedItemId = 'unknown';
-    }
+    var baseId = (rawItem && rawItem.id_product)
+      ? String(rawItem.id_product)
+      : (domBaseId || (baseProd && (baseProd.base_product_id || baseProd.item_id)) || '');
 
-    var resolvedItemName = (baseProduct && baseProduct.item_name) ? baseProduct.item_name : getProductNameFromDOM();
-    var resolvedPrice = (domPrice > 0) ? domPrice : ((baseProduct && baseProduct.price > 0) ? baseProduct.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0));
+    var variantId = (rawItem && rawItem.id_product_attribute)
+      ? String(rawItem.id_product_attribute)
+      : (domVariantId || (baseProd ? baseProd.variant_id : '') || '');
+
+    var skuId = domRef || (rawItem && rawItem.reference) || (baseProd ? baseProd.sku_id : '') || '';
+    var variantName = domVariant || (baseProd ? baseProd.item_variant : '') || '';
+
+    var resolvedItemName = (baseProd && baseProd.item_name) ? baseProd.item_name : getProductNameFromDOM();
+    var resolvedBrand = (baseProd && baseProd.item_brand) ? baseProd.item_brand : getProductBrandFromDOM();
+    var resolvedCategory = (baseProd && baseProd.item_category) ? baseProd.item_category : getProductCategoryFromDOM();
+    var resolvedPrice = (domPrice > 0) ? domPrice : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0));
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
-    var resolvedVariant = domVariant || (baseProduct ? baseProduct.item_variant : '');
+
+    var itemIdMapping = (window.psGtmConfig && window.psGtmConfig.itemIdMapping) || 'base_id';
+    var gmcMapping = (window.psGtmConfig && window.psGtmConfig.gmcIdMapping) || 'sku';
+    var metaMapping = (window.psGtmConfig && window.psGtmConfig.metaIdMapping) || 'sku';
+
+    var resolvedItemId = EDL.resolveMappedIdentifier(itemIdMapping, baseId, variantId, skuId);
+    var resolvedGmcId = EDL.resolveMappedIdentifier(gmcMapping, baseId, variantId, skuId);
+    var resolvedMetaId = EDL.resolveMappedIdentifier(metaMapping, baseId, variantId, skuId);
 
     var addedItem = {
       item_id: resolvedItemId,
+      variant_id: variantId,
+      sku_id: skuId,
       item_name: resolvedItemName,
-      item_brand: baseProduct ? baseProduct.item_brand : '',
-      item_category: baseProduct ? baseProduct.item_category : '',
-      item_variant: resolvedVariant || '',
+      item_brand: resolvedBrand,
+      item_category: resolvedCategory,
+      item_variant: variantName,
       price: resolvedPrice,
-      quantity: resolvedQuantity || 1
+      quantity: resolvedQuantity,
+      item_id_gmc: resolvedGmcId,
+      item_id_meta: resolvedMetaId
     };
 
     var normalizedItems = EDL.normalizeItems([addedItem]);
@@ -105,6 +187,8 @@
     EDL.pushEvent('add_to_cart', {
       currency: currency,
       value: EDL.calculateCartValue(normalizedItems),
+      content_type: 'product',
+      meta_content_ids: [resolvedMetaId],
       items: normalizedItems
     });
   }
@@ -123,7 +207,8 @@
 
       if (action === 'add-to-cart') {
         var raw = {
-          item_id: reason.idProductAttribute ? (reason.idProduct + '-' + reason.idProductAttribute) : String(reason.idProduct || ''),
+          id_product: reason.idProduct || '',
+          id_product_attribute: reason.idProductAttribute || '',
           price: reason.price || 0.0,
           quantity: parseInt(reason.quantity, 10) || 1
         };
@@ -131,6 +216,7 @@
       } else if (action === 'delete-from-cart' || action === 'remove-from-cart') {
         var removedItem = {
           item_id: String(reason.idProduct || ''),
+          variant_id: reason.idProductAttribute ? String(reason.idProductAttribute) : '',
           item_name: 'Product',
           price: 0.0,
           quantity: 1
@@ -150,35 +236,61 @@
         return;
       }
 
-      var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
       if (!event.id_product_attribute) {
         return;
       }
 
       syncConfig();
-      var domPrice = getPriceFromDOM();
-      var domRef = getReferenceFromDOM();
-      var domVariant = getSelectedVariantFromDOM();
-      var title = getProductNameFromDOM();
 
-      var item = {
-        item_id: domRef || (currentProd ? currentProd.item_id : String(event.id_product_attribute)),
-        item_name: title,
-        item_brand: currentProd ? currentProd.item_brand : '',
-        item_category: currentProd ? currentProd.item_category : '',
-        item_variant: domVariant || '',
-        price: domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0),
-        quantity: 1
-      };
+      setTimeout(function () {
+        var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+        var domBaseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
+        var domVariantId = String(event.id_product_attribute || getVariantIdFromDOM() || '');
+        var domPrice = getPriceFromDOM();
+        var domRef = getReferenceFromDOM();
+        var domVariant = getSelectedVariantFromDOM();
+        var title = getProductNameFromDOM() || (currentProd ? currentProd.item_name : 'Product');
+        var brand = (currentProd ? currentProd.item_brand : '') || getProductBrandFromDOM();
+        var category = (currentProd ? currentProd.item_category : '') || getProductCategoryFromDOM();
 
-      var items = EDL.normalizeItems([item]);
-      if (items.length > 0) {
-        EDL.pushEvent('view_item', {
-          currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
-          value: items[0].price,
-          items: items
-        });
-      }
+        var itemIdMapping = (window.psGtmConfig && window.psGtmConfig.itemIdMapping) || 'base_id';
+        var gmcMapping = (window.psGtmConfig && window.psGtmConfig.gmcIdMapping) || 'sku';
+        var metaMapping = (window.psGtmConfig && window.psGtmConfig.metaIdMapping) || 'sku';
+
+        var resolvedItemId = EDL.resolveMappedIdentifier(itemIdMapping, domBaseId, domVariantId, domRef);
+        var resolvedGmcId = EDL.resolveMappedIdentifier(gmcMapping, domBaseId, domVariantId, domRef);
+        var resolvedMetaId = EDL.resolveMappedIdentifier(metaMapping, domBaseId, domVariantId, domRef);
+
+        var item = {
+          item_id: resolvedItemId,
+          variant_id: domVariantId,
+          sku_id: domRef,
+          item_name: title,
+          item_brand: brand,
+          item_category: category,
+          item_variant: domVariant || '',
+          price: domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0),
+          quantity: 1,
+          item_id_gmc: resolvedGmcId,
+          item_id_meta: resolvedMetaId
+        };
+
+        // Cache active product combination in memory for subsequent add-to-cart actions
+        if (window.psGtmConfig) {
+          window.psGtmConfig.currentProduct = item;
+        }
+
+        var items = EDL.normalizeItems([item]);
+        if (items.length > 0) {
+          EDL.pushEvent('view_item', {
+            currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
+            value: items[0].price,
+            content_type: 'product',
+            meta_content_ids: [resolvedMetaId],
+            items: items
+          });
+        }
+      }, 100);
     });
   }
 

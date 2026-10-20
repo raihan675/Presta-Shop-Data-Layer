@@ -51,7 +51,10 @@ class PayloadBuilder
             return null;
         }
 
-        $product = new Product($idProduct, true, $this->context->language->id, $this->context->shop->id);
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $idShop = $this->context->shop ? (int)$this->context->shop->id : 1;
+
+        $product = new Product($idProduct, true, $idLanguage, $idShop);
         if (!Validate::isLoadedObject($product)) {
             return null;
         }
@@ -69,8 +72,10 @@ class PayloadBuilder
             'event' => $this->getEventName('view_item'),
             'original_event' => 'view_item',
             'ecommerce' => [
-                'currency' => $this->context->currency->iso_code,
+                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round($price, 2),
+                'content_type' => 'product',
+                'meta_content_ids' => !empty($item['item_id_meta']) ? [$item['item_id_meta']] : [$item['item_id']],
                 'items' => [$item],
             ],
         ];
@@ -81,10 +86,12 @@ class PayloadBuilder
         $listId = 'list_' . $controller;
         $listName = ucfirst($controller) . ' Page';
 
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+
         if ($controller === 'category') {
             $idCategory = (int)Tools::getValue('id_category');
             if ($idCategory) {
-                $category = new Category($idCategory, $this->context->language->id);
+                $category = new Category($idCategory, $idLanguage);
                 if (Validate::isLoadedObject($category)) {
                     $listId = 'category_' . $idCategory;
                     $listName = (string)$category->name;
@@ -118,19 +125,27 @@ class PayloadBuilder
 
         $cartProducts = $cart->getProducts(true);
         $items = [];
+        $metaIds = [];
         $totalValue = (float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS);
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
 
         foreach ($cartProducts as $p) {
-            $productObj = new Product((int)$p['id_product'], false, $this->context->language->id);
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            $formatted = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $items[] = $formatted;
+            if (!empty($formatted['item_id_meta'])) {
+                $metaIds[] = $formatted['item_id_meta'];
+            }
         }
 
         return [
             'event' => $this->getEventName('view_cart'),
             'original_event' => 'view_cart',
             'ecommerce' => [
-                'currency' => $this->context->currency->iso_code,
+                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round($totalValue, 2),
+                'content_type' => 'product',
+                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
         ];
@@ -145,17 +160,26 @@ class PayloadBuilder
 
         $cartProducts = $cart->getProducts(true);
         $items = [];
+        $metaIds = [];
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+
         foreach ($cartProducts as $p) {
-            $productObj = new Product((int)$p['id_product'], false, $this->context->language->id);
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            $formatted = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $items[] = $formatted;
+            if (!empty($formatted['item_id_meta'])) {
+                $metaIds[] = $formatted['item_id_meta'];
+            }
         }
 
         return [
             'event' => $this->getEventName('begin_checkout'),
             'original_event' => 'begin_checkout',
             'ecommerce' => [
-                'currency' => $this->context->currency->iso_code,
+                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round((float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS), 2),
+                'content_type' => 'product',
+                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
         ];
@@ -165,18 +189,40 @@ class PayloadBuilder
     {
         $orderProducts = $order->getProducts();
         $items = [];
+        $metaIds = [];
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
 
         foreach ($orderProducts as $p) {
-            $productObj = new Product((int)$p['product_id'], false, $this->context->language->id);
+            $productObj = new Product((int)$p['product_id'], false, $idLanguage);
             $idAttr = isset($p['product_attribute_id']) ? (int)$p['product_attribute_id'] : 0;
-            $itemId = ProductIdentityResolver::resolveItemId($productObj, $idAttr);
+            $identifiers = ProductIdentityResolver::resolveProductIdentifiers($productObj, $idAttr, $idLanguage);
 
-            $items[] = [
-                'item_id' => $itemId,
+            $orderRef = !empty($p['product_reference']) ? trim($p['product_reference']) : '';
+            $skuId = !empty($orderRef) ? $orderRef : $identifiers['sku_id'];
+
+            $item = [
+                'item_id' => $identifiers['item_id'],
+                'variant_id' => $identifiers['variant_id'],
+                'sku_id' => $skuId,
                 'item_name' => (string)$p['product_name'],
+                'item_brand' => (string)$productObj->manufacturer_name,
+                'item_category' => '',
+                'item_variant' => $identifiers['item_variant'],
                 'price' => round((float)$p['unit_price_tax_incl'], 2),
                 'quantity' => (int)$p['product_quantity'],
+                'item_id_gmc' => $identifiers['item_id_gmc'],
+                'item_id_meta' => $identifiers['item_id_meta'],
             ];
+
+            $category = new Category((int)$productObj->id_category_default, $idLanguage);
+            if (Validate::isLoadedObject($category)) {
+                $item['item_category'] = (string)$category->name;
+            }
+
+            $items[] = $item;
+            if (!empty($identifiers['item_id_meta'])) {
+                $metaIds[] = $identifiers['item_id_meta'];
+            }
         }
 
         $customer = new Customer((int)$order->id_customer);
@@ -203,6 +249,8 @@ class PayloadBuilder
                 'shipping' => $orderShipping,
                 'currency' => Currency::getIsoCodeById((int)$order->id_currency),
                 'coupon' => $coupon,
+                'content_type' => 'product',
+                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
             'user_data' => $userData,
@@ -211,54 +259,26 @@ class PayloadBuilder
 
     public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null)
     {
-        $idLanguage = $this->context->language->id;
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $price = $overridePrice !== null 
             ? $overridePrice 
             : Product::getPriceStatic($product->id, true, $idAttribute ? $idAttribute : null, 2);
 
-        // Resolve Variant Attributes reliably
-        $variant = '';
-        if ($idAttribute > 0) {
-            $combinations = $product->getAttributeCombinationsById($idAttribute, $idLanguage);
-            if (!empty($combinations)) {
-                $attrs = [];
-                foreach ($combinations as $c) {
-                    $groupName = !empty($c['group_name']) ? $c['group_name'] : '';
-                    $attrName = !empty($c['attribute_name']) ? $c['attribute_name'] : '';
-                    if ($groupName && $attrName) {
-                        $attrs[] = "{$groupName}: {$attrName}";
-                    } elseif ($attrName) {
-                        $attrs[] = $attrName;
-                    }
-                }
-                $variant = implode(' / ', $attrs);
-            }
-        }
-
-        // Fallback if variant remains empty
-        if (empty($variant) && $idAttribute > 0) {
-            $resume = $product->getAttributesResume($idLanguage);
-            if (!empty($resume)) {
-                foreach ($resume as $r) {
-                    if ((int)$r['id_product_attribute'] === (int)$idAttribute && !empty($r['attribute'])) {
-                        $variant = (string)$r['attribute'];
-                        break;
-                    }
-                }
-            }
-        }
-
+        $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
         $category = new Category((int)$product->id_category_default, $idLanguage);
-        $itemId = ProductIdentityResolver::resolveItemId($product, $idAttribute);
 
         return [
-            'item_id' => $itemId,
+            'item_id' => $identifiers['item_id'],
+            'variant_id' => $identifiers['variant_id'],
+            'sku_id' => $identifiers['sku_id'],
             'item_name' => (string)$product->name,
             'item_brand' => (string)$product->manufacturer_name,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
-            'item_variant' => !empty($variant) ? $variant : '',
+            'item_variant' => $identifiers['item_variant'],
             'price' => round((float)$price, 2),
             'quantity' => (int)$quantity,
+            'item_id_gmc' => $identifiers['item_id_gmc'],
+            'item_id_meta' => $identifiers['item_id_meta'],
         ];
     }
 }
