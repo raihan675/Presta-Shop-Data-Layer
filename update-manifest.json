@@ -1,0 +1,10 @@
+{
+  "module": "ps_gtm_datalayer",
+  "latest_version": "1.1.1",
+  "release_date": "2026-10-20",
+  "min_ps_version": "1.7.8.0",
+  "download_url": "https://raw.githubusercontent.com/raihan675/Presta-Shop-Data-Layer/main/ps_gtm_datalayer.zip",
+  "checksum": "",
+  "release_type": "patch",
+  "release_notes": "1. Resolved duplicate view_item event during Add to Cart operations.\n2. Synchronized item_id and price between product page and cart additions.\n3. Dynamic dataLayer event prefix setting.\n4. Added 1-Click Update System."
+}

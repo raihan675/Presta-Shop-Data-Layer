@@ -11,6 +11,7 @@ if (!defined('_PS_VERSION_')) {
 require_once __DIR__ . '/classes/PayloadBuilder.php';
 require_once __DIR__ . '/classes/DeduplicationManager.php';
 require_once __DIR__ . '/classes/UserDataHasher.php';
+require_once __DIR__ . '/classes/UpdateManager.php';
 
 class Ps_Gtm_DataLayer extends Module
 {
@@ -18,7 +19,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.1.0';
+        $this->version = '1.1.1';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -27,7 +28,7 @@ class Ps_Gtm_DataLayer extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Generates standardized GA4 ecommerce DataLayer with dynamic prefixing and sGTM support.');
+        $this->description = $this->l('Generates standardized GA4 ecommerce DataLayer with dynamic prefixing, sGTM, and automatic 1-click update support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
     }
 
@@ -59,7 +60,22 @@ class Ps_Gtm_DataLayer extends Module
     public function getContent()
     {
         $output = '';
+        $updateManager = new UpdateManager($this);
 
+        // Handle 1-Click Update Execution
+        if (Tools::isSubmit('submitRunModuleUpdate')) {
+            $downloadUrl = Tools::getValue('update_download_url');
+            $checksum = Tools::getValue('update_checksum');
+            $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+
+            if ($updateResult['success']) {
+                $output .= $this->displayConfirmation($this->l($updateResult['message']));
+            } else {
+                $output .= $this->displayError($this->l($updateResult['message']));
+            }
+        }
+
+        // Handle Settings Submission
         if (Tools::isSubmit('submit' . $this->name)) {
             $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
             $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
@@ -81,7 +97,39 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
+        // Render Update Notification Banner
+        $updateInfo = $updateManager->checkForUpdates();
+        $output .= $this->renderUpdateBanner($updateInfo);
+
         return $output . $this->renderForm();
+    }
+
+    private function renderUpdateBanner($updateInfo)
+    {
+        $html = '<div class="panel">';
+        $html .= '<h3><i class="icon-refresh"></i> ' . $this->l('Module Version & Update Status') . '</h3>';
+
+        if (isset($updateInfo['has_update']) && $updateInfo['has_update']) {
+            $html .= '<div class="alert alert-warning">';
+            $html .= '<h4><strong>' . sprintf($this->l('New version %s is available!'), htmlspecialchars($updateInfo['latest_version'])) . '</strong></h4>';
+            $html .= '<p>' . nl2br(htmlspecialchars($updateInfo['release_notes'])) . '</p>';
+            $html .= '<hr>';
+            $html .= '<form action="' . Tools::safeOutput($_SERVER['REQUEST_URI']) . '" method="post" style="display:inline-block;">';
+            $html .= '<input type="hidden" name="update_download_url" value="' . htmlspecialchars($updateInfo['download_url']) . '">';
+            $html .= '<input type="hidden" name="update_checksum" value="' . htmlspecialchars($updateInfo['checksum']) . '">';
+            $html .= '<button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm(\'' . $this->l('Are you sure you want to upgrade the module now? All your settings will be preserved.') . '\');">';
+            $html .= '<i class="icon-download"></i> ' . $this->l('1-Click Update to Version ') . htmlspecialchars($updateInfo['latest_version']);
+            $html .= '</button>';
+            $html .= '</form>';
+            $html .= '</div>';
+        } else {
+            $html .= '<div class="alert alert-success" style="margin-bottom:0;">';
+            $html .= '<i class="icon-check-circle"></i> ' . sprintf($this->l('Module is up-to-date (Version %s). No manual re-upload required.'), $this->version);
+            $html .= '</div>';
+        }
+
+        $html .= '</div>';
+        return $html;
     }
 
     public static function normalizePrefix($prefix)
@@ -91,11 +139,8 @@ class Ps_Gtm_DataLayer extends Module
         }
 
         $cleaned = trim((string)$prefix);
-        // Replace spaces, hyphens, and dots with underscores
         $cleaned = preg_replace('/[\s\.\-]+/', '_', $cleaned);
-        // Remove any characters other than alphanumeric and underscores
         $cleaned = preg_replace('/[^a-zA-Z0-9_]/', '', $cleaned);
-        // Trim leading or trailing underscores
         $cleaned = trim($cleaned, '_');
 
         return $cleaned;
@@ -113,7 +158,6 @@ class Ps_Gtm_DataLayer extends Module
             return (string)$originalEventName;
         }
 
-        // Avoid double-prefixing if already starts with prefix + '_'
         if (strpos((string)$originalEventName, $prefix . '_') === 0) {
             return (string)$originalEventName;
         }
