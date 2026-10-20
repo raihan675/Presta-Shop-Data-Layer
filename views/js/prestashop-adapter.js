@@ -152,7 +152,7 @@
     if (baseProd && baseProd.item_brand) {
       return baseProd.item_brand;
     }
-    var brandElem = document.querySelector('[itemprop="brand"], .product-manufacturer a');
+    var brandElem = document.querySelector('[itemprop="brand"], .product-brand a, .product-brand, .product-manufacturer a');
     return brandElem ? brandElem.innerText.trim() : '';
   }
 
@@ -161,7 +161,7 @@
     if (baseProd && baseProd.item_category) {
       return baseProd.item_category;
     }
-    var catElem = document.querySelector('.breadcrumb li:nth-last-child(2) a span, .breadcrumb li:nth-last-child(2) a');
+    var catElem = document.querySelector('.product-category-name, .breadcrumb li:nth-last-child(2) a span, .breadcrumb li:nth-last-child(2) a');
     return catElem ? catElem.innerText.trim() : '';
   }
 
@@ -179,6 +179,50 @@
       }
     });
     return parts.join(' / ');
+  }
+
+  function extractItemFromCard(card) {
+    if (!card) return null;
+
+    var idProduct = card.getAttribute('data-id-product') || '';
+    if (!idProduct) return null;
+
+    var idAttr = card.getAttribute('data-id-product-attribute') || '';
+    var titleElem = card.querySelector('.product-title a, h2.product-title, .product-title, .product-name a');
+    var title = titleElem ? titleElem.innerText.trim() : 'Product';
+
+    var priceElem = card.querySelector('.product-price, .price');
+    var price = 0.0;
+    if (priceElem) {
+      var cVal = priceElem.getAttribute('content');
+      if (cVal && !isNaN(parseFloat(cVal))) {
+        price = parseFloat(cVal);
+      } else {
+        var tVal = (priceElem.innerText || '').replace(/[^0-9,\.]/g, '').replace(',', '.');
+        if (!isNaN(parseFloat(tVal))) price = parseFloat(tVal);
+      }
+    }
+
+    var brandElem = card.querySelector('.product-brand a, .product-brand');
+    var brand = brandElem ? brandElem.innerText.trim() : '';
+
+    var catElem = card.querySelector('.product-category-name');
+    var cat = catElem ? catElem.innerText.trim() : '';
+
+    var refElem = card.querySelector('.product-reference a, .product-reference');
+    var sku = refElem ? refElem.innerText.trim() : '';
+
+    return {
+      item_id: String(idProduct),
+      variant_id: idAttr ? String(idAttr) : '',
+      sku_id: sku,
+      item_name: title,
+      item_brand: brand,
+      item_category: cat,
+      item_variant: '',
+      price: price,
+      quantity: 1
+    };
   }
 
   var lastAddToCartTimestamp = 0;
@@ -205,17 +249,43 @@
       ? String(rawItem.id_product_attribute)
       : (domVariantId || (baseProd ? baseProd.variant_id : '') || '');
 
+    // Check if added from a listing card on catalog/home/search pages
+    var cardItem = null;
+    if (baseId) {
+      var matchingCard = document.querySelector('article[data-id-product="' + baseId + '"]');
+      if (matchingCard && (!baseProd || String(baseProd.item_id) !== String(baseId))) {
+        cardItem = extractItemFromCard(matchingCard);
+      }
+    }
+
     var combo = (variantId && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
       ? window.psGtmConfig.productCombinations[variantId]
       : null;
 
-    var skuId = (combo && combo.sku_id) ? combo.sku_id : (domRef || (rawItem && rawItem.reference) || (baseProd ? baseProd.sku_id : '') || '');
-    var variantName = (combo && combo.item_variant) ? combo.item_variant : (domVariant || (baseProd ? baseProd.item_variant : '') || '');
+    var skuId = (combo && combo.sku_id) 
+      ? combo.sku_id 
+      : (domRef || (rawItem && rawItem.reference) || (cardItem ? cardItem.sku_id : '') || (baseProd ? baseProd.sku_id : '') || '');
+    
+    var variantName = (combo && combo.item_variant) 
+      ? combo.item_variant 
+      : (domVariant || (baseProd ? baseProd.item_variant : '') || '');
 
-    var resolvedItemName = getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product');
-    var resolvedBrand = getProductBrandFromDOM() || (baseProd ? baseProd.item_brand : '');
-    var resolvedCategory = getProductCategoryFromDOM() || (baseProd ? baseProd.item_category : '');
-    var resolvedPrice = (combo && combo.price > 0) ? combo.price : (domPrice > 0 ? domPrice : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0)));
+    var resolvedItemName = (cardItem && cardItem.item_name) 
+      ? cardItem.item_name 
+      : (getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product'));
+
+    var resolvedBrand = (cardItem && cardItem.item_brand) 
+      ? cardItem.item_brand 
+      : (getProductBrandFromDOM() || (baseProd ? baseProd.item_brand : ''));
+
+    var resolvedCategory = (cardItem && cardItem.item_category) 
+      ? cardItem.item_category 
+      : (getProductCategoryFromDOM() || (baseProd ? baseProd.item_category : ''));
+
+    var resolvedPrice = (combo && combo.price > 0) 
+      ? combo.price 
+      : (domPrice > 0 ? domPrice : (cardItem && cardItem.price > 0 ? cardItem.price : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0))));
+    
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
 
     var addedItem = {
@@ -294,8 +364,8 @@
         var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
         var baseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
         var title = getProductNameFromDOM();
-        var brand = (currentProd ? currentProd.item_brand : '') || getProductBrandFromDOM();
-        var category = (currentProd ? currentProd.item_category : '') || getProductCategoryFromDOM();
+        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
+        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
 
         var combo = (window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
           ? window.psGtmConfig.productCombinations[variantId]
@@ -321,7 +391,6 @@
           quantity: 1
         };
 
-        // Cache active product combination in memory for subsequent add-to-cart actions
         if (window.psGtmConfig) {
           window.psGtmConfig.currentProduct = item;
         }
@@ -336,18 +405,110 @@
         }
       }, 150);
     });
+
+    // Handle QuickView Modal dynamically for any product
+    window.prestashop.on('quickviewOpened', function (event) {
+      setTimeout(function () {
+        var baseId = getBaseProductIdFromDOM();
+        var variantId = getVariantIdFromDOM();
+        var title = getProductNameFromDOM();
+        var sku = getReferenceFromDOM();
+        var price = getPriceFromDOM();
+        var brand = getProductBrandFromDOM();
+        var category = getProductCategoryFromDOM();
+        var variant = getSelectedVariantFromDOM();
+
+        if (baseId) {
+          var item = {
+            item_id: String(baseId),
+            variant_id: String(variantId),
+            sku_id: String(sku),
+            item_name: title,
+            item_brand: brand,
+            item_category: category,
+            item_variant: variant,
+            price: price,
+            quantity: 1
+          };
+
+          var items = EDL.normalizeItems([item]);
+          if (items.length > 0) {
+            EDL.pushEvent('view_item', {
+              currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
+              value: items[0].price,
+              items: items
+            });
+          }
+        }
+      }, 300);
+    });
+  }
+
+  function initListingListeners() {
+    // Dynamically track view_item_list and select_item across Category, Search, and Catalog pages
+    var cards = document.querySelectorAll('article.product-miniature, .js-product-miniature');
+    if (!cards || cards.length === 0) return;
+
+    // Check if we are on a catalog/listing page (not PDP)
+    if (document.querySelector('#product-details') && document.querySelector('#product_page_product_id')) {
+      return; // Already on single product page
+    }
+
+    var items = [];
+    cards.forEach(function (card, index) {
+      var item = extractItemFromCard(card);
+      if (item && item.item_id) {
+        item.index = index + 1;
+        items.push(item);
+      }
+
+      // Track select_item when customer clicks a product card
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('.add-to-cart, [data-button-action="add-to-cart"], .btn-iqitwishlist-add, .js-quick-view-iqit')) {
+          return; // Let specialized buttons handle their own events
+        }
+        var clicked = extractItemFromCard(card);
+        if (clicked) {
+          clicked.index = index + 1;
+          var norm = EDL.normalizeItems([clicked]);
+          if (norm.length > 0) {
+            EDL.pushEvent('select_item', {
+              item_list_id: window.location.pathname,
+              item_list_name: document.title.split('-')[0].trim(),
+              items: norm
+            });
+          }
+        }
+      });
+    });
+
+    if (items.length > 0) {
+      var normalized = EDL.normalizeItems(items);
+      EDL.pushEvent('view_item_list', {
+        item_list_id: window.location.pathname,
+        item_list_name: document.title.split('-')[0].trim(),
+        items: normalized
+      });
+    }
   }
 
   function initAddToCartButtonFallback() {
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-button-action="add-to-cart"], .add-to-cart, button.ajax_add_to_cart_button');
       if (btn) {
+        var card = btn.closest('article.product-miniature, .js-product-miniature');
         var form = btn.closest('form');
         var qtyInput = form ? form.querySelector('input[name="qty"], #quantity_wanted') : null;
         var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+        var idProd = (form && form.querySelector('input[name="id_product"]')) ? form.querySelector('input[name="id_product"]').value : (card ? card.getAttribute('data-id-product') : '');
+        var idAttr = (form && form.querySelector('input[name="id_product_attribute"]')) ? form.querySelector('input[name="id_product_attribute"]').value : (card ? card.getAttribute('data-id-product-attribute') : '');
 
         setTimeout(function () {
-          handleAddToCart({ quantity: qty });
+          handleAddToCart({
+            id_product: idProd,
+            id_product_attribute: idAttr,
+            quantity: qty
+          });
         }, 300);
       }
     }, true);
@@ -392,11 +553,13 @@
       onPrestashopReady();
       initAddToCartButtonFallback();
       initCheckoutListeners();
+      initListingListeners();
     });
   } else {
     onPrestashopReady();
     initAddToCartButtonFallback();
     initCheckoutListeners();
+    initListingListeners();
   }
 
 })(window, document, window.EcommerceDataLayer);

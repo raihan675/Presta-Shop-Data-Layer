@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.1/ps_gtm_datalayer.zip",
-  "checksum": "b1a93e1159602f222605c750fb16199733ad6895d223fe400be81d71558a16b6",
+  "checksum": "f65d7508833972d80d6e19bf5d4790cf17bdf76ce3bab59d4ce34921b569637d",
   "release_type": "patch",
-  "release_notes": "1. Accurate Variant SKU Resolution: Accurately resolves variant SKU (e.g. BHK125-B for Steel Blue, BHK125-R for Rostrot) directly from combination mapping and DOM attributes.\n2. Product Title Reliability: Corrected product title selector to reliably extract the full product name across themes (e.g. Trink und Snack Tasse).\n3. Clean GA4 Schema: Removed item_id_gmc, item_id_meta, content_type, and meta_content_ids to strictly push base product ID as item_id, active combination ID as variant_id, and variant reference as sku_id."
+  "release_notes": "1. Dynamic Store-Wide Product Tracking: Automatically captures dataLayer parameters for ANY product across the store (PDP, Quick View modals, Category & Search listings, and direct catalog add-to-cart buttons).\n2. Accurate Variant SKU Resolution: Accurately resolves variant SKU (e.g. BHK125-B for Steel Blue, BHK125-R for Rostrot) directly from combination mapping and DOM attributes.\n3. Product Title Reliability: Corrected product title selector to reliably extract the full product name across themes (e.g. Trink und Snack Tasse).\n4. Clean GA4 Schema: Removed item_id_gmc, item_id_meta, content_type, and meta_content_ids to strictly push base product ID as item_id, active combination ID as variant_id, and variant reference as sku_id."
 }
