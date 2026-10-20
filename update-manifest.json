@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.2.0",
+  "latest_version": "1.2.1",
   "release_date": "2026-10-20",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.2.0/ps_gtm_datalayer.zip",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.2.1/ps_gtm_datalayer.zip",
   "checksum": "",
-  "release_type": "minor",
-  "release_notes": "1. Multi-Catalog Product Identity Engine: Dedicated identifiers for GMC (item_id_gmc), Meta (item_id_meta), SKU, and GTIN.\n2. Customer Data Engine: E.164 phone normalization, lowercase email trim, and SHA-256 cryptographic hashing.\n3. Precision Value Reconciliation: Floating-point precision matching authoritative PrestaShop order records.\n4. Configurable GMC and Meta identifier strategies in the Back Office."
+  "release_type": "patch",
+  "release_notes": "1. Streamlined item object: Pushes only the single, authoritative item_id directly from the database.\n2. Preserved SKU vs Product ID switch in module configuration.\n3. Kept clean GA4 ecommerce payload structure without extra platform fields."
 }

@@ -166,16 +166,14 @@ class PayloadBuilder
         foreach ($orderProducts as $p) {
             $productObj = new Product((int)$p['product_id'], false, $this->context->language->id);
             $idAttr = isset($p['product_attribute_id']) ? (int)$p['product_attribute_id'] : 0;
-            $identifiers = ProductIdentityResolver::resolveIdentifiers($productObj, $idAttr);
+            $itemId = ProductIdentityResolver::resolveItemId($productObj, $idAttr);
 
-            $unitPrice = round((float)$p['unit_price_tax_incl'], 2);
-            $qty = (int)$p['product_quantity'];
-
-            $items[] = array_merge($identifiers, [
+            $items[] = [
+                'item_id' => $itemId,
                 'item_name' => (string)$p['product_name'],
-                'price' => $unitPrice,
-                'quantity' => $qty,
-            ]);
+                'price' => round((float)$p['unit_price_tax_incl'], 2),
+                'quantity' => (int)$p['product_quantity'],
+            ];
         }
 
         $customer = new Customer((int)$order->id_customer);
@@ -229,15 +227,16 @@ class PayloadBuilder
         }
 
         $category = new Category((int)$product->id_category_default, $idLanguage);
-        $identifiers = ProductIdentityResolver::resolveIdentifiers($product, $idAttribute);
+        $itemId = ProductIdentityResolver::resolveItemId($product, $idAttribute);
 
-        return array_merge($identifiers, [
+        return [
+            'item_id' => $itemId,
             'item_name' => (string)$product->name,
             'item_brand' => (string)$product->manufacturer_name,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
             'item_variant' => $variant,
             'price' => round((float)$price, 2),
             'quantity' => (int)$quantity,
-        ]);
+        ];
     }
 }
