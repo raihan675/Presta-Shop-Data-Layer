@@ -74,8 +74,6 @@ class PayloadBuilder
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round($price, 2),
-                'content_type' => 'product',
-                'meta_content_ids' => !empty($item['item_id_meta']) ? [$item['item_id_meta']] : [$item['item_id']],
                 'items' => [$item],
             ],
         ];
@@ -125,17 +123,12 @@ class PayloadBuilder
 
         $cartProducts = $cart->getProducts(true);
         $items = [];
-        $metaIds = [];
         $totalValue = (float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS);
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
-            $formatted = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
-            $items[] = $formatted;
-            if (!empty($formatted['item_id_meta'])) {
-                $metaIds[] = $formatted['item_id_meta'];
-            }
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
         return [
@@ -144,8 +137,6 @@ class PayloadBuilder
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round($totalValue, 2),
-                'content_type' => 'product',
-                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
         ];
@@ -160,16 +151,11 @@ class PayloadBuilder
 
         $cartProducts = $cart->getProducts(true);
         $items = [];
-        $metaIds = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
-            $formatted = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
-            $items[] = $formatted;
-            if (!empty($formatted['item_id_meta'])) {
-                $metaIds[] = $formatted['item_id_meta'];
-            }
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
         return [
@@ -178,8 +164,6 @@ class PayloadBuilder
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
                 'value' => round((float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS), 2),
-                'content_type' => 'product',
-                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
         ];
@@ -189,7 +173,6 @@ class PayloadBuilder
     {
         $orderProducts = $order->getProducts();
         $items = [];
-        $metaIds = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
 
         foreach ($orderProducts as $p) {
@@ -201,7 +184,7 @@ class PayloadBuilder
             $skuId = !empty($orderRef) ? $orderRef : $identifiers['sku_id'];
 
             $item = [
-                'item_id' => $identifiers['item_id'],
+                'item_id' => (string)$productObj->id, // Base product ID
                 'variant_id' => $identifiers['variant_id'],
                 'sku_id' => $skuId,
                 'item_name' => (string)$p['product_name'],
@@ -210,8 +193,6 @@ class PayloadBuilder
                 'item_variant' => $identifiers['item_variant'],
                 'price' => round((float)$p['unit_price_tax_incl'], 2),
                 'quantity' => (int)$p['product_quantity'],
-                'item_id_gmc' => $identifiers['item_id_gmc'],
-                'item_id_meta' => $identifiers['item_id_meta'],
             ];
 
             $category = new Category((int)$productObj->id_category_default, $idLanguage);
@@ -220,9 +201,6 @@ class PayloadBuilder
             }
 
             $items[] = $item;
-            if (!empty($identifiers['item_id_meta'])) {
-                $metaIds[] = $identifiers['item_id_meta'];
-            }
         }
 
         $customer = new Customer((int)$order->id_customer);
@@ -249,8 +227,6 @@ class PayloadBuilder
                 'shipping' => $orderShipping,
                 'currency' => Currency::getIsoCodeById((int)$order->id_currency),
                 'coupon' => $coupon,
-                'content_type' => 'product',
-                'meta_content_ids' => array_values(array_unique($metaIds)),
                 'items' => $items,
             ],
             'user_data' => $userData,
@@ -268,7 +244,7 @@ class PayloadBuilder
         $category = new Category((int)$product->id_category_default, $idLanguage);
 
         return [
-            'item_id' => $identifiers['item_id'],
+            'item_id' => (string)$product->id, // Base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
             'item_name' => (string)$product->name,
@@ -277,8 +253,6 @@ class PayloadBuilder
             'item_variant' => $identifiers['item_variant'],
             'price' => round((float)$price, 2),
             'quantity' => (int)$quantity,
-            'item_id_gmc' => $identifiers['item_id_gmc'],
-            'item_id_meta' => $identifiers['item_id_meta'],
         ];
     }
 }

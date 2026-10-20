@@ -1,7 +1,7 @@
 <?php
 /**
  * ProductIdentityResolver: Resolves catalog-accurate product and variant identifiers
- * for GA4, Google Merchant Center, and Meta Catalog.
+ * for GA4 ecommerce tracking.
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -35,8 +35,12 @@ class ProductIdentityResolver
                     ? (int)Context::getContext()->language->id 
                     : 1;
                 $combos = $product->getAttributeCombinationsById($idAttr, $langId);
-                if (!empty($combos) && !empty($combos[0]['reference'])) {
-                    return trim((string)$combos[0]['reference']);
+                if (!empty($combos)) {
+                    foreach ($combos as $c) {
+                        if (!empty($c['reference'])) {
+                            return trim((string)$c['reference']);
+                        }
+                    }
                 }
             }
         }
@@ -49,7 +53,7 @@ class ProductIdentityResolver
     }
 
     /**
-     * Resolves human-readable variant attribute string (e.g. "Rostrot" or "Farbe: Rostrot")
+     * Resolves human-readable variant attribute string (e.g. "Stahlblau" or "Farbe: Stahlblau")
      *
      * @param Product $product
      * @param int $idProductAttribute
@@ -103,40 +107,57 @@ class ProductIdentityResolver
     }
 
     /**
-     * Resolves an identifier based on a mapping strategy rule.
+     * Returns a complete map of all combinations for this product indexed by id_product_attribute.
      *
-     * @param string $mappingStrategy ('base_id', 'sku', 'combination_id', 'compound_dash', 'compound_underscore')
      * @param Product $product
-     * @param int $idProductAttribute
-     * @param string $sku
-     * @return string
+     * @param int|null $idLanguage
+     * @return array
      */
-    public static function resolveMappedId($mappingStrategy, Product $product, $idProductAttribute = 0, $sku = '')
+    public static function getProductCombinationsMap(Product $product, $idLanguage = null)
     {
-        $idProduct = (string)$product->id;
-        $idAttr = (int)$idProductAttribute;
-
-        if (empty($sku)) {
-            $sku = self::resolveVariantReference($product, $idAttr);
+        if (!$idLanguage) {
+            $idLanguage = (Context::getContext() && Context::getContext()->language) 
+                ? (int)Context::getContext()->language->id 
+                : 1;
         }
 
-        switch ($mappingStrategy) {
-            case 'sku':
-                return !empty($sku) ? $sku : $idProduct;
-            case 'combination_id':
-                return $idAttr > 0 ? (string)$idAttr : $idProduct;
-            case 'compound_dash':
-                return $idAttr > 0 ? "{$idProduct}-{$idAttr}" : $idProduct;
-            case 'compound_underscore':
-                return $idAttr > 0 ? "{$idProduct}_{$idAttr}" : $idProduct;
-            case 'base_id':
-            default:
-                return $idProduct;
+        $map = [];
+        if (method_exists($product, 'getAttributeCombinations')) {
+            $combos = $product->getAttributeCombinations($idLanguage);
+            if (!empty($combos)) {
+                foreach ($combos as $c) {
+                    $idAttr = (string)$c['id_product_attribute'];
+                    $groupName = !empty($c['group_name']) ? $c['group_name'] : '';
+                    $attrName = !empty($c['attribute_name']) ? $c['attribute_name'] : '';
+                    $label = ($groupName && $attrName) ? "{$groupName}: {$attrName}" : $attrName;
+                    $ref = !empty($c['reference']) ? trim($c['reference']) : trim((string)$product->reference);
+
+                    if (!isset($map[$idAttr])) {
+                        $price = Product::getPriceStatic($product->id, true, (int)$idAttr, 2);
+                        $map[$idAttr] = [
+                            'variant_id' => $idAttr,
+                            'sku_id' => $ref,
+                            'item_variant' => $label,
+                            'price' => round((float)$price, 2),
+                        ];
+                    } else {
+                        if ($label) {
+                            $map[$idAttr]['item_variant'] .= ' / ' . $label;
+                        }
+                        if (!empty($c['reference'])) {
+                            $map[$idAttr]['sku_id'] = trim($c['reference']);
+                        }
+                    }
+                }
+            }
         }
+
+        return $map;
     }
 
     /**
      * Resolves the full structured identifier set for any product or combination.
+     * item_id is ALWAYS the Base Product ID.
      *
      * @param Product $product
      * @param int $idProductAttribute
@@ -151,30 +172,11 @@ class ProductIdentityResolver
         $sku = self::resolveVariantReference($product, $idAttr);
         $variantName = self::resolveVariantName($product, $idAttr, $idLanguage);
 
-        $itemIdMapping = Configuration::get('PS_GTM_ITEM_ID_MAPPING');
-        if (empty($itemIdMapping)) {
-            // Check legacy setting: if USE_SKU was enabled, default to sku, else base_id
-            $itemIdMapping = Configuration::get('PS_GTM_USE_SKU') ? 'sku' : 'base_id';
-        }
-
-        $gmcMapping = Configuration::get('PS_GTM_GMC_ID_MAPPING');
-        if (empty($gmcMapping)) {
-            $gmcMapping = 'sku';
-        }
-
-        $metaMapping = Configuration::get('PS_GTM_META_ID_MAPPING');
-        if (empty($metaMapping)) {
-            $metaMapping = 'sku';
-        }
-
         return [
-            'item_id' => self::resolveMappedId($itemIdMapping, $product, $idAttr, $sku),
-            'base_product_id' => $idProduct,
+            'item_id' => $idProduct, // ALWAYS Base Product ID (e.g. 68)
             'variant_id' => $idAttr > 0 ? (string)$idAttr : '',
             'sku_id' => $sku,
             'item_variant' => $variantName,
-            'item_id_gmc' => self::resolveMappedId($gmcMapping, $product, $idAttr, $sku),
-            'item_id_meta' => self::resolveMappedId($metaMapping, $product, $idAttr, $sku),
         ];
     }
 
@@ -187,7 +189,6 @@ class ProductIdentityResolver
      */
     public static function resolveItemId(Product $product, $idProductAttribute = 0)
     {
-        $identifiers = self::resolveProductIdentifiers($product, $idProductAttribute);
-        return $identifiers['item_id'];
+        return (string)$product->id;
     }
 }

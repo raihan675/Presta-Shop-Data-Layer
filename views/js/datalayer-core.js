@@ -58,26 +58,6 @@
     return isNaN(parsed) ? 1 : Math.max(1, parsed);
   }
 
-  function resolveMappedIdentifier(strategy, baseId, variantId, sku) {
-    var base = String(baseId || '');
-    var variant = String(variantId || '');
-    var ref = String(sku || '');
-
-    switch (strategy) {
-      case 'sku':
-        return ref || base;
-      case 'combination_id':
-        return variant || base;
-      case 'compound_dash':
-        return variant ? (base + '-' + variant) : base;
-      case 'compound_underscore':
-        return variant ? (base + '_' + variant) : base;
-      case 'base_id':
-      default:
-        return base;
-    }
-  }
-
   function normalizeItem(raw) {
     if (!raw || typeof raw !== 'object') return null;
 
@@ -102,8 +82,6 @@
     if (raw.item_category || raw.category) item.item_category = String(raw.item_category || raw.category);
     if (raw.item_category2) item.item_category2 = String(raw.item_category2);
     if (raw.item_category3) item.item_category3 = String(raw.item_category3);
-    if (raw.item_id_gmc) item.item_id_gmc = String(raw.item_id_gmc);
-    if (raw.item_id_meta) item.item_id_meta = String(raw.item_id_meta);
     if (raw.index !== undefined) item.index = parseInt(raw.index, 10);
     if (raw.coupon) item.coupon = String(raw.coupon);
     if (raw.discount !== undefined) item.discount = sanitizeFloat(raw.discount);
@@ -185,7 +163,6 @@
     pushEvent: pushEcommerceEvent,
     normalizeItem: normalizeItem,
     normalizeItems: normalizeItems,
-    calculateCartValue: calculateCartValue,
-    resolveMappedIdentifier: resolveMappedIdentifier
+    calculateCartValue: calculateCartValue
   };
 });

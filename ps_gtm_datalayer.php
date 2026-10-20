@@ -20,7 +20,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.3.0';
+        $this->version = '1.3.1';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -29,7 +29,7 @@ class Ps_Gtm_DataLayer extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Catalog-accurate ecommerce DataLayer with full variant combination tracking, multi-platform catalog mapping, dynamic prefixing, and sGTM support.');
+        $this->description = $this->l('Catalog-accurate ecommerce DataLayer with base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
     }
 
@@ -43,10 +43,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
-            && Configuration::updateValue('PS_GTM_USE_SKU', '0')
-            && Configuration::updateValue('PS_GTM_ITEM_ID_MAPPING', 'base_id')
-            && Configuration::updateValue('PS_GTM_GMC_ID_MAPPING', 'sku')
-            && Configuration::updateValue('PS_GTM_META_ID_MAPPING', 'sku')
             && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '');
     }
 
@@ -57,10 +53,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
-            && Configuration::deleteByName('PS_GTM_USE_SKU')
-            && Configuration::deleteByName('PS_GTM_ITEM_ID_MAPPING')
-            && Configuration::deleteByName('PS_GTM_GMC_ID_MAPPING')
-            && Configuration::deleteByName('PS_GTM_META_ID_MAPPING')
             && Configuration::deleteByName('PS_GTM_EVENT_PREFIX');
     }
 
@@ -87,9 +79,6 @@ class Ps_Gtm_DataLayer extends Module
             $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
             $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
             $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
-            $itemIdMapping = Tools::getValue('PS_GTM_ITEM_ID_MAPPING');
-            $gmcIdMapping = Tools::getValue('PS_GTM_GMC_ID_MAPPING');
-            $metaIdMapping = Tools::getValue('PS_GTM_META_ID_MAPPING');
             $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
             $prefix = self::normalizePrefix($rawPrefix);
 
@@ -99,9 +88,6 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
                 Configuration::updateValue('PS_SGTM_TRANSPORT_URL', rtrim($sgtmUrl, '/'));
                 Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
-                Configuration::updateValue('PS_GTM_ITEM_ID_MAPPING', $itemIdMapping);
-                Configuration::updateValue('PS_GTM_GMC_ID_MAPPING', $gmcIdMapping);
-                Configuration::updateValue('PS_GTM_META_ID_MAPPING', $metaIdMapping);
                 Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
 
                 $output .= $this->displayConfirmation($this->l('Settings updated successfully.'));
@@ -191,30 +177,12 @@ class Ps_Gtm_DataLayer extends Module
             . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name;
         $helper->token = Tools::getAdminTokenLite('AdminModules');
 
-        $itemIdMapping = Configuration::get('PS_GTM_ITEM_ID_MAPPING');
-        if (empty($itemIdMapping)) {
-            $itemIdMapping = Configuration::get('PS_GTM_USE_SKU') ? 'sku' : 'base_id';
-        }
-
-        $gmcMapping = Configuration::get('PS_GTM_GMC_ID_MAPPING');
-        if (empty($gmcMapping)) {
-            $gmcMapping = 'sku';
-        }
-
-        $metaMapping = Configuration::get('PS_GTM_META_ID_MAPPING');
-        if (empty($metaMapping)) {
-            $metaMapping = 'sku';
-        }
-
         $helper->tpl_vars = [
             'fields_value' => [
                 'PS_GTM_CONTAINER_ID' => Configuration::get('PS_GTM_CONTAINER_ID'),
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
-                'PS_GTM_ITEM_ID_MAPPING' => $itemIdMapping,
-                'PS_GTM_GMC_ID_MAPPING' => $gmcMapping,
-                'PS_GTM_META_ID_MAPPING' => $metaMapping,
             ],
             'languages' => $this->context->controller->getLanguages(),
             'id_language' => $this->context->language->id,
@@ -247,56 +215,6 @@ class Ps_Gtm_DataLayer extends Module
                         'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for standard GA4 event names.'),
                         'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
                         'size' => 30,
-                    ],
-                    [
-                        'type' => 'select',
-                        'name' => 'PS_GTM_ITEM_ID_MAPPING',
-                        'label' => $this->l('GA4 Primary item_id Mapping'),
-                        'desc' => $this->l('Select the identifier assigned to the standard GA4 item_id field. The items array will also always provide variant_id and sku_id.'),
-                        'options' => [
-                            'query' => [
-                                ['id' => 'base_id', 'name' => $this->l('Base Product ID (e.g. 68) [Recommended]')],
-                                ['id' => 'sku', 'name' => $this->l('Variant SKU / Reference (e.g. BHK125-R)')],
-                                ['id' => 'compound_dash', 'name' => $this->l('Compound Product & Variant ID with Dash (e.g. 68-298)')],
-                                ['id' => 'compound_underscore', 'name' => $this->l('Compound Product & Variant ID with Underscore (e.g. 68_298)')],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    [
-                        'type' => 'select',
-                        'name' => 'PS_GTM_GMC_ID_MAPPING',
-                        'label' => $this->l('Google Merchant Center / Ads ID Mapping'),
-                        'desc' => $this->l('Mapped into the item_id_gmc parameter to ensure 100% catalog parity with your Google Ads feed.'),
-                        'options' => [
-                            'query' => [
-                                ['id' => 'sku', 'name' => $this->l('Variant SKU / Reference (e.g. BHK125-R)')],
-                                ['id' => 'base_id', 'name' => $this->l('Base Product ID (e.g. 68)')],
-                                ['id' => 'combination_id', 'name' => $this->l('Combination ID (e.g. 298)')],
-                                ['id' => 'compound_dash', 'name' => $this->l('Compound ID with Dash (e.g. 68-298)')],
-                                ['id' => 'compound_underscore', 'name' => $this->l('Compound ID with Underscore (e.g. 68_298)')],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
-                    ],
-                    [
-                        'type' => 'select',
-                        'name' => 'PS_GTM_META_ID_MAPPING',
-                        'label' => $this->l('Meta (Facebook) Catalog ID Mapping'),
-                        'desc' => $this->l('Mapped into item_id_meta and meta_content_ids to ensure 100% catalog parity with your Meta product feed.'),
-                        'options' => [
-                            'query' => [
-                                ['id' => 'sku', 'name' => $this->l('Variant SKU / Reference (e.g. BHK125-R)')],
-                                ['id' => 'base_id', 'name' => $this->l('Base Product ID (e.g. 68)')],
-                                ['id' => 'combination_id', 'name' => $this->l('Combination ID (e.g. 298)')],
-                                ['id' => 'compound_dash', 'name' => $this->l('Compound ID with Dash (e.g. 68-298)')],
-                                ['id' => 'compound_underscore', 'name' => $this->l('Compound ID with Underscore (e.g. 68_298)')],
-                            ],
-                            'id' => 'id',
-                            'name' => 'name',
-                        ],
                     ],
                     [
                         'type' => 'text',
@@ -332,25 +250,28 @@ class Ps_Gtm_DataLayer extends Module
         $consentEnabled = (bool)Configuration::get('PS_GTM_CONSENT_MODE');
         $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
 
-        $itemIdMapping = Configuration::get('PS_GTM_ITEM_ID_MAPPING');
-        if (empty($itemIdMapping)) {
-            $itemIdMapping = Configuration::get('PS_GTM_USE_SKU') ? 'sku' : 'base_id';
-        }
-        $gmcMapping = Configuration::get('PS_GTM_GMC_ID_MAPPING') ?: 'sku';
-        $metaMapping = Configuration::get('PS_GTM_META_ID_MAPPING') ?: 'sku';
-
         $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
         $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
+
+        // Pre-build combinations dictionary for PDP to give instant, accurate variant SKU lookup
+        $combosMap = [];
+        if ($controller === 'product') {
+            $idProduct = (int)Tools::getValue('id_product');
+            if ($idProduct > 0) {
+                $productObj = new Product($idProduct, false, $this->context->language ? (int)$this->context->language->id : 1);
+                if (Validate::isLoadedObject($productObj)) {
+                    $combosMap = ProductIdentityResolver::getProductCombinationsMap($productObj, $this->context->language ? (int)$this->context->language->id : 1);
+                }
+            }
+        }
 
         $this->context->smarty->assign([
             'gtm_id' => $gtmId,
             'sgtm_url' => $sgtmUrl,
             'consent_mode_enabled' => $consentEnabled,
             'event_prefix' => $eventPrefix,
-            'item_id_mapping' => $itemIdMapping,
-            'gmc_id_mapping' => $gmcMapping,
-            'meta_id_mapping' => $metaMapping,
+            'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);
 

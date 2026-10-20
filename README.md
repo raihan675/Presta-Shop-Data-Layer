@@ -1,18 +1,14 @@
 # Enterprise GA4 & sGTM DataLayer Module for PrestaShop
 
-Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8.2.x and 9.x) that implements an enterprise-grade Google Tag Manager (GTM) Data Layer following the canonical Google Analytics 4 (GA4) ecommerce measurement schema with catalog-accurate multi-platform matching, comprehensive variant tracking, and automated version management.
+Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8.2.x and 9.x) that implements an enterprise-grade Google Tag Manager (GTM) Data Layer following the canonical Google Analytics 4 (GA4) ecommerce measurement schema with precision variant combination tracking and automated version management.
 
 ## Key Features
 
 - **Full Product Variant & Combination Tracking:** For every product, pushes explicit identifiers into the `items` array:
-  - `item_id`: Base product ID (e.g. `68`) by default, or configurable via Back Office.
-  - `variant_id`: Active combination/attribute ID (e.g. `298`), or empty string for simple products.
-  - `sku_id`: Exact article number/reference for the selected variant (e.g. `BHK125-R`), never falling back to parent SKU when variant reference exists.
-  - `item_variant`: Human-readable combination attribute name (e.g. `Farbe: Rostrot` or `Rostrot`).
-- **Multi-Platform Catalog Mapping (Meta Pixel/CAPI & Google Ads):** Configurable identifier strategies to match your exact advertising product feeds:
-  - `item_id_gmc`: Mapped identifier for Google Merchant Center / Google Ads remarketing.
-  - `item_id_meta`: Mapped identifier for Meta Product Catalog / CAPI.
-  - `meta_content_ids`: Array of active product/variant IDs in the event for single-click Meta Tag setup in GTM.
+  - `item_id`: Base product ID (e.g. `68`).
+  - `variant_id`: Active combination/attribute ID (e.g. `298`, `299`), or empty string for simple products.
+  - `sku_id`: Exact article number/reference for the selected variant (e.g. `BHK125-R`, `BHK125-B`), never falling back to parent SKU when variant reference exists.
+  - `item_variant`: Human-readable combination attribute name (e.g. `Farbe: Rostrot`, `Stahlblau`).
 - **Precision Value & Order Reconciliation:** Exact floating-point price calculations derived directly from PrestaShop core ObjectModels (`Product::getPriceStatic()`, `$cart->getOrderTotal()`, `$order->total_paid_tax_incl`).
 - **Automated Version Management & 1-Click Updates:** Never manually re-upload a ZIP file again. The module queries GitHub releases via `update-manifest.json` and allows safe, 1-click in-place updates from the PrestaShop Back Office while preserving all settings.
 - **Dynamic Data Layer Event Prefix:** Set any custom identifier in the Back Office (e.g. `raihan`, `masum`, `client_a`). The module automatically generates `{prefix}_{canonical_event}` while keeping `original_event` intact for clean GTM mapping.
@@ -25,9 +21,6 @@ Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8
 
 - **GTM Container ID:** Your Google Tag Manager container ID (e.g. `GTM-XXXXXXX`).
 - **Data Layer Event Prefix:** Custom prefix for dataLayer events (e.g. `raihan`, `client_a`). Leave blank for default standard GA4 names.
-- **GA4 Primary item_id Mapping:** Choose which identifier is mapped to the standard GA4 `item_id` (`Base Product ID`, `Variant SKU / Reference`, `Compound ID with Dash`, `Compound ID with Underscore`).
-- **Google Merchant Center / Ads ID Mapping:** Strategy for `item_id_gmc` to match your GMC feed (`Variant SKU / Reference`, `Base Product ID`, `Combination ID`, `Compound ID with Dash/Underscore`).
-- **Meta (Facebook) Catalog ID Mapping:** Strategy for `item_id_meta` to match your Meta catalog (`Variant SKU / Reference`, `Base Product ID`, `Combination ID`, `Compound ID with Dash/Underscore`).
 - **Server-Side GTM Transport URL:** Optional custom domain endpoint (e.g. `https://gtm.yourdomain.com`).
 - **Google Consent Mode v2:** Enable or disable default denied consent setup.
 
@@ -36,11 +29,11 @@ Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8
 ```text
 ps_gtm_datalayer/
 ├── ps_gtm_datalayer.php            # Main entry, hooks, and back-office configuration
-├── config.xml                      # Module metadata (v1.3.0)
+├── config.xml                      # Module metadata (v1.3.1)
 ├── logo.png                        # Module icon
 ├── update-manifest.json            # Remote version manifest for automated 1-click updates
 ├── classes/
-│   ├── ProductIdentityResolver.php # Multi-catalog & variant identifier resolution engine
+│   ├── ProductIdentityResolver.php # Product & variant combination resolution engine
 │   ├── CustomerDataEngine.php      # PII normalization and SHA-256 cryptographic hasher
 │   ├── PayloadBuilder.php          # GA4 payload formatting engine
 │   ├── DeduplicationManager.php    # Database-driven purchase idempotency engine

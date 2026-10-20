@@ -51,20 +51,39 @@
   }
 
   function getReferenceFromDOM() {
-    var refElem = document.querySelector('.product-reference span, [itemprop="sku"], .product-features .data-sheet dd');
-    if (refElem) {
-      var text = (refElem.innerText || refElem.getAttribute('content') || '').trim();
-      if (text) return text;
-    }
+    // 1. Check exact combination reference from #product-details JSON attributes
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
         var data = JSON.parse(details.getAttribute('data-product'));
-        if (data && data.reference) {
-          return String(data.reference).trim();
+        if (data && data.attributes) {
+          for (var k in data.attributes) {
+            if (data.attributes[k] && data.attributes[k].reference) {
+              var attrRef = String(data.attributes[k].reference).trim();
+              if (attrRef) return attrRef;
+            }
+          }
         }
       } catch (e) {}
     }
+
+    // 2. Check front-office visible product reference elements
+    var refElem = document.querySelector('.product-reference span, .product-reference .value, .product-reference dd');
+    if (refElem) {
+      var text = (refElem.innerText || refElem.getAttribute('content') || '').trim();
+      if (text) return text;
+    }
+
+    // 3. Fallback to root reference in #product-details
+    if (details) {
+      try {
+        var dataRoot = JSON.parse(details.getAttribute('data-product'));
+        if (dataRoot && dataRoot.reference) {
+          return String(dataRoot.reference).trim();
+        }
+      } catch (e) {}
+    }
+
     return '';
   }
 
@@ -93,19 +112,41 @@
   }
 
   function getProductNameFromDOM() {
-    var titleElem = document.querySelector('h1[itemprop="name"], .product-detail-name');
-    if (titleElem && titleElem.innerText) {
-      return titleElem.innerText.trim();
+    var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+    if (baseProd && baseProd.item_name && baseProd.item_name !== 'Product') {
+      return baseProd.item_name;
+    }
+    var titleElem = document.querySelector('h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title, .product-detail-name, h1');
+    if (titleElem) {
+      var text = (titleElem.innerText || '').trim();
+      if (text) return text;
+    }
+    var details = document.querySelector('#product-details[data-product]');
+    if (details) {
+      try {
+        var data = JSON.parse(details.getAttribute('data-product'));
+        if (data && data.name) {
+          return String(data.name).trim();
+        }
+      } catch (e) {}
     }
     return 'Product';
   }
 
   function getProductBrandFromDOM() {
+    var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+    if (baseProd && baseProd.item_brand) {
+      return baseProd.item_brand;
+    }
     var brandElem = document.querySelector('[itemprop="brand"], .product-manufacturer a');
     return brandElem ? brandElem.innerText.trim() : '';
   }
 
   function getProductCategoryFromDOM() {
+    var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+    if (baseProd && baseProd.item_category) {
+      return baseProd.item_category;
+    }
     var catElem = document.querySelector('.breadcrumb li:nth-last-child(2) a span, .breadcrumb li:nth-last-child(2) a');
     return catElem ? catElem.innerText.trim() : '';
   }
@@ -150,35 +191,29 @@
       ? String(rawItem.id_product_attribute)
       : (domVariantId || (baseProd ? baseProd.variant_id : '') || '');
 
-    var skuId = domRef || (rawItem && rawItem.reference) || (baseProd ? baseProd.sku_id : '') || '';
-    var variantName = domVariant || (baseProd ? baseProd.item_variant : '') || '';
+    var combo = (variantId && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
+      ? window.psGtmConfig.productCombinations[variantId]
+      : null;
 
-    var resolvedItemName = (baseProd && baseProd.item_name) ? baseProd.item_name : getProductNameFromDOM();
-    var resolvedBrand = (baseProd && baseProd.item_brand) ? baseProd.item_brand : getProductBrandFromDOM();
-    var resolvedCategory = (baseProd && baseProd.item_category) ? baseProd.item_category : getProductCategoryFromDOM();
-    var resolvedPrice = (domPrice > 0) ? domPrice : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0));
+    var skuId = (combo && combo.sku_id) ? combo.sku_id : (domRef || (rawItem && rawItem.reference) || (baseProd ? baseProd.sku_id : '') || '');
+    var variantName = (combo && combo.item_variant) ? combo.item_variant : (domVariant || (baseProd ? baseProd.item_variant : '') || '');
+
+    var resolvedItemName = getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product');
+    var resolvedBrand = getProductBrandFromDOM() || (baseProd ? baseProd.item_brand : '');
+    var resolvedCategory = getProductCategoryFromDOM() || (baseProd ? baseProd.item_category : '');
+    var resolvedPrice = (combo && combo.price > 0) ? combo.price : (domPrice > 0 ? domPrice : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0)));
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
 
-    var itemIdMapping = (window.psGtmConfig && window.psGtmConfig.itemIdMapping) || 'base_id';
-    var gmcMapping = (window.psGtmConfig && window.psGtmConfig.gmcIdMapping) || 'sku';
-    var metaMapping = (window.psGtmConfig && window.psGtmConfig.metaIdMapping) || 'sku';
-
-    var resolvedItemId = EDL.resolveMappedIdentifier(itemIdMapping, baseId, variantId, skuId);
-    var resolvedGmcId = EDL.resolveMappedIdentifier(gmcMapping, baseId, variantId, skuId);
-    var resolvedMetaId = EDL.resolveMappedIdentifier(metaMapping, baseId, variantId, skuId);
-
     var addedItem = {
-      item_id: resolvedItemId,
-      variant_id: variantId,
-      sku_id: skuId,
+      item_id: String(baseId),
+      variant_id: String(variantId),
+      sku_id: String(skuId),
       item_name: resolvedItemName,
       item_brand: resolvedBrand,
       item_category: resolvedCategory,
       item_variant: variantName,
       price: resolvedPrice,
-      quantity: resolvedQuantity,
-      item_id_gmc: resolvedGmcId,
-      item_id_meta: resolvedMetaId
+      quantity: resolvedQuantity
     };
 
     var normalizedItems = EDL.normalizeItems([addedItem]);
@@ -187,8 +222,6 @@
     EDL.pushEvent('add_to_cart', {
       currency: currency,
       value: EDL.calculateCartValue(normalizedItems),
-      content_type: 'product',
-      meta_content_ids: [resolvedMetaId],
       items: normalizedItems
     });
   }
@@ -236,7 +269,8 @@
         return;
       }
 
-      if (!event.id_product_attribute) {
+      var variantId = String(event.id_product_attribute || getVariantIdFromDOM() || '');
+      if (!variantId || variantId === '0') {
         return;
       }
 
@@ -244,35 +278,33 @@
 
       setTimeout(function () {
         var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
-        var domBaseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
-        var domVariantId = String(event.id_product_attribute || getVariantIdFromDOM() || '');
+        var baseId = getBaseProductIdFromDOM() || (currentProd ? (currentProd.base_product_id || currentProd.item_id) : '');
+        var title = getProductNameFromDOM() || (currentProd ? currentProd.item_name : 'Product');
+        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
+        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
+
+        var combo = (window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
+          ? window.psGtmConfig.productCombinations[variantId]
+          : null;
+
         var domPrice = getPriceFromDOM();
         var domRef = getReferenceFromDOM();
         var domVariant = getSelectedVariantFromDOM();
-        var title = getProductNameFromDOM() || (currentProd ? currentProd.item_name : 'Product');
-        var brand = (currentProd ? currentProd.item_brand : '') || getProductBrandFromDOM();
-        var category = (currentProd ? currentProd.item_category : '') || getProductCategoryFromDOM();
 
-        var itemIdMapping = (window.psGtmConfig && window.psGtmConfig.itemIdMapping) || 'base_id';
-        var gmcMapping = (window.psGtmConfig && window.psGtmConfig.gmcIdMapping) || 'sku';
-        var metaMapping = (window.psGtmConfig && window.psGtmConfig.metaIdMapping) || 'sku';
-
-        var resolvedItemId = EDL.resolveMappedIdentifier(itemIdMapping, domBaseId, domVariantId, domRef);
-        var resolvedGmcId = EDL.resolveMappedIdentifier(gmcMapping, domBaseId, domVariantId, domRef);
-        var resolvedMetaId = EDL.resolveMappedIdentifier(metaMapping, domBaseId, domVariantId, domRef);
+        var resolvedSku = (combo && combo.sku_id) ? combo.sku_id : (domRef || (currentProd ? currentProd.sku_id : ''));
+        var resolvedVariantName = (combo && combo.item_variant) ? combo.item_variant : (domVariant || '');
+        var resolvedPrice = (combo && combo.price > 0) ? combo.price : (domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0));
 
         var item = {
-          item_id: resolvedItemId,
-          variant_id: domVariantId,
-          sku_id: domRef,
+          item_id: String(baseId),
+          variant_id: String(variantId),
+          sku_id: String(resolvedSku),
           item_name: title,
           item_brand: brand,
           item_category: category,
-          item_variant: domVariant || '',
-          price: domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0),
-          quantity: 1,
-          item_id_gmc: resolvedGmcId,
-          item_id_meta: resolvedMetaId
+          item_variant: resolvedVariantName,
+          price: resolvedPrice,
+          quantity: 1
         };
 
         // Cache active product combination in memory for subsequent add-to-cart actions
@@ -285,12 +317,10 @@
           EDL.pushEvent('view_item', {
             currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
             value: items[0].price,
-            content_type: 'product',
-            meta_content_ids: [resolvedMetaId],
             items: items
           });
         }
-      }, 100);
+      }, 150);
     });
   }
 

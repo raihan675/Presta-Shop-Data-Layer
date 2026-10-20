@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.3.0",
+  "latest_version": "1.3.1",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.0/ps_gtm_datalayer.zip",
-  "checksum": "c7b4371f2e79fb8166c6e6bee63d170766af1ddabd4ae03d7c548564b0b908cf",
-  "release_type": "minor",
-  "release_notes": "1. Multi-Variant Parameter Engine: Explicitly exposes item_id (base product ID), variant_id (active combination ID), sku_id (exact variant article number), and item_variant (attribute label) in all ecommerce item arrays.\n2. Platform Catalog Mappings: Added Back Office configurable settings for GA4, Google Merchant Center / Ads (item_id_gmc), and Meta Catalog / CAPI (item_id_meta, meta_content_ids).\n3. Variant SKU Enforcement: Always outputs the selected variant reference (e.g., BHK125-R) rather than the parent reference for combination products."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.1/ps_gtm_datalayer.zip",
+  "checksum": "916df7c0661321ae26409732452fe5928a0f05602f06428280577447bdbb4693",
+  "release_type": "patch",
+  "release_notes": "1. Variant SKU Accuracy: Accurately resolves variant SKU (e.g. BHK125-B for Steel Blue) from combination mapping and DOM without falling back to parent SKU.\n2. Clean GA4 Schema: Removed item_id_gmc, item_id_meta, and compound ID options to strictly push base product ID as item_id, active combination ID as variant_id, and variant reference as sku_id.\n3. Product Title Reliability: Corrected product title selector to reliably extract full product name across themes."
 }
