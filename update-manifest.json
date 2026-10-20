@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.2.1",
-  "release_date": "2026-10-20",
+  "latest_version": "1.2.2",
+  "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.2.1/ps_gtm_datalayer.zip",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.2.2/ps_gtm_datalayer.zip",
   "checksum": "",
   "release_type": "patch",
-  "release_notes": "1. Streamlined item object: Pushes only the single, authoritative item_id directly from the database.\n2. Preserved SKU vs Product ID switch in module configuration.\n3. Kept clean GA4 ecommerce payload structure without extra platform fields."
+  "release_notes": "1. Fixed item_variant resolution: accurately extracts combination attributes (e.g., Farbe: Rostrot).\n2. Synchronized discounted price calculations with active store rules.\n3. Preserved single authoritative item_id directly from PrestaShop database."
 }

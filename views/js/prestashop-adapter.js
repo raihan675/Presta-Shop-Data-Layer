@@ -14,7 +14,6 @@
   }
   syncConfig();
 
-  // Helper to extract reliable reference / SKU from the DOM
   function getReferenceFromDOM() {
     var refElem = document.querySelector('.product-reference span, [itemprop="sku"], .product-features .data-sheet dd');
     if (refElem) {
@@ -24,7 +23,6 @@
     return '';
   }
 
-  // Helper to extract reliable price from the DOM
   function getPriceFromDOM() {
     var priceElem = document.querySelector('.current-price [itemprop="price"], .product-prices [itemprop="price"], .current-price-value');
     if (priceElem) {
@@ -45,12 +43,27 @@
     return titleElem ? titleElem.innerText.trim() : 'Product';
   }
 
-  // Central Add to Cart dispatcher (idempotent: guards against duplicate dispatch within 800ms)
+  function getSelectedVariantFromDOM() {
+    var activeVariants = document.querySelectorAll('.product-variants-item input:checked, .product-variants-item select');
+    var parts = [];
+    activeVariants.forEach(function (el) {
+      if (el.tagName === 'SELECT') {
+        var opt = el.options[el.selectedIndex];
+        if (opt && opt.text) parts.push(opt.text.trim());
+      } else {
+        var container = el.closest('li');
+        var label = container ? (container.getAttribute('title') || (container.querySelector('.attribute-name') ? container.querySelector('.attribute-name').innerText : '')) : '';
+        if (label) parts.push(label.trim());
+      }
+    });
+    return parts.join(' / ');
+  }
+
   var lastAddToCartTimestamp = 0;
   function handleAddToCart(rawItem, cartCurrency) {
     var now = new Date().getTime();
     if (now - lastAddToCartTimestamp < 800) {
-      return; // Debounce rapid double triggers
+      return;
     }
     lastAddToCartTimestamp = now;
 
@@ -58,6 +71,7 @@
     var baseProduct = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
     var domRef = getReferenceFromDOM();
     var domPrice = getPriceFromDOM();
+    var domVariant = getSelectedVariantFromDOM();
 
     var resolvedItemId = '';
     if (domRef) {
@@ -71,15 +85,16 @@
     }
 
     var resolvedItemName = (baseProduct && baseProduct.item_name) ? baseProduct.item_name : getProductNameFromDOM();
-    var resolvedPrice = (baseProduct && baseProduct.price > 0) ? baseProduct.price : (domPrice > 0 ? domPrice : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0));
+    var resolvedPrice = (domPrice > 0) ? domPrice : ((baseProduct && baseProduct.price > 0) ? baseProduct.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0));
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
+    var resolvedVariant = domVariant || (baseProduct ? baseProduct.item_variant : '');
 
     var addedItem = {
       item_id: resolvedItemId,
       item_name: resolvedItemName,
       item_brand: baseProduct ? baseProduct.item_brand : '',
       item_category: baseProduct ? baseProduct.item_category : '',
-      item_variant: baseProduct ? baseProduct.item_variant : '',
+      item_variant: resolvedVariant || '',
       price: resolvedPrice,
       quantity: resolvedQuantity || 1
     };
@@ -98,7 +113,6 @@
     if (!window.prestashop) return;
     syncConfig();
 
-    // 1. Intercept PrestaShop's core updateCart event
     window.prestashop.on('updateCart', function (event) {
       if (!event) return;
 
@@ -128,14 +142,9 @@
       }
     });
 
-    // 2. Intercept Variant / Combination changes on PDP
-    // Strictly require that the attribute actually changed, and ignore if minimum quantity or refresh is empty
-    window.prestashop.on('updatedProduct', function (event, extraData) {
+    window.prestashop.on('updatedProduct', function (event) {
       if (!event) return;
 
-      // DO NOT fire view_item if:
-      // a) No id_product_attribute exists (i.e. not a real combination switch)
-      // b) An add-to-cart action is currently executing or just completed
       var now = new Date().getTime();
       if (now - lastAddToCartTimestamp < 1500) {
         return;
@@ -143,12 +152,13 @@
 
       var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
       if (!event.id_product_attribute) {
-        return; // Suppress redundant re-trigger on standard products
+        return;
       }
 
       syncConfig();
       var domPrice = getPriceFromDOM();
       var domRef = getReferenceFromDOM();
+      var domVariant = getSelectedVariantFromDOM();
       var title = getProductNameFromDOM();
 
       var item = {
@@ -156,6 +166,7 @@
         item_name: title,
         item_brand: currentProd ? currentProd.item_brand : '',
         item_category: currentProd ? currentProd.item_category : '',
+        item_variant: domVariant || '',
         price: domPrice > 0 ? domPrice : (currentProd ? currentProd.price : 0.0),
         quantity: 1
       };
@@ -171,7 +182,6 @@
     });
   }
 
-  // 3. Fallback Click Interceptor for themes that bypass prestashop.on('updateCart')
   function initAddToCartButtonFallback() {
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-button-action="add-to-cart"], .add-to-cart, button.ajax_add_to_cart_button');
@@ -180,7 +190,6 @@
         var qtyInput = form ? form.querySelector('input[name="qty"], #quantity_wanted') : null;
         var qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
 
-        // Give the AJAX call 200ms to resolve, then dispatch if updateCart hasn't fired
         setTimeout(function () {
           handleAddToCart({ quantity: qty });
         }, 300);
@@ -188,7 +197,6 @@
     }, true);
   }
 
-  // 4. Checkout Form Step Listeners
   function initCheckoutListeners() {
     syncConfig();
 

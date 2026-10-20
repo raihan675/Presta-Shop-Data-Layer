@@ -56,10 +56,13 @@ class PayloadBuilder
             return null;
         }
 
-        $idProductAttribute = (int)Product::getDefaultAttribute($idProduct);
-        $selectedAttribute = (int)Tools::getValue('id_product_attribute', $idProductAttribute);
+        // Accurately determine the selected combination/attribute
+        $idProductAttribute = (int)Tools::getValue('id_product_attribute');
+        if (!$idProductAttribute) {
+            $idProductAttribute = (int)Product::getDefaultAttribute($idProduct);
+        }
 
-        $item = $this->formatItem($product, $selectedAttribute, 1);
+        $item = $this->formatItem($product, $idProductAttribute, 1);
         $price = (float)$item['price'];
 
         return [
@@ -213,13 +216,32 @@ class PayloadBuilder
             ? $overridePrice 
             : Product::getPriceStatic($product->id, true, $idAttribute ? $idAttribute : null, 2);
 
+        // Resolve Variant Attributes reliably
         $variant = '';
         if ($idAttribute > 0) {
-            $attributes = $product->getAttributesResume($idLanguage);
-            if (!empty($attributes)) {
-                foreach ($attributes as $attr) {
-                    if ((int)$attr['id_product_attribute'] === (int)$idAttribute) {
-                        $variant = $attr['attribute'];
+            $combinations = $product->getAttributeCombinationsById($idAttribute, $idLanguage);
+            if (!empty($combinations)) {
+                $attrs = [];
+                foreach ($combinations as $c) {
+                    $groupName = !empty($c['group_name']) ? $c['group_name'] : '';
+                    $attrName = !empty($c['attribute_name']) ? $c['attribute_name'] : '';
+                    if ($groupName && $attrName) {
+                        $attrs[] = "{$groupName}: {$attrName}";
+                    } elseif ($attrName) {
+                        $attrs[] = $attrName;
+                    }
+                }
+                $variant = implode(' / ', $attrs);
+            }
+        }
+
+        // Fallback if variant remains empty
+        if (empty($variant) && $idAttribute > 0) {
+            $resume = $product->getAttributesResume($idLanguage);
+            if (!empty($resume)) {
+                foreach ($resume as $r) {
+                    if ((int)$r['id_product_attribute'] === (int)$idAttribute && !empty($r['attribute'])) {
+                        $variant = (string)$r['attribute'];
                         break;
                     }
                 }
@@ -234,7 +256,7 @@ class PayloadBuilder
             'item_name' => (string)$product->name,
             'item_brand' => (string)$product->manufacturer_name,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
-            'item_variant' => $variant,
+            'item_variant' => !empty($variant) ? $variant : '',
             'price' => round((float)$price, 2),
             'quantity' => (int)$quantity,
         ];
