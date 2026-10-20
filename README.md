@@ -14,15 +14,24 @@ Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8
 
 ## Installation
 
-1. Download or clone this repository as `ps_gtm_datalayer`.
-2. Ensure the root directory inside the zip is named `ps_gtm_datalayer`.
-3. In your PrestaShop Back Office, navigate to **Modules > Module Manager**.
-4. Click **Upload a module** and select `ps_gtm_datalayer.zip`.
-5. Click **Configure** and enter your GTM Web Container ID (`GTM-XXXXXXX`).
+### Method A: Uploading the ZIP via Back Office (Recommended)
+1. Download `ps_gtm_datalayer.zip` from this repository's **Releases** or create a zip where the root directory is `ps_gtm_datalayer/` using Unix forward slashes.
+2. In your PrestaShop Back Office, navigate to **Modules > Module Manager**.
+3. Click **Upload a module** and select the zip file.
+4. Click **Configure** and enter your GTM Web Container ID (`GTM-XXXXXXX`).
+
+### Method B: Git Clone / Direct Server Copy
+1. Clone this repository directly into your PrestaShop modules directory:
+   ```bash
+   cd /path/to/prestashop/modules/
+   git clone https://github.com/raihan675/Presta-Shop-Data-Layer.git ps_gtm_datalayer
+   ```
+2. Navigate to **Modules > Module Manager** in your PrestaShop Back Office.
+3. Search for **Enterprise GA4 & sGTM DataLayer** and click **Install**.
 
 ## Configuration Options
 
-- **GTM Container ID:** Your Google Tag Manager container ID.
+- **GTM Container ID:** Your Google Tag Manager container ID (e.g. `GTM-XXXXXXX`).
 - **Server-Side GTM Transport URL:** Optional custom domain endpoint (e.g., `https://gtm.yourdomain.com`).
 - **Google Consent Mode v2:** Enable or disable default denied consent setup.
 - **Prefer SKU / Reference:** Choose whether `item_id` should prioritize product reference/SKU or product ID.
