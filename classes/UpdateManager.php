@@ -38,20 +38,37 @@ class UpdateManager
             }
         }
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, self::MANIFEST_URL . '?t=' . time());
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 6);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'PrestaShop-Module-Updater/' . $this->module->version);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Cache-Control: no-cache, no-store, must-revalidate',
-            'Pragma: no-cache',
-            'Expires: 0'
-        ]);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        $urls = [
+            'https://api.github.com/repos/raihan675/Presta-Shop-Data-Layer/contents/update-manifest.json',
+            self::MANIFEST_URL . '?t=' . time()
+        ];
+
+        $response = null;
+        $httpCode = 0;
+
+        foreach ($urls as $url) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'PrestaShop-Module-Updater/' . $this->module->version);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Accept: application/vnd.github.v3.raw',
+                'Cache-Control: no-cache, no-store, must-revalidate',
+                'Pragma: no-cache',
+                'Expires: 0'
+            ]);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($code === 200 && !empty($res)) {
+                $response = $res;
+                $httpCode = $code;
+                break;
+            }
+        }
 
         if ($httpCode !== 200 || empty($response)) {
             return ['has_update' => false, 'error' => 'Unable to connect to the update repository.'];
