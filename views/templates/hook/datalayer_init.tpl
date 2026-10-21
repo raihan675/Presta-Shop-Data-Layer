@@ -44,6 +44,13 @@
         if (payload.original_event === 'view_item' && payload.ecommerce && payload.ecommerce.items && payload.ecommerce.items[0]) {
           window.psGtmConfig.currentProduct = payload.ecommerce.items[0];
           window.psGtmConfig.currency = payload.ecommerce.currency || 'EUR';
+        } else if (payload.original_event === 'view_item_list' && payload.ecommerce) {
+          window.psGtmConfig.currentList = {
+            item_list_id: payload.ecommerce.item_list_id || '',
+            item_list_name: payload.ecommerce.item_list_name || '',
+            items: payload.ecommerce.items || []
+          };
+          window.psGtmConfig.currency = payload.ecommerce.currency || 'EUR';
         }
         window.dataLayer.push({ ecommerce: null });
         window.dataLayer.push(payload);

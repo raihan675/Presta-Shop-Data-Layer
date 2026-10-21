@@ -337,6 +337,111 @@
         }
       });
     });
+
+    // 3. Native select_item (GA4) Tracking for Category & Search Listings
+    var lastSelectedItemId = '';
+    var lastSelectedItemTime = 0;
+
+    function handleSelectItem(idProduct) {
+      if (!idProduct) return;
+      var now = new Date().getTime();
+      if (lastSelectedItemId === String(idProduct) && (now - lastSelectedItemTime < 1000)) {
+        return; // Debounce duplicate/rapid clicks
+      }
+
+      var list = window.psGtmConfig && window.psGtmConfig.currentList;
+      var matchedItem = null;
+
+      if (list && Array.isArray(list.items)) {
+        for (var i = 0; i < list.items.length; i++) {
+          if (String(list.items[i].item_id) === String(idProduct)) {
+            matchedItem = list.items[i];
+            break;
+          }
+        }
+      }
+
+      var listId = (list && list.item_list_id) || (matchedItem && matchedItem.item_list_id) || '';
+      var listName = (list && list.item_list_name) || (matchedItem && matchedItem.item_list_name) || '';
+
+      if (matchedItem) {
+        lastSelectedItemId = String(idProduct);
+        lastSelectedItemTime = now;
+
+        var selectedItem = Object.assign({}, matchedItem);
+        selectedItem.item_list_id = listId;
+        selectedItem.item_list_name = listName;
+
+        var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+        var normItems = EDL.normalizeItems([selectedItem], prec);
+
+        if (normItems.length > 0) {
+          EDL.pushEvent('select_item', {
+            item_list_id: listId,
+            item_list_name: listName,
+            items: normItems
+          });
+        }
+      } else {
+        // Fallback resolution for non-hydrated or custom listings
+        resolveBackendProduct(idProduct, 0, 1, function (resolvedItem) {
+          if (resolvedItem) {
+            lastSelectedItemId = String(idProduct);
+            lastSelectedItemTime = now;
+
+            resolvedItem.item_list_id = listId;
+            resolvedItem.item_list_name = listName;
+
+            var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+            var normItems = EDL.normalizeItems([resolvedItem], prec);
+
+            if (normItems.length > 0) {
+              EDL.pushEvent('select_item', {
+                item_list_id: listId,
+                item_list_name: listName,
+                items: normItems
+              });
+            }
+          }
+        });
+      }
+    }
+
+    // Capture Quick View clicks via PrestaShop Core Event Bus
+    window.prestashop.on('clickQuickView', function (event) {
+      var idProduct = (event && event.dataset && (event.dataset.idProduct || event.dataset.id_product)) || '';
+      if (idProduct) {
+        handleSelectItem(idProduct);
+      }
+    });
+
+    // Capture Product Link Selection from Listings (Capture phase for instant pre-unload execution)
+    document.addEventListener('click', function (e) {
+      if (!e.target) return;
+
+      var targetEl = e.target;
+      // Exclude add-to-cart buttons inside listing cards
+      if (targetEl.closest && targetEl.closest('.add-to-cart, [data-button-action="add-to-cart"], .quick-view')) {
+        return;
+      }
+
+      var anchor = targetEl.closest ? targetEl.closest('a') : null;
+      var productCard = targetEl.closest ? targetEl.closest('[data-id-product], .js-product-miniature, article.product-miniature') : null;
+
+      var idProduct = '';
+      if (productCard && productCard.getAttribute('data-id-product')) {
+        idProduct = productCard.getAttribute('data-id-product');
+      } else if (anchor && anchor.href) {
+        var urlMatch = anchor.href.match(/(?:[\/-]|^|id_product=)(\d+)(?:-[^\/?#]+|\.html|$|[?&])/i);
+        if (urlMatch && urlMatch[1]) {
+          idProduct = urlMatch[1];
+        }
+      }
+
+      if (idProduct && window.psGtmConfig && window.psGtmConfig.currentList) {
+        handleSelectItem(idProduct);
+      }
+    }, true);
   }
 
   if (document.readyState === 'loading') {

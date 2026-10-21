@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.7.0] - 2026-10-21
+
+### Added
+- **GA4 `select_item` Event Implementation**:
+  - Implemented according to official Google Analytics 4 reference specifications.
+  - Automatically captures customer item selection from Category, Search, and Brand product listings.
+  - Intercepts both direct navigation clicks (capture-phase pre-unload execution) and native PrestaShop Quick View modal triggers (`prestashop.on('clickQuickView')`).
+  - Populates authoritative backend product parameters (`item_id`, `item_name`, `item_brand`, `item_category`, `item_variant`, `sku_id`, `price`, `quantity`, `index`, `item_list_id`, `item_list_name`).
+  - Zero DOM scraping: correlates clicked item ID directly with server-hydrated `currentList` records.
+  - Added native upgrade migration `upgrade/upgrade-1.7.0.php`.
+
+---
+
 ## [1.6.1] - 2026-10-21
 
 ### Fixed

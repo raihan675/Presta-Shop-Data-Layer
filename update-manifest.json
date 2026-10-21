@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.6.1",
+  "latest_version": "1.7.0",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.6.1/ps_gtm_datalayer.zip",
-  "checksum": "e85551bb383156961bba05db1beec26eb17cd7d2766de04fcbcd8f415aa92a93",
-  "release_type": "patch",
-  "release_notes": "1. Category Page view_item_list Parity: Emits currency, total list value, and propagates item_list_id and item_list_name to both event and item levels.\n2. Dynamic Pagination: Reads active page (?page=X or ?p=X) and shop-configured PS_PRODUCTS_PER_PAGE limit.\n3. Zero DOM Scraping: 100% authoritative backend ObjectModel extraction via Category::getProducts()."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.7.0/ps_gtm_datalayer.zip",
+  "checksum": "3a170f70fe6783d293fa58e317eea00ac9d53f5d9676ff645a7b504c32c87b4f",
+  "release_type": "minor",
+  "release_notes": "1. GA4 select_item Tracking: Emits select_item with complete list context (item_list_id, item_list_name) and item parameters (item_id, item_name, sku, brand, category, price, index) on category/search listing clicks.\n2. Quick View & Direct Navigation Support: Intercepts native prestashop.on('clickQuickView') and direct link clicks during pre-unload capture phase.\n3. Zero DOM Scraping: 100% backend data correlation from authoritative server-hydrated listing state."
 }

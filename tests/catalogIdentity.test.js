@@ -1122,5 +1122,53 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(it2.index, 2, 'index must increment for second item');
       assert.strictEqual(it2.item_list_id, 'category_27');
     });
+
+    it('33. GA4 select_item: Selecting an item from category list pushes select_item with complete list and item parameters', function () {
+      EDL.setEventPrefix('raihan');
+
+      const mockSelectedItem = EDL.normalizeItem({
+        item_id: '68',
+        variant_id: '',
+        sku_id: 'BHK125',
+        item_name: 'Trink und Snack Tasse',
+        item_brand: 'Haakaa - Think Green Ltd.',
+        item_category: 'Baby Geschirr',
+        item_variant: '',
+        price: 13.00,
+        quantity: 1,
+        index: 1,
+        item_list_id: 'category_27',
+        item_list_name: 'Baby Geschirr'
+      });
+
+      EDL.pushEvent('select_item', {
+        item_list_id: 'category_27',
+        item_list_name: 'Baby Geschirr',
+        items: [mockSelectedItem]
+      });
+
+      const pushed = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushed.event, 'raihan_select_item');
+      assert.strictEqual(pushed.original_event, 'select_item');
+
+      // Verify ecommerce event-level parameters
+      assert.strictEqual(pushed.ecommerce.item_list_id, 'category_27');
+      assert.strictEqual(pushed.ecommerce.item_list_name, 'Baby Geschirr');
+      assert.strictEqual(pushed.ecommerce.items.length, 1);
+
+      // Verify item-level parameters according to official GA4 select_item reference
+      const item = pushed.ecommerce.items[0];
+      assert.strictEqual(item.item_id, '68');
+      assert.strictEqual(item.item_name, 'Trink und Snack Tasse');
+      assert.strictEqual(item.item_brand, 'Haakaa - Think Green Ltd.');
+      assert.strictEqual(item.item_category, 'Baby Geschirr');
+      assert.strictEqual(item.item_variant, '');
+      assert.strictEqual(item.sku_id, 'BHK125');
+      assert.strictEqual(item.price, 13.00);
+      assert.strictEqual(item.quantity, 1);
+      assert.strictEqual(item.index, 1);
+      assert.strictEqual(item.item_list_id, 'category_27');
+      assert.strictEqual(item.item_list_name, 'Baby Geschirr');
+    });
   });
 });
