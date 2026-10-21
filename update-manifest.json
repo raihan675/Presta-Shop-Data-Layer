@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.9.0/ps_gtm_datalayer.zip",
-  "checksum": "a39a32cb97520fc5a04e7136ada3a7d683aba33af4dd6697a895188fe9ee452b",
+  "checksum": "9ad2efa38fae19e2ba5bc249bc5b5ccc58b7b18c2d2cf6db74113436eb527105",
   "release_type": "minor",
   "release_notes": "1. Universal PrestaShop Pricing Logic: 100% storefront and database price parity across all ecommerce events.\n2. Exact Value Calculation: ecommerce.value strictly reconciles as Σ(price * quantity) excluding shipping/tax.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.9.0.php."
 }
