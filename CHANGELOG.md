@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.5.1] - 2026-10-21
+
+### Fixed
+- **Universal Cart Quantity Resolution (Zero DOM)**: Captures multi-quantity additions (e.g. 2 units) via `CartController` HTTP POST parameters and real-time `ps_cart_product` delta math ($\Delta Q = Q_{\text{new}} - Q_{\text{old}}$), accurately pushing `quantity: 2` and calculated `ecommerce.value: 26.00 €` across all themes without touching the DOM.
+- **Variant Object Sanitization (`[object Object]` fix)**: Integrated `EDL.formatVariant()` to parse PrestaShop `CartPresenter` attribute structures and combination dictionaries, completely eliminating `[object Object]` strings.
+- **Category Name Consistency**: Aligned `item_category` with authoritative display names (`Baby Geschirr`) across all funnel events.
+- **Resilient 1-Click Update**: Eliminated Symfony 500 error in Module Manager by routing updates through the authenticated `AdminModules` controller with CSRF token protection.
+- **Native Upgrade Script**: Added `upgrade/upgrade-1.5.1.php` for seamless in-place updates.
+
+---
+
 ## [1.5.0] - 2026-10-21
 
 ### Added

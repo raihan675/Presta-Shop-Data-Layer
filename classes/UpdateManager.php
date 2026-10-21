@@ -29,7 +29,7 @@ class UpdateManager
         $cacheTime = (int)Configuration::get('PS_GTM_UPDATE_CACHE_TIME');
         $cacheData = Configuration::get('PS_GTM_UPDATE_CACHE_DATA');
 
-        if (!$force && ($cacheTime > 0) && (time() - $cacheTime < 900) && !empty($cacheData)) {
+        if (!$force && ($cacheTime > 0) && (time() - $cacheTime < 60) && !empty($cacheData)) {
             $cached = json_decode($cacheData, true);
             if (is_array($cached) && isset($cached['latest_version'])) {
                 $cached['has_update'] = version_compare($cached['latest_version'], $this->module->version, '>');
