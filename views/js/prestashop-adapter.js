@@ -108,6 +108,52 @@
   }
 
   var lastAddToCartTime = 0;
+  var lastInterceptedCartQty = 0;
+
+  // Intercept native HTTP POST requests to PrestaShop CartController (Network/Controller level, ZERO DOM)
+  (function () {
+    if (typeof window === 'undefined' || !window.XMLHttpRequest) return;
+    var origOpen = XMLHttpRequest.prototype.open;
+    var origSend = XMLHttpRequest.prototype.send;
+
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this._psGtmUrl = String(url || '');
+      this._psGtmMethod = String(method || '').toUpperCase();
+      return origOpen.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function (data) {
+      try {
+        var isCartUrl = this._psGtmUrl && (
+          this._psGtmUrl.indexOf('controller=cart') !== -1 ||
+          this._psGtmUrl.indexOf('/cart') !== -1
+        );
+
+        if (this._psGtmMethod === 'POST' && isCartUrl && data) {
+          var parsedQty = 0;
+          if (typeof data === 'string') {
+            var qtyMatch = data.match(/(?:^|[&?])(?:qty|quantity|quantity_wanted)=(\d+)/i);
+            if (qtyMatch && qtyMatch[1]) {
+              parsedQty = parseInt(qtyMatch[1], 10);
+            }
+          } else if (typeof FormData !== 'undefined' && data instanceof FormData) {
+            var q = data.get('qty') || data.get('quantity') || data.get('quantity_wanted');
+            if (q) parsedQty = parseInt(q, 10);
+          } else if (typeof data === 'object') {
+            var rawQ = data.qty || data.quantity || data.quantity_wanted;
+            if (rawQ) parsedQty = parseInt(rawQ, 10);
+          }
+
+          if (parsedQty > 0) {
+            lastInterceptedCartQty = parsedQty;
+          }
+        }
+      } catch (e) {}
+
+      return origSend.apply(this, arguments);
+    };
+  })();
+
   // Authoritative in-memory cart quantity state (100% backend & cart object driven, ZERO DOM)
   var cartQuantities = {};
 
@@ -163,7 +209,7 @@
           }
         }
 
-        // Authoritative Quantity Resolution (100% Backend & Cart Object Driven - ZERO DOM)
+        // Authoritative Quantity Resolution (CartController POST + JSON Response + ps_cart_product Delta - ZERO DOM)
         var cartKey = String(addedIdProduct) + '_' + String(addedIdAttr || '0');
         var previousQty = (cartQuantities[cartKey] !== undefined) ? cartQuantities[cartKey] : 0;
         var currentCartQty = matchedProduct ? (parseInt(matchedProduct.quantity || matchedProduct.cart_quantity, 10) || 0) : 0;
@@ -172,10 +218,13 @@
         var qty = 1;
         if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
           qty = parseInt(event.resp.quantity, 10);
-        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
-          qty = parseInt(event.resp.qty, 10);
+        } else if (lastInterceptedCartQty > 0) {
+          qty = lastInterceptedCartQty;
+          lastInterceptedCartQty = 0;
         } else if (deltaQty > 0) {
           qty = deltaQty;
+        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
+          qty = parseInt(event.resp.qty, 10);
         } else if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
           qty = parseInt(reason.quantity, 10);
         } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
