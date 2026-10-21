@@ -224,6 +224,128 @@
     return true;
   }
 
+  /**
+   * Universal Cart Delta Engine:
+   * Pure mathematical delta evaluator comparing previous cart state to new cart state.
+   * Completely decoupled from the DOM.
+   *
+   * @param {Object} prevQuantities Map of "id_product_id_product_attribute" => integer quantity
+   * @param {Object} prevProductsData Map of "id_product_id_product_attribute" => cached product details
+   * @param {Array} newCartProducts Array of products from PrestaShop cart (e.g. resp.cart.products)
+   * @param {Object} options Configuration overrides (precision, currentProduct, productCombinations)
+   * @returns {Object} { itemsAdded: [], itemsRemoved: [], updatedQuantities: {}, updatedProductsData: {} }
+   */
+  function processCartDelta(prevQuantities, prevProductsData, newCartProducts, options) {
+    options = options || {};
+    prevQuantities = prevQuantities || {};
+    prevProductsData = prevProductsData || {};
+    newCartProducts = Array.isArray(newCartProducts) ? newCartProducts : [];
+
+    var prec = (options.precision !== undefined && options.precision !== null)
+      ? parseInt(options.precision, 10)
+      : (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined
+        ? parseInt(window.psGtmConfig.currencyPrecision, 10)
+        : 2);
+
+    var newQuantities = {};
+    var newProductsData = {};
+    var itemsAdded = [];
+    var itemsRemoved = [];
+
+    // 1. Process items in the new cart state
+    for (var i = 0; i < newCartProducts.length; i++) {
+      var item = newCartProducts[i];
+      if (!item) continue;
+
+      var idProd = String(item.id_product || item.item_id || item.id || '').trim();
+      if (!idProd) continue;
+
+      var rawAttr = (item.id_product_attribute !== undefined && item.id_product_attribute !== null)
+        ? item.id_product_attribute
+        : (item.variant_id !== undefined ? item.variant_id : '');
+      var idAttr = (rawAttr && String(rawAttr) !== '0' && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
+
+      var key = idProd + '_' + (idAttr || '0');
+      var qty = parseInt(item.quantity || item.cart_quantity, 10) || 0;
+      newQuantities[key] = qty;
+
+      var rawPrice = parseFloat(item.price_wt || item.price_amount || item.price || 0.0);
+      var price = roundHalfUp(rawPrice, prec);
+
+      var brand = String(item.manufacturer_name || item.item_brand || item.manufacturer || '');
+      if (!brand && options.currentProduct && String(options.currentProduct.item_id) === idProd) {
+        brand = String(options.currentProduct.item_brand || '');
+      }
+
+      var category = String(item.category_name || item.category || item.item_category || '');
+      if (!category && options.currentProduct && String(options.currentProduct.item_id) === idProd) {
+        category = String(options.currentProduct.item_category || '');
+      }
+
+      var variant = '';
+      if (idAttr && options.productCombinations && options.productCombinations[idAttr]) {
+        variant = String(options.productCombinations[idAttr].item_variant || '');
+      } else if (idAttr && options.currentProduct && String(options.currentProduct.variant_id) === idAttr) {
+        variant = String(options.currentProduct.item_variant || '');
+      } else {
+        variant = formatVariant(item.attributes || item.item_variant || item.variant || item.attributes_small || '');
+      }
+
+      var itemDetails = {
+        item_id: idProd,
+        variant_id: idAttr,
+        sku_id: String(item.reference || item.sku_id || ''),
+        item_name: String(item.name || item.item_name || ''),
+        item_brand: brand,
+        item_category: category,
+        item_variant: variant,
+        price: price,
+        quantity: qty
+      };
+      newProductsData[key] = itemDetails;
+
+      var prevQty = parseInt(prevQuantities[key], 10) || 0;
+      var delta = qty - prevQty;
+
+      if (delta > 0) {
+        var addedItem = Object.assign({}, itemDetails, { quantity: delta });
+        itemsAdded.push(addedItem);
+      } else if (delta < 0) {
+        var removedItem = Object.assign({}, itemDetails, { quantity: Math.abs(delta) });
+        itemsRemoved.push(removedItem);
+      }
+    }
+
+    // 2. Identify products that existed previously but are now completely removed (absent or 0 in new state)
+    for (var k in prevQuantities) {
+      if (prevQuantities.hasOwnProperty(k)) {
+        var oldQ = parseInt(prevQuantities[k], 10) || 0;
+        var newQ = parseInt(newQuantities[k], 10) || 0;
+        if (oldQ > 0 && newQ === 0) {
+          var details = prevProductsData[k];
+          if (!details) {
+            var parts = k.split('_');
+            details = {
+              item_id: parts[0],
+              variant_id: parts[1] && parts[1] !== '0' ? parts[1] : '',
+              item_name: 'Product',
+              price: 0.0
+            };
+          }
+          var fullyRemovedItem = Object.assign({}, details, { quantity: oldQ });
+          itemsRemoved.push(fullyRemovedItem);
+        }
+      }
+    }
+
+    return {
+      itemsAdded: normalizeItems(itemsAdded, prec),
+      itemsRemoved: normalizeItems(itemsRemoved, prec),
+      updatedQuantities: newQuantities,
+      updatedProductsData: newProductsData
+    };
+  }
+
   // Auto-detect prefix from global config if set by server
   if (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.eventPrefix) {
     eventPrefix = normalizePrefix(window.psGtmConfig.eventPrefix);
@@ -246,6 +368,7 @@
     normalizeItems: normalizeItems,
     calculateCartValue: calculateCartValue,
     roundHalfUp: roundHalfUp,
-    formatVariant: formatVariant
+    formatVariant: formatVariant,
+    processCartDelta: processCartDelta
   };
 });

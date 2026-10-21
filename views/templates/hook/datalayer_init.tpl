@@ -28,6 +28,13 @@
     window.psGtmConfig.cartProducts = {};
   }
   {/if}
+  {if isset($cart_products_data)}
+  try {
+    window.psGtmConfig.cartProductsData = {$cart_products_data nofilter};
+  } catch(e) {
+    window.psGtmConfig.cartProductsData = {};
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){

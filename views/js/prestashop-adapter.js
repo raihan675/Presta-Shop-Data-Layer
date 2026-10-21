@@ -156,12 +156,21 @@
 
   // Authoritative in-memory cart quantity state (100% backend & cart object driven, ZERO DOM)
   var cartQuantities = {};
+  var cartProductsData = {};
+  var lastCartEventSignature = '';
 
   function initCartState() {
     if (window.psGtmConfig && window.psGtmConfig.cartProducts && typeof window.psGtmConfig.cartProducts === 'object') {
       for (var k in window.psGtmConfig.cartProducts) {
         if (window.psGtmConfig.cartProducts.hasOwnProperty(k)) {
           cartQuantities[String(k)] = parseInt(window.psGtmConfig.cartProducts[k], 10) || 0;
+        }
+      }
+    }
+    if (window.psGtmConfig && window.psGtmConfig.cartProductsData && typeof window.psGtmConfig.cartProductsData === 'object') {
+      for (var kd in window.psGtmConfig.cartProductsData) {
+        if (window.psGtmConfig.cartProductsData.hasOwnProperty(kd)) {
+          cartProductsData[String(kd)] = window.psGtmConfig.cartProductsData[kd];
         }
       }
     }
@@ -176,12 +185,52 @@
     window.prestashop.on('updateCart', function (event) {
       if (!event) return;
 
+      // Failure Guard: If server reported an error (out of stock, invalid qty), suppress event
+      if (event.resp && (event.resp.hasError || (event.resp.errors && event.resp.errors.length > 0))) {
+        return;
+      }
+
       var reason = event.reason || {};
       var action = reason.action || reason.linkAction || (event.resp && event.resp.cartAction) || '';
       var cart = event.resp ? event.resp.cart : null;
       var currencyCode = (cart && cart.currency) ? cart.currency.iso_code : ((window.psGtmConfig && window.psGtmConfig.currency) || 'EUR');
+      var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
 
-      if (action === 'add-to-cart') {
+      // Primary Path: Authoritative Universal Cart Delta Engine (Zero DOM)
+      if (cart && Array.isArray(cart.products) && EDL.processCartDelta) {
+        var deltaResult = EDL.processCartDelta(cartQuantities, cartProductsData, cart.products, {
+          precision: prec,
+          currentProduct: (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null,
+          productCombinations: (window.psGtmConfig && window.psGtmConfig.productCombinations) ? window.psGtmConfig.productCombinations : null
+        });
+
+        // Update in-memory state
+        cartQuantities = deltaResult.updatedQuantities;
+        cartProductsData = deltaResult.updatedProductsData;
+
+        // Emit add_to_cart for positive quantity changes (new additions or quantity increments)
+        if (deltaResult.itemsAdded && deltaResult.itemsAdded.length > 0) {
+          EDL.pushEvent('add_to_cart', {
+            currency: currencyCode,
+            value: EDL.calculateCartValue(deltaResult.itemsAdded, prec),
+            items: deltaResult.itemsAdded
+          });
+        }
+
+        // Emit remove_from_cart for negative quantity changes (decrements or complete removals)
+        if (deltaResult.itemsRemoved && deltaResult.itemsRemoved.length > 0) {
+          EDL.pushEvent('remove_from_cart', {
+            currency: currencyCode,
+            value: EDL.calculateCartValue(deltaResult.itemsRemoved, prec),
+            items: deltaResult.itemsRemoved
+          });
+        }
+
+        return;
+      }
+
+      // Secondary Fallback Path: For non-standard themes omitting cart.products in updateCart event
+      if (action === 'add-to-cart' || action === 'up') {
         var now = new Date().getTime();
         if (now - lastAddToCartTime < 800) return;
         lastAddToCartTime = now;
@@ -196,113 +245,22 @@
           : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
         var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
 
-        // First attempt to match from server cart response (pure JSON from CartController)
-        var matchedProduct = null;
-        if (cart && Array.isArray(cart.products) && addedIdProduct) {
-          for (var i = 0; i < cart.products.length; i++) {
-            var cp = cart.products[i];
-            var cpAttr = (cp.id_product_attribute && parseInt(cp.id_product_attribute, 10) > 0) ? String(cp.id_product_attribute) : '';
-            if (String(cp.id_product) === String(addedIdProduct) && cpAttr === addedIdAttr) {
-              matchedProduct = cp;
-              break;
-            }
-          }
-        }
-
-        // Authoritative Quantity Resolution (CartController POST + JSON Response + ps_cart_product Delta - ZERO DOM)
-        var cartKey = String(addedIdProduct) + '_' + String(addedIdAttr || '0');
-        var previousQty = (cartQuantities[cartKey] !== undefined) ? cartQuantities[cartKey] : 0;
-        var currentCartQty = matchedProduct ? (parseInt(matchedProduct.quantity || matchedProduct.cart_quantity, 10) || 0) : 0;
-        var deltaQty = currentCartQty > previousQty ? (currentCartQty - previousQty) : 0;
-
         var qty = 1;
         if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
           qty = parseInt(event.resp.quantity, 10);
         } else if (lastInterceptedCartQty > 0) {
           qty = lastInterceptedCartQty;
           lastInterceptedCartQty = 0;
-        } else if (deltaQty > 0) {
-          qty = deltaQty;
         } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
           qty = parseInt(event.resp.qty, 10);
         } else if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
           qty = parseInt(reason.quantity, 10);
         } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
           qty = parseInt(reason.qty, 10);
-        } else if (currentCartQty > 0 && previousQty === 0) {
-          qty = currentCartQty;
         }
 
-        // Synchronize in-memory cart registry from authoritative server cart response
-        if (cart && Array.isArray(cart.products)) {
-          var updatedState = {};
-          for (var c = 0; c < cart.products.length; c++) {
-            var itemInCart = cart.products[c];
-            var k = String(itemInCart.id_product) + '_' + String(itemInCart.id_product_attribute || '0');
-            updatedState[k] = parseInt(itemInCart.quantity || itemInCart.cart_quantity, 10) || 0;
-          }
-          cartQuantities = updatedState;
-        }
-
-        if (matchedProduct) {
-          var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
-          var rawPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
-          var resolvedPrice = EDL.roundHalfUp ? EDL.roundHalfUp(rawPrice, prec) : (Math.round((rawPrice + Number.EPSILON) * Math.pow(10, prec)) / Math.pow(10, prec));
-          var brand = String(matchedProduct.manufacturer_name || '');
-          if (!brand && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
-            brand = window.psGtmConfig.currentProduct.item_brand || '';
-          }
-
-          // Authoritative Category Resolution
-          var catName = '';
-          if (window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
-            catName = window.psGtmConfig.currentProduct.item_category || '';
-          }
-          if (!catName) {
-            catName = String(matchedProduct.category_name || matchedProduct.category || '');
-          }
-
-          // Authoritative Variant String Resolution
-          var variantStr = '';
-          if (addedIdAttr && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[addedIdAttr]) {
-            variantStr = window.psGtmConfig.productCombinations[addedIdAttr].item_variant || '';
-          } else if (addedIdAttr && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.variant_id) === addedIdAttr) {
-            variantStr = window.psGtmConfig.currentProduct.item_variant || '';
-          } else if (EDL.formatVariant) {
-            variantStr = EDL.formatVariant(matchedProduct.attributes || matchedProduct.attribute_string || matchedProduct.attributes_small || '');
-          }
-
-          var cartItem = {
-            item_id: String(matchedProduct.id_product),
-            variant_id: (matchedProduct.id_product_attribute && parseInt(matchedProduct.id_product_attribute, 10) > 0) ? String(matchedProduct.id_product_attribute) : '',
-            sku_id: String(matchedProduct.reference || ''),
-            item_name: String(matchedProduct.name || ''),
-            item_brand: brand,
-            item_category: catName,
-            item_variant: variantStr,
-            price: resolvedPrice,
-            quantity: qty
-          };
-
-          // Dispatch immediately from authoritative cart data
-          var normItems = EDL.normalizeItems([cartItem], prec);
-          if (normItems.length > 0) {
-            EDL.pushEvent('add_to_cart', {
-              currency: currencyCode,
-              value: EDL.calculateCartValue(normItems, prec),
-              items: normItems
-            });
-            return;
-          }
-        }
-
-        // Authoritatively resolve via backend database resolver
         resolveBackendProduct(addedIdProduct, addedIdAttr, qty, function (resolvedItem) {
-          if (!resolvedItem && matchedProduct) {
-            resolvedItem = cartItem;
-          }
           if (resolvedItem) {
-            var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
             var norm = EDL.normalizeItems([resolvedItem], prec);
             if (norm.length > 0) {
               EDL.pushEvent('add_to_cart', {
@@ -314,24 +272,35 @@
           }
         });
 
-      } else if (action === 'delete-from-cart' || action === 'remove-from-cart') {
+      } else if (action === 'delete-from-cart' || action === 'remove-from-cart' || action === 'down') {
         var removedIdProduct = reason.idProduct || reason.id_product || '';
         var rawRemovedAttr = reason.idProductAttribute || reason.id_product_attribute || '';
         var normRemovedAttr = (rawRemovedAttr && parseInt(rawRemovedAttr, 10) > 0) ? String(rawRemovedAttr) : '';
+        var removeQty = (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) ? parseInt(reason.quantity, 10) : 1;
 
-        resolveBackendProduct(removedIdProduct, normRemovedAttr, 1, function (resolvedItem) {
-          var item = resolvedItem ? resolvedItem : {
+        var cachedKey = String(removedIdProduct) + '_' + (normRemovedAttr || '0');
+        if (cartQuantities[cachedKey] && action === 'delete-from-cart') {
+          removeQty = cartQuantities[cachedKey];
+        }
+
+        resolveBackendProduct(removedIdProduct, normRemovedAttr, removeQty, function (resolvedItem) {
+          var item = resolvedItem ? resolvedItem : (cartProductsData[cachedKey] || {
             item_id: String(removedIdProduct),
             variant_id: normRemovedAttr,
             item_name: 'Product',
             price: 0.0,
-            quantity: 1
-          };
-
-          EDL.pushEvent('remove_from_cart', {
-            currency: currencyCode,
-            items: EDL.normalizeItems([item])
+            quantity: removeQty
           });
+          item.quantity = removeQty;
+
+          var normItems = EDL.normalizeItems([item], prec);
+          if (normItems.length > 0) {
+            EDL.pushEvent('remove_from_cart', {
+              currency: currencyCode,
+              value: EDL.calculateCartValue(normItems, prec),
+              items: normItems
+            });
+          }
         });
       }
     });

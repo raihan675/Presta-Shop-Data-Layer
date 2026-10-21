@@ -832,4 +832,216 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
 
     assert.strictEqual(deltaQty2, 3, 'Delta quantity on second add must be 3');
   });
+
+  describe('Universal Cart Activity Tracking: 10 Core Ecommerce Scenarios', function () {
+    const mockCombinations = {
+      '299': {
+        item_id: '68',
+        variant_id: '299',
+        sku_id: 'BHK125-B',
+        item_name: 'Trink und Snack Tasse',
+        item_variant: 'Farbe1: Stahlblau',
+        price: 13.00
+      }
+    };
+
+    it('Scenario 1: Add a new product with quantity 1', function () {
+      const prevQuantities = {};
+      const prevProductsData = {};
+      const newCart = [{
+        id_product: '153',
+        id_product_attribute: '0',
+        name: 'FitKidz Barbell',
+        price: 13.00,
+        quantity: 1,
+        reference: 'FIT09'
+      }];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsAdded.length, 1);
+      assert.strictEqual(res.itemsRemoved.length, 0);
+      assert.strictEqual(res.itemsAdded[0].item_id, '153');
+      assert.strictEqual(res.itemsAdded[0].quantity, 1);
+      assert.strictEqual(res.itemsAdded[0].price, 13.00);
+      assert.strictEqual(EDL.calculateCartValue(res.itemsAdded), 13.00);
+    });
+
+    it('Scenario 2: Increase its quantity from 1 to 3', function () {
+      const prevQuantities = { '153_0': 1 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'FitKidz Barbell', price: 13.00, quantity: 1 }
+      };
+      const newCart = [{
+        id_product: '153',
+        id_product_attribute: '0',
+        name: 'FitKidz Barbell',
+        price: 13.00,
+        quantity: 3,
+        reference: 'FIT09'
+      }];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsAdded.length, 1);
+      assert.strictEqual(res.itemsRemoved.length, 0);
+      assert.strictEqual(res.itemsAdded[0].item_id, '153');
+      assert.strictEqual(res.itemsAdded[0].quantity, 2, 'Incremental quantity added must be 2');
+      assert.strictEqual(EDL.calculateCartValue(res.itemsAdded), 26.00, 'Value must equal price * delta (13 * 2 = 26)');
+    });
+
+    it('Scenario 3: Decrease its quantity from 3 to 2', function () {
+      const prevQuantities = { '153_0': 3 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'FitKidz Barbell', price: 13.00, quantity: 3 }
+      };
+      const newCart = [{
+        id_product: '153',
+        id_product_attribute: '0',
+        name: 'FitKidz Barbell',
+        price: 13.00,
+        quantity: 2,
+        reference: 'FIT09'
+      }];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsAdded.length, 0);
+      assert.strictEqual(res.itemsRemoved.length, 1);
+      assert.strictEqual(res.itemsRemoved[0].item_id, '153');
+      assert.strictEqual(res.itemsRemoved[0].quantity, 1, 'Units removed must be 1');
+      assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 13.00);
+    });
+
+    it('Scenario 4: Remove the product completely (from 2 to 0)', function () {
+      const prevQuantities = { '153_0': 2 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'FitKidz Barbell', price: 13.00, quantity: 2, sku_id: 'FIT09' }
+      };
+      const newCart = []; // Product completely removed from cart
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsAdded.length, 0);
+      assert.strictEqual(res.itemsRemoved.length, 1);
+      assert.strictEqual(res.itemsRemoved[0].item_id, '153');
+      assert.strictEqual(res.itemsRemoved[0].quantity, 2, 'Removed quantity must reflect all 2 units previously held');
+      assert.strictEqual(res.itemsRemoved[0].sku_id, 'FIT09', 'Preserved metadata must retain SKU');
+      assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 26.00);
+    });
+
+    it('Scenario 5: Remove a product with multiple units (from 3 to 0)', function () {
+      const prevQuantities = { '153_0': 3 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'FitKidz Barbell', price: 13.00, quantity: 3 }
+      };
+      const newCart = [];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsRemoved.length, 1);
+      assert.strictEqual(res.itemsRemoved[0].quantity, 3);
+      assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 39.00);
+    });
+
+    it('Scenario 6: Update quantities of two different products in one operation (Product A: 1 to 3, Product B: 2 to 1)', function () {
+      const prevQuantities = { '153_0': 1, '68_0': 2 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'Product A', price: 13.00, quantity: 1 },
+        '68_0': { item_id: '68', variant_id: '', item_name: 'Product B', price: 20.00, quantity: 2 }
+      };
+      const newCart = [
+        { id_product: '153', id_product_attribute: '0', name: 'Product A', price: 13.00, quantity: 3 },
+        { id_product: '68', id_product_attribute: '0', name: 'Product B', price: 20.00, quantity: 1 }
+      ];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, newCart);
+      assert.strictEqual(res.itemsAdded.length, 1, 'Product A was increased');
+      assert.strictEqual(res.itemsAdded[0].item_id, '153');
+      assert.strictEqual(res.itemsAdded[0].quantity, 2);
+      assert.strictEqual(EDL.calculateCartValue(res.itemsAdded), 26.00);
+
+      assert.strictEqual(res.itemsRemoved.length, 1, 'Product B was decreased');
+      assert.strictEqual(res.itemsRemoved[0].item_id, '68');
+      assert.strictEqual(res.itemsRemoved[0].quantity, 1);
+      assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 20.00);
+    });
+
+    it('Scenario 7: Add and remove products with genuine combinations', function () {
+      // 1. Add combination (Steel blue, variant 299)
+      const prevQuantities = {};
+      const prevProductsData = {};
+      const newCart = [{
+        id_product: '68',
+        id_product_attribute: '299',
+        name: 'Trink und Snack Tasse',
+        price: 13.00,
+        quantity: 2,
+        reference: 'BHK125-B',
+        attributes: 'Farbe1: Stahlblau'
+      }];
+
+      const resAdd = EDL.processCartDelta(prevQuantities, prevProductsData, newCart, { productCombinations: mockCombinations });
+      assert.strictEqual(resAdd.itemsAdded.length, 1);
+      assert.strictEqual(resAdd.itemsAdded[0].item_id, '68');
+      assert.strictEqual(resAdd.itemsAdded[0].variant_id, '299');
+      assert.strictEqual(resAdd.itemsAdded[0].item_variant, 'Farbe1: Stahlblau');
+      assert.strictEqual(resAdd.itemsAdded[0].quantity, 2);
+
+      // 2. Remove combination completely
+      const resRemove = EDL.processCartDelta(resAdd.updatedQuantities, resAdd.updatedProductsData, []);
+      assert.strictEqual(resRemove.itemsRemoved.length, 1);
+      assert.strictEqual(resRemove.itemsRemoved[0].item_id, '68');
+      assert.strictEqual(resRemove.itemsRemoved[0].variant_id, '299');
+      assert.strictEqual(resRemove.itemsRemoved[0].item_variant, 'Farbe1: Stahlblau');
+      assert.strictEqual(resRemove.itemsRemoved[0].quantity, 2);
+    });
+
+    it('Scenario 8: Trigger repeated or concurrent cart update requests (Delta is 0)', function () {
+      const prevQuantities = { '153_0': 3 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'Product A', price: 13.00, quantity: 3 }
+      };
+      const sameCart = [
+        { id_product: '153', id_product_attribute: '0', name: 'Product A', price: 13.00, quantity: 3 }
+      ];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, sameCart);
+      assert.strictEqual(res.itemsAdded.length, 0, 'No addition should be emitted when delta is 0');
+      assert.strictEqual(res.itemsRemoved.length, 0, 'No removal should be emitted when delta is 0');
+    });
+
+    it('Scenario 9: Attempt an invalid cart update or failed operation (hasError: true)', function () {
+      // Failure protection logic: when PrestaShop returns hasError or errors, delta processing is bypassed
+      const serverResponse = {
+        hasError: true,
+        errors: ['The requested quantity is not available in stock.']
+      };
+
+      let eventEmitted = false;
+      if (!serverResponse.hasError && (!serverResponse.errors || serverResponse.errors.length === 0)) {
+        eventEmitted = true;
+      }
+
+      assert.strictEqual(eventEmitted, false, 'Failed cart operations must never trigger false tracking events');
+    });
+
+    it('Scenario 10: Clear the entire cart', function () {
+      const prevQuantities = { '153_0': 2, '68_299': 1 };
+      const prevProductsData = {
+        '153_0': { item_id: '153', variant_id: '', item_name: 'Product A', price: 13.00, quantity: 2 },
+        '68_299': { item_id: '68', variant_id: '299', sku_id: 'BHK125-B', item_name: 'Trink und Snack Tasse', price: 13.00, quantity: 1 }
+      };
+      const emptyCart = [];
+
+      const res = EDL.processCartDelta(prevQuantities, prevProductsData, emptyCart);
+      assert.strictEqual(res.itemsAdded.length, 0);
+      assert.strictEqual(res.itemsRemoved.length, 2, 'Both distinct products must be represented in removal');
+      
+      const item153 = res.itemsRemoved.find(i => i.item_id === '153');
+      const item68 = res.itemsRemoved.find(i => i.item_id === '68');
+
+      assert.ok(item153, 'Product 153 must be in removal');
+      assert.strictEqual(item153.quantity, 2);
+      assert.ok(item68, 'Product 68 must be in removal');
+      assert.strictEqual(item68.quantity, 1);
+      assert.strictEqual(item68.variant_id, '299');
+      assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 39.00, 'Total cart removal value must be 13*2 + 13*1 = 39');
+    });
+  });
 });

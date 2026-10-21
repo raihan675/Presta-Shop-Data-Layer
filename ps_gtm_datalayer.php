@@ -24,7 +24,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.5.2';
+        $this->version = '1.6.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -455,12 +455,31 @@ class Ps_Gtm_DataLayer extends Module
 
         // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
         $cartProductsMap = [];
+        $cartProductsData = [];
         if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
             $prods = $this->context->cart->getProducts();
             if (is_array($prods)) {
+                $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
                 foreach ($prods as $p) {
                     $k = (int)$p['id_product'] . '_' . (int)$p['id_product_attribute'];
                     $cartProductsMap[$k] = (int)$p['cart_quantity'];
+
+                    $priceRaw = $isTaxIncl
+                        ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                        : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+                    $price = PricingEngine::roundHalfUp($priceRaw, $currencyPrecision);
+
+                    $cartProductsData[$k] = [
+                        'item_id' => (string)$p['id_product'],
+                        'variant_id' => !empty($p['id_product_attribute']) ? (string)$p['id_product_attribute'] : '',
+                        'sku_id' => !empty($p['reference']) ? (string)$p['reference'] : '',
+                        'item_name' => !empty($p['name']) ? (string)$p['name'] : '',
+                        'item_brand' => !empty($p['manufacturer_name']) ? (string)$p['manufacturer_name'] : '',
+                        'item_category' => !empty($p['category']) ? (string)$p['category'] : '',
+                        'item_variant' => !empty($p['attributes']) ? (string)$p['attributes'] : (!empty($p['attributes_small']) ? (string)$p['attributes_small'] : ''),
+                        'price' => $price,
+                        'quantity' => (int)$p['cart_quantity']
+                    ];
                 }
             }
         }
@@ -475,6 +494,7 @@ class Ps_Gtm_DataLayer extends Module
             'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
+            'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);
 

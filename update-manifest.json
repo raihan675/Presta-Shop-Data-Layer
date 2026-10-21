@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.5.2",
+  "latest_version": "1.6.0",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.5.2/ps_gtm_datalayer.zip",
-  "checksum": "afee6ca3cc4c17b81a533953f727598864c995f7434e01730eb15ebe0285b4f9",
-  "release_type": "patch",
-  "release_notes": "1. Numeric Order ID in Purchase: ecommerce.transaction_id captures the internal numeric Order ID (e.g. 1225) instead of the alphanumeric reference for standard GA4/GTM reporting.\n2. Preserved Reference for Back-Office: order_totals.order_reference continues to store the alphanumeric reference for audit trail.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.5.2.php."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.6.0/ps_gtm_datalayer.zip",
+  "checksum": "1b284e3120cb6d3a5291d22922ee04b487876adbde7a01f541fc535189b1375c",
+  "release_type": "minor",
+  "release_notes": "1. Universal Cart Activity Tracking: Accurately maps additions, quantity increases, decrements, and product removals to GA4 add_to_cart and remove_from_cart events using pure mathematical state deltas without DOM querying.\n2. Removed Item Metadata Preservation: Retains full product attributes (SKU, brand, category, variant, price) even after items disappear from updated cart.\n3. Multi-Product Batch Support: Correctly partitions simultaneous updates across multiple products into separate add/remove events.\n4. Failure & Retry Protection: Suppresses tracking events on failed or out-of-stock cart operations."
 }

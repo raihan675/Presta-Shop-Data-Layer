@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.6.0] - 2026-10-21
+
+### Added
+- **Universal Cart Activity Tracking Engine (`EDL.processCartDelta`)**:
+  - Pure mathematical before-and-after state delta engine ($\Delta Q = Q_{\text{new}} - Q_{\text{old}}$) completely independent of DOM selectors, themes, and frontend scrapers.
+  - Accurate GA4 ecommerce event mapping:
+    - Incremental additions & quantity increases map to `add_to_cart` with `quantity: ΔQ` and `value: sum(price * ΔQ)`.
+    - Partial decrements & complete removals map to `remove_from_cart` with `quantity: |ΔQ|` and `value: sum(price * |ΔQ|)`.
+    - Unchanged quantities ($\Delta Q = 0$) emit no events.
+    - Full-cart clearing accurately emits `remove_from_cart` for every affected item and its previously held quantity.
+  - Multi-item batch processing: simultaneously partitions mixed cart modifications into distinct `add_to_cart` and `remove_from_cart` payloads within the same operation.
+  - In-memory Cart Product Metadata Cache (`cartProductsData`): preserves full product details (item_id, variant_id, sku_id, item_name, item_brand, item_category, item_variant, price) even after items are removed from `ps_cart_product` and omitted from the updated cart.
+  - Server-side Failure & Concurrency Guard: detects `resp.hasError` and `resp.errors` to prevent false tracking events on failed or out-of-stock operations.
+  - Pre-hydrated cart state in `ps_gtm_datalayer.php` and `datalayer_init.tpl`.
+  - Comprehensive 10-scenario regression test suite covering single adds, quantity increments, decrements, removals, multi-item updates, combination items, empty cart, and error handling.
+
+---
+
 ## [1.5.2] - 2026-10-21
 
 ### Changed
