@@ -687,4 +687,109 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     const storeDTotal = EDL.calculateCartValue([{ price: roundedUnit, quantity: 5 }], 2);
     assert.strictEqual(storeDTotal, 210.80);
   });
+
+  it('19. EDL.formatVariant sanitizes object/array attributes and prevents [object Object] leaks', function () {
+    // 1. Raw object from PrestaShop CartPresenter: { Farbe1: "Stahlblau" }
+    const objAttr = { Farbe1: 'Stahlblau' };
+    assert.strictEqual(EDL.formatVariant(objAttr), 'Farbe1: Stahlblau');
+
+    // 2. Multi-attribute object: { Size: "L", Color: "Blue" }
+    const multiObj = { Size: 'L', Color: 'Blue' };
+    assert.strictEqual(EDL.formatVariant(multiObj), 'Size: L | Color: Blue');
+
+    // 3. Array of attribute descriptor objects
+    const arrAttr = [
+      { group: 'Farbe1', name: 'Stahlblau' }
+    ];
+    assert.strictEqual(EDL.formatVariant(arrAttr), 'Farbe1: Stahlblau');
+
+    // 4. Inadvertent literal "[object Object]" string is rejected/cleaned
+    assert.strictEqual(EDL.formatVariant('[object Object]'), '');
+
+    // 5. Normal string is preserved
+    assert.strictEqual(EDL.formatVariant('Farbe1: Stahlblau'), 'Farbe1: Stahlblau');
+
+    // 6. Normalization with object attributes
+    const item = EDL.normalizeItem({
+      item_id: '68',
+      variant_id: '299',
+      item_name: 'Trink und Snack Tasse',
+      attributes: { Farbe1: 'Stahlblau' },
+      price: 13.00,
+      quantity: 1
+    });
+    assert.strictEqual(item.item_variant, 'Farbe1: Stahlblau');
+  });
+
+  it('20. Multi-quantity add_to_cart for Variant 299 captures quantity 2, total 26.00 EUR, and clean variant/category', function () {
+    EDL.setEventPrefix('raihan');
+
+    // Pre-hydrated product configuration matching PDP
+    global.window.psGtmConfig = {
+      eventPrefix: 'raihan',
+      currency: 'EUR',
+      currencyPrecision: 2,
+      currentProduct: {
+        item_id: '68',
+        variant_id: '299',
+        sku_id: 'BHK125-B',
+        item_name: 'Trink und Snack Tasse',
+        item_brand: 'Haakaa - Think Green Ltd.',
+        item_category: 'Baby Geschirr',
+        item_variant: 'Farbe1: Stahlblau',
+        price: 13.00,
+        quantity: 1
+      },
+      productCombinations: {
+        '299': {
+          item_id: '68',
+          variant_id: '299',
+          sku_id: 'BHK125-B',
+          item_name: 'Trink und Snack Tasse',
+          item_variant: 'Farbe1: Stahlblau',
+          price: 13.00
+        }
+      }
+    };
+
+    // User adds 2 quantities of variant 299
+    const addedItem = EDL.normalizeItem({
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Baby Geschirr',
+      item_variant: 'Farbe1: Stahlblau',
+      price: 13.00,
+      quantity: 2
+    });
+
+    const items = [addedItem];
+    const totalVal = EDL.calculateCartValue(items, 2);
+
+    assert.strictEqual(addedItem.quantity, 2);
+    assert.strictEqual(addedItem.price, 13.00);
+    assert.strictEqual(totalVal, 26.00);
+    assert.strictEqual(addedItem.item_variant, 'Farbe1: Stahlblau');
+    assert.notStrictEqual(addedItem.item_variant, '[object Object]');
+    assert.strictEqual(addedItem.item_category, 'Baby Geschirr');
+
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: totalVal,
+      items: items
+    });
+
+    const event = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(event.event, 'raihan_add_to_cart');
+    assert.strictEqual(event.ecommerce.currency, 'EUR');
+    assert.strictEqual(event.ecommerce.value, 26.00);
+    assert.strictEqual(event.ecommerce.items[0].quantity, 2);
+    assert.strictEqual(event.ecommerce.items[0].price, 13.00);
+    assert.strictEqual(event.ecommerce.items[0].variant_id, '299');
+    assert.strictEqual(event.ecommerce.items[0].sku_id, 'BHK125-B');
+    assert.strictEqual(event.ecommerce.items[0].item_variant, 'Farbe1: Stahlblau');
+    assert.strictEqual(event.ecommerce.items[0].item_category, 'Baby Geschirr');
+  });
 });

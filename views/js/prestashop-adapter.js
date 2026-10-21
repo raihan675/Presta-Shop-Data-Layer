@@ -108,6 +108,44 @@
   }
 
   var lastAddToCartTime = 0;
+  var lastRequestedQuantity = 1;
+
+  function captureQuantityFromDom() {
+    var qtyInput = document.querySelector('form#add-to-cart-or-refresh input#quantity_wanted')
+      || document.querySelector('form#add-to-cart-or-refresh input[name="qty"]')
+      || document.querySelector('input#quantity_wanted')
+      || document.querySelector('input[name="qty"]')
+      || document.querySelector('input[name="quantity_wanted"]');
+    if (qtyInput) {
+      var v = parseInt(qtyInput.value, 10);
+      if (!isNaN(v) && v > 0) {
+        lastRequestedQuantity = v;
+      }
+    }
+  }
+
+  // Listen to input changes, clicks, and form submits across the storefront
+  document.addEventListener('change', function (e) {
+    if (e.target && (e.target.id === 'quantity_wanted' || e.target.name === 'qty' || e.target.name === 'quantity_wanted')) {
+      var v = parseInt(e.target.value, 10);
+      if (!isNaN(v) && v > 0) {
+        lastRequestedQuantity = v;
+      }
+    }
+  }, true);
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target ? e.target.closest('button[data-button-action="add-to-cart"], .add-to-cart, button[type="submit"]') : null;
+    if (btn) {
+      captureQuantityFromDom();
+    }
+  }, true);
+
+  document.addEventListener('submit', function (e) {
+    if (e.target && (e.target.id === 'add-to-cart-or-refresh' || (e.target.action && e.target.action.indexOf('cart') !== -1))) {
+      captureQuantityFromDom();
+    }
+  }, true);
 
   function onPrestashopReady() {
     if (!window.prestashop) return;
@@ -136,7 +174,22 @@
           ? reason.idProductAttribute
           : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
         var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
-        var qty = parseInt(reason.quantity, 10) || 1;
+
+        // Authoritative Quantity Resolution
+        var qty = 1;
+        if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
+          qty = parseInt(reason.quantity, 10);
+        } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
+          qty = parseInt(reason.qty, 10);
+        } else if (reason.quantity_wanted !== undefined && parseInt(reason.quantity_wanted, 10) > 0) {
+          qty = parseInt(reason.quantity_wanted, 10);
+        } else if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
+          qty = parseInt(event.resp.quantity, 10);
+        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
+          qty = parseInt(event.resp.qty, 10);
+        } else if (lastRequestedQuantity > 0) {
+          qty = lastRequestedQuantity;
+        }
 
         // First attempt to match from server cart response (pure JSON from CartController)
         var matchedProduct = null;
@@ -160,14 +213,33 @@
             brand = window.psGtmConfig.currentProduct.item_brand || '';
           }
 
+          // Authoritative Category Resolution
+          var catName = '';
+          if (window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
+            catName = window.psGtmConfig.currentProduct.item_category || '';
+          }
+          if (!catName) {
+            catName = String(matchedProduct.category_name || matchedProduct.category || '');
+          }
+
+          // Authoritative Variant String Resolution
+          var variantStr = '';
+          if (addedIdAttr && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[addedIdAttr]) {
+            variantStr = window.psGtmConfig.productCombinations[addedIdAttr].item_variant || '';
+          } else if (addedIdAttr && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.variant_id) === addedIdAttr) {
+            variantStr = window.psGtmConfig.currentProduct.item_variant || '';
+          } else if (EDL.formatVariant) {
+            variantStr = EDL.formatVariant(matchedProduct.attributes || matchedProduct.attribute_string || matchedProduct.attributes_small || '');
+          }
+
           var cartItem = {
             item_id: String(matchedProduct.id_product),
             variant_id: (matchedProduct.id_product_attribute && parseInt(matchedProduct.id_product_attribute, 10) > 0) ? String(matchedProduct.id_product_attribute) : '',
             sku_id: String(matchedProduct.reference || ''),
             item_name: String(matchedProduct.name || ''),
             item_brand: brand,
-            item_category: String(matchedProduct.category_name || matchedProduct.category || ''),
-            item_variant: String(matchedProduct.attributes || ''),
+            item_category: catName,
+            item_variant: variantStr,
             price: resolvedPrice,
             quantity: qty
           };

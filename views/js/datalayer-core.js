@@ -74,6 +74,55 @@
     return num;
   }
 
+  function formatVariant(raw) {
+    if (!raw) return '';
+    if (typeof raw === 'string') {
+      return (raw === '[object Object]') ? '' : raw.trim();
+    }
+    if (Array.isArray(raw)) {
+      var parts = [];
+      for (var i = 0; i < raw.length; i++) {
+        var a = raw[i];
+        if (typeof a === 'string' && a !== '[object Object]') {
+          var trimmed = a.trim();
+          if (trimmed) parts.push(trimmed);
+        } else if (a && typeof a === 'object') {
+          if (a.group && a.name) {
+            parts.push(String(a.group).trim() + ': ' + String(a.name).trim());
+          } else if (a.name) {
+            parts.push(String(a.name).trim());
+          } else if (a.value) {
+            parts.push(String(a.value).trim());
+          }
+        }
+      }
+      return parts.join(' | ');
+    }
+    if (typeof raw === 'object') {
+      var objParts = [];
+      for (var key in raw) {
+        if (raw.hasOwnProperty(key)) {
+          var val = raw[key];
+          if (typeof val === 'string' || typeof val === 'number') {
+            var valStr = String(val).trim();
+            if (valStr && valStr !== '[object Object]') {
+              if (/^\d+$/.test(key)) {
+                objParts.push(valStr);
+              } else {
+                objParts.push(key.trim() + ': ' + valStr);
+              }
+            }
+          } else if (val && typeof val === 'object' && val.name) {
+            var prefix = val.group ? String(val.group).trim() + ': ' : '';
+            objParts.push(prefix + String(val.name).trim());
+          }
+        }
+      }
+      return objParts.join(' | ');
+    }
+    return '';
+  }
+
   function sanitizeInt(val) {
     var parsed = parseInt(val, 10);
     return isNaN(parsed) ? 1 : Math.max(1, parsed);
@@ -91,7 +140,7 @@
       ? String(rawVariant)
       : '';
     var skuId = String(raw.sku_id || raw.reference || raw.item_sku || '');
-    var variant = (raw.item_variant || raw.variant) ? String(raw.item_variant || raw.variant) : '';
+    var variant = formatVariant(raw.item_variant || raw.variant || raw.attributes);
 
     var item = {
       item_id: baseId,
@@ -196,6 +245,7 @@
     normalizeItem: normalizeItem,
     normalizeItems: normalizeItems,
     calculateCartValue: calculateCartValue,
-    roundHalfUp: roundHalfUp
+    roundHalfUp: roundHalfUp,
+    formatVariant: formatVariant
   };
 });

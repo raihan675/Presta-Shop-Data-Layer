@@ -24,6 +24,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Native Upgrade Script**: Added `upgrade/upgrade-1.5.0.php` for seamless in-place updates.
 
 ### Fixed
+- **Accurate Add-to-Cart Quantity Resolution**: Captured user-selected quantities directly from active product forms and core event payloads, ensuring multi-quantity additions (e.g. 2 units) correctly push `quantity: 2` and accurate calculated `ecommerce.value` (e.g. 26.00 €) instead of falling back to 1.
+- **Variant Object Sanitization (`[object Object]` fix)**: Added `EDL.formatVariant()` to parse PrestaShop `CartPresenter` attribute structures (arrays/associative objects) into canonical human-readable strings (e.g. `Farbe1: Stahlblau`) and resolved combinations from pre-hydrated database mappings, completely eliminating `[object Object]` leaks.
+- **Category Name Consistency**: Standardized `item_category` to prioritize authoritative display category names (`Baby Geschirr`) across all funnel events over URL rewrite slugs (`baby-geschirr`).
 - **1-Click Update 500 Error in Module Manager**: Resolved Symfony 500 Internal Server Error in PrestaShop 8 caused by update forms posting directly to the GET-only Symfony route (`/improve/modules/manage`). Routed update submissions safely through the authenticated `AdminModules` module controller with CSRF token validation.
 - **Resilient Update Pipeline**: Wrapped all update actions, upgrade scripts, and cache flushing operations in `\Throwable` safety nets with filesystem error suppression to prevent server crashes under strict host environments.
 - **Direct Package Download Option**: Added a direct "Download ZIP" action in the update notification banner for offline or upload-based upgrades.
