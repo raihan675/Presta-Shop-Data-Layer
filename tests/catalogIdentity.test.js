@@ -286,6 +286,8 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
         ]
       },
       order_totals: {
+        order_id: 1221,
+        order_reference: 'HTAIWHXQL',
         product_subtotal: 57.60,
         shipping_total: 4.50,
         tax_total: 9.92,
@@ -294,6 +296,10 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       },
       user_data: rawUserData
     };
+
+    assert.strictEqual(purchasePayload.ecommerce.transaction_id, 'HTAIWHXQL');
+    assert.strictEqual(purchasePayload.order_totals.order_id, 1221);
+    assert.strictEqual(purchasePayload.order_totals.order_reference, 'HTAIWHXQL');
 
     assert.strictEqual(purchasePayload.ecommerce.value, 57.60, 'GA4 value must equal items sum');
     assert.strictEqual(purchasePayload.ecommerce.shipping, 4.50, 'Shipping must be 4.50');

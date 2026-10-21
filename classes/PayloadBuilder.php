@@ -318,6 +318,8 @@ class PayloadBuilder
             ],
             // Custom PrestaShop financial breakdown preserving exact order totals
             'order_totals' => [
+                'order_id' => (int)$order->id,
+                'order_reference' => (string)$order->reference,
                 'product_subtotal' => $productSubtotal,
                 'shipping_total' => $orderShipping,
                 'tax_total' => $orderTax,
