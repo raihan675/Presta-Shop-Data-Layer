@@ -103,7 +103,7 @@ class PayloadBuilder
                             if (!empty($p['manufacturer_name'])) {
                                 $productObj->manufacturer_name = $p['manufacturer_name'];
                             }
-                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $items[] = $item;
@@ -124,7 +124,7 @@ class PayloadBuilder
                         foreach ($prods as $p) {
                             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
                             $productObj->manufacturer_name = (string)$manufacturer->name;
-                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $items[] = $item;
@@ -145,7 +145,7 @@ class PayloadBuilder
                         if (!empty($p['manufacturer_name'])) {
                             $productObj->manufacturer_name = $p['manufacturer_name'];
                         }
-                        $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                        $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
                         $item = $this->formatItem($productObj, 0, 1, $price);
                         $item['index'] = $idx++;
                         $items[] = $item;
