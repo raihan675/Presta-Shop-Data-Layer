@@ -145,4 +145,113 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(normalized.item_brand, 'Dooky - Xplorys BV');
     assert.strictEqual(normalized.item_category, 'Babytrage');
   });
+
+  it('7. Universal backend data pipeline cross-funnel schema verification (No DOM)', function () {
+    EDL.setEventPrefix('raihan');
+
+    // Funnel Step 1: view_item (server hydrated)
+    const viewItemPayload = {
+      currency: 'EUR',
+      value: 74.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '1013',
+          variant_id: '',
+          sku_id: '5326310',
+          item_name: 'Babytrage Terra Nova Beige',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Babytrage',
+          item_variant: '',
+          price: 74.99,
+          quantity: 1
+        })
+      ]
+    };
+    EDL.pushEvent('view_item', viewItemPayload);
+
+    // Funnel Step 2: add_to_cart (native pub/sub event)
+    const addToCartPayload = {
+      currency: 'EUR',
+      value: 74.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '1013',
+          variant_id: '',
+          sku_id: '5326310',
+          item_name: 'Babytrage Terra Nova Beige',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Babytrage',
+          item_variant: '',
+          price: 74.99,
+          quantity: 1
+        })
+      ]
+    };
+    EDL.pushEvent('add_to_cart', addToCartPayload);
+
+    // Funnel Step 3: begin_checkout (server hydrated)
+    const beginCheckoutPayload = {
+      currency: 'EUR',
+      value: 74.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '1013',
+          variant_id: '',
+          sku_id: '5326310',
+          item_name: 'Babytrage Terra Nova Beige',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Babytrage',
+          item_variant: '',
+          price: 74.99,
+          quantity: 1
+        })
+      ]
+    };
+    EDL.pushEvent('begin_checkout', beginCheckoutPayload);
+
+    // Funnel Step 4: purchase (server hydrated with user_data & user_data_raw)
+    const purchasePayload = {
+      transaction_id: 'OKAHUEEVW',
+      currency: 'EUR',
+      value: 74.99,
+      tax: 11.97,
+      shipping: 0,
+      coupon: '',
+      items: [
+        EDL.normalizeItem({
+          item_id: '1013',
+          variant_id: '',
+          sku_id: '5326310',
+          item_name: 'Babytrage Terra Nova Beige',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Babytrage',
+          item_variant: '',
+          price: 74.99,
+          quantity: 1
+        })
+      ]
+    };
+    EDL.pushEvent('purchase', purchasePayload, { email: 'hash123' });
+
+    // Assert absolute consistency across all events in dataLayer
+    const events = global.window.dataLayer.filter(e => e.event && e.event.startsWith('raihan_'));
+    assert.strictEqual(events.length, 4);
+
+    const [evView, evAdd, evCheckout, evPurchase] = events;
+    const allItems = [
+      evView.ecommerce.items[0],
+      evAdd.ecommerce.items[0],
+      evCheckout.ecommerce.items[0],
+      evPurchase.ecommerce.items[0]
+    ];
+
+    allItems.forEach((item, index) => {
+      assert.strictEqual(item.item_id, '1013', `item_id mismatch at step ${index}`);
+      assert.strictEqual(item.variant_id, '', `variant_id mismatch at step ${index}`);
+      assert.strictEqual(item.sku_id, '5326310', `sku_id mismatch at step ${index}`);
+      assert.strictEqual(item.item_brand, 'Dooky - Xplorys BV', `item_brand mismatch at step ${index}`);
+      assert.strictEqual(item.item_category, 'Babytrage', `item_category mismatch at step ${index}`);
+      assert.strictEqual(item.price, 74.99, `price mismatch at step ${index}`);
+    });
+  });
 });

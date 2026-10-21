@@ -2,6 +2,7 @@
 /**
  * Advanced Google Tag Manager & GA4 DataLayer Module for PrestaShop
  * Compatibility: PrestaShop 1.7.8.0 - 8.2.x / 9.x
+ * Universal Backend-Driven Architecture — Zero DOM Scraping.
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -20,7 +21,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.3.2';
+        $this->version = '1.4.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -29,7 +30,7 @@ class Ps_Gtm_DataLayer extends Module
         parent::__construct();
 
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Catalog-accurate ecommerce DataLayer with base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.');
+        $this->description = $this->l('Universal backend-driven DataLayer with zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
     }
 
@@ -39,6 +40,7 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('displayHeader')
             && $this->registerHook('displayAfterBodyOpeningTag')
             && $this->registerHook('displayOrderConfirmation')
+            && $this->registerHook('actionCartUpdateQuantityBefore')
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
@@ -83,14 +85,13 @@ class Ps_Gtm_DataLayer extends Module
             $prefix = self::normalizePrefix($rawPrefix);
 
             if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
-                $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (expected GTM-XXXXXX).'));
+                $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).'));
             } else {
                 Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
-                Configuration::updateValue('PS_SGTM_TRANSPORT_URL', rtrim($sgtmUrl, '/'));
+                Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
                 Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
                 Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
-
-                $output .= $this->displayConfirmation($this->l('Settings updated successfully.'));
+                $output .= $this->displayConfirmation($this->l('Settings successfully saved.'));
             }
         }
 
@@ -243,6 +244,62 @@ class Ps_Gtm_DataLayer extends Module
         ];
     }
 
+    public function hookActionCartUpdateQuantityBefore($params)
+    {
+        if (!isset($params['product']) || !Validate::isLoadedObject($params['product'])) {
+            return;
+        }
+
+        $idAttr = isset($params['id_product_attribute']) ? (int)$params['id_product_attribute'] : 0;
+        $operator = isset($params['operator']) ? (string)$params['operator'] : 'up';
+        $quantity = isset($params['quantity']) ? (int)$params['quantity'] : 1;
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+        $item = $payloadBuilder->formatItem($params['product'], $idAttr, $quantity);
+
+        $canonicalEvent = ($operator === 'down') ? 'remove_from_cart' : 'add_to_cart';
+        $this->queuePendingEvent($canonicalEvent, $item);
+    }
+
+    public function queuePendingEvent($canonicalEvent, $item)
+    {
+        $events = [];
+        if (!empty($this->context->cookie->ps_gtm_pending_events)) {
+            $decoded = json_decode($this->context->cookie->ps_gtm_pending_events, true);
+            if (is_array($decoded)) {
+                $events = $decoded;
+            }
+        }
+
+        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        $events[] = [
+            'event' => self::formatEventName($canonicalEvent, $eventPrefix),
+            'original_event' => $canonicalEvent,
+            'ecommerce' => [
+                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
+                'value' => round((float)$item['price'] * (int)$item['quantity'], 2),
+                'items' => [$item],
+            ],
+        ];
+
+        $this->context->cookie->ps_gtm_pending_events = json_encode($events);
+    }
+
+    public function getAndClearPendingEvents()
+    {
+        if (empty($this->context->cookie->ps_gtm_pending_events)) {
+            return [];
+        }
+
+        $events = json_decode($this->context->cookie->ps_gtm_pending_events, true);
+        unset($this->context->cookie->ps_gtm_pending_events);
+        return is_array($events) ? $events : [];
+    }
+
     public function hookDisplayHeader($params)
     {
         $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
@@ -254,7 +311,7 @@ class Ps_Gtm_DataLayer extends Module
         $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
-        // Pre-build combinations dictionary for PDP to give instant, accurate variant SKU lookup
+        // Pre-build combinations dictionary for PDP directly from database models
         $combosMap = [];
         if ($controller === 'product') {
             $idProduct = (int)Tools::getValue('id_product');
@@ -266,11 +323,16 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
+        $pendingEvents = $this->getAndClearPendingEvents();
+        $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
+
         $this->context->smarty->assign([
             'gtm_id' => $gtmId,
             'sgtm_url' => $sgtmUrl,
             'consent_mode_enabled' => $consentEnabled,
             'event_prefix' => $eventPrefix,
+            'ajax_url' => $ajaxUrl,
+            'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);

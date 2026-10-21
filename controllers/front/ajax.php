@@ -1,0 +1,65 @@
+<?php
+/**
+ * AJAX Front Controller: Authoritative backend resolution of product & combination data.
+ * Completely eliminates any client-side DOM dependency.
+ */
+
+if (!defined('_PS_VERSION_')) {
+    exit;
+}
+
+require_once _PS_MODULE_DIR_ . 'ps_gtm_datalayer/classes/ProductIdentityResolver.php';
+require_once _PS_MODULE_DIR_ . 'ps_gtm_datalayer/classes/PayloadBuilder.php';
+
+class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
+{
+    public $ssl = true;
+    public $ajax = true;
+
+    public function initContent()
+    {
+        parent::initContent();
+        header('Content-Type: application/json; charset=utf-8');
+
+        $action = Tools::getValue('action');
+        if ($action === 'resolveProduct') {
+            $this->ajaxProcessResolveProduct();
+        } else {
+            die(json_encode(['error' => 'Invalid action']));
+        }
+    }
+
+    public function ajaxProcessResolveProduct()
+    {
+        $idProduct = (int)Tools::getValue('id_product');
+        $idProductAttribute = (int)Tools::getValue('id_product_attribute');
+        $quantity = (int)Tools::getValue('quantity', 1);
+        if ($quantity <= 0) {
+            $quantity = 1;
+        }
+
+        if ($idProduct <= 0) {
+            die(json_encode(['error' => 'Missing id_product']));
+        }
+
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $idShop = $this->context->shop ? (int)$this->context->shop->id : 1;
+
+        $product = new Product($idProduct, true, $idLanguage, $idShop);
+        if (!Validate::isLoadedObject($product)) {
+            die(json_encode(['error' => 'Product not found']));
+        }
+
+        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+        $item = $payloadBuilder->formatItem($product, $idProductAttribute, $quantity);
+
+        $currency = $this->context->currency ? $this->context->currency->iso_code : 'EUR';
+
+        die(json_encode([
+            'success' => true,
+            'currency' => $currency,
+            'item' => $item,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+}

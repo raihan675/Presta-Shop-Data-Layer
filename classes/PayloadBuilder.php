@@ -1,6 +1,7 @@
 <?php
 /**
  * Constructs catalog-accurate GA4 ecommerce payloads across catalog, cart, and checkout states.
+ * 100% authoritative backend data sourcing — zero DOM dependency.
  */
 
 if (!defined('_PS_VERSION_')) {
@@ -59,7 +60,7 @@ class PayloadBuilder
             return null;
         }
 
-        // Accurately determine the selected combination/attribute
+        // Accurately determine the selected combination/attribute from backend parameters
         $idProductAttribute = (int)Tools::getValue('id_product_attribute');
         if (!$idProductAttribute) {
             $idProductAttribute = (int)Product::getDefaultAttribute($idProduct);
@@ -85,6 +86,7 @@ class PayloadBuilder
         $listName = ucfirst($controller) . ' Page';
 
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $items = [];
 
         if ($controller === 'category') {
             $idCategory = (int)Tools::getValue('id_category');
@@ -93,6 +95,41 @@ class PayloadBuilder
                 if (Validate::isLoadedObject($category)) {
                     $listId = 'category_' . $idCategory;
                     $listName = (string)$category->name;
+                    $prods = $category->getProducts($idLanguage, 1, 24, 'position', 'asc', false, true);
+                    if (!empty($prods) && is_array($prods)) {
+                        $idx = 1;
+                        foreach ($prods as $p) {
+                            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+                            if (!empty($p['manufacturer_name'])) {
+                                $productObj->manufacturer_name = $p['manufacturer_name'];
+                            }
+                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                            $item = $this->formatItem($productObj, 0, 1, $price);
+                            $item['index'] = $idx++;
+                            $items[] = $item;
+                        }
+                    }
+                }
+            }
+        } elseif ($controller === 'manufacturer') {
+            $idManufacturer = (int)Tools::getValue('id_manufacturer');
+            if ($idManufacturer) {
+                $manufacturer = new Manufacturer($idManufacturer, $idLanguage);
+                if (Validate::isLoadedObject($manufacturer)) {
+                    $listId = 'manufacturer_' . $idManufacturer;
+                    $listName = (string)$manufacturer->name;
+                    $prods = $manufacturer->getProducts($idManufacturer, $idLanguage, 1, 24, 'name', 'asc');
+                    if (!empty($prods) && is_array($prods)) {
+                        $idx = 1;
+                        foreach ($prods as $p) {
+                            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+                            $productObj->manufacturer_name = (string)$manufacturer->name;
+                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                            $item = $this->formatItem($productObj, 0, 1, $price);
+                            $item['index'] = $idx++;
+                            $items[] = $item;
+                        }
+                    }
                 }
             }
         } elseif ($controller === 'search') {
@@ -100,6 +137,20 @@ class PayloadBuilder
             if ($query) {
                 $listId = 'search_results';
                 $listName = 'Search: ' . $query;
+                $searchRes = Search::find($idLanguage, $query, 1, 24, 'position', 'desc');
+                if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
+                    $idx = 1;
+                    foreach ($searchRes['result'] as $p) {
+                        $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+                        if (!empty($p['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $p['manufacturer_name'];
+                        }
+                        $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (isset($p['price']) ? (float)$p['price'] : null);
+                        $item = $this->formatItem($productObj, 0, 1, $price);
+                        $item['index'] = $idx++;
+                        $items[] = $item;
+                    }
+                }
             }
         }
 
@@ -109,7 +160,7 @@ class PayloadBuilder
             'ecommerce' => [
                 'item_list_id' => $listId,
                 'item_list_name' => $listName,
-                'items' => [],
+                'items' => $items,
             ],
         ];
     }
@@ -189,7 +240,7 @@ class PayloadBuilder
             $orderRef = !empty($p['product_reference']) ? trim($p['product_reference']) : '';
             $skuId = !empty($orderRef) ? $orderRef : $identifiers['sku_id'];
 
-            // Authoritative brand resolution: check manufacturer_name first, then query Manufacturer table directly
+            // Authoritative brand resolution: query Manufacturer directly if property not hydrated
             $brand = '';
             if (!empty($productObj->manufacturer_name)) {
                 $brand = (string)$productObj->manufacturer_name;
@@ -246,7 +297,7 @@ class PayloadBuilder
             'user_data' => $customerData['hashed'],
         ];
 
-        // Expose unhashed normalized customer data separately for Tag Assistant debugging without leaking PII to ad networks
+        // Expose unhashed normalized customer data separately for Tag Assistant debugging
         if (!empty($customerData['raw'])) {
             $purchasePayload['user_data_raw'] = $customerData['raw'];
         }
@@ -264,7 +315,7 @@ class PayloadBuilder
         $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
         $category = new Category((int)$product->id_category_default, $idLanguage);
 
-        // Authoritative brand resolution: check manufacturer_name first, then query Manufacturer table directly
+        // Authoritative brand resolution directly from database
         $brand = '';
         if (!empty($product->manufacturer_name)) {
             $brand = (string)$product->manufacturer_name;
@@ -273,7 +324,7 @@ class PayloadBuilder
         }
 
         return [
-            'item_id' => (string)$product->id, // Base product ID
+            'item_id' => (string)$product->id, // Canonical base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
             'item_name' => (string)$product->name,
