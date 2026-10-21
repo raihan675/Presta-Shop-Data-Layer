@@ -36,8 +36,8 @@ class Ps_Gtm_DataLayer extends Module
         $this->description = $this->l('Universal backend-driven DataLayer with zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
-        // Keep ps_module database version table synchronized
-        if (defined('_PS_ADMIN_DIR_') && $this->id) {
+        // Keep ps_module database version table synchronized with active version
+        if (class_exists('Db')) {
             PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
         }
 
@@ -81,6 +81,9 @@ class Ps_Gtm_DataLayer extends Module
 
     public function getContent()
     {
+        // Keep database version synchronized and cache fresh
+        PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
+
         // Auto-register displayBackOfficeTop if upgrading from earlier version
         if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
             $this->registerHook('displayBackOfficeTop');

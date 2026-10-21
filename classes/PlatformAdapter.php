@@ -135,9 +135,22 @@ class PlatformAdapter
         }
 
         try {
-            return (bool)Db::getInstance()->execute(
-                'UPDATE `' . _DB_PREFIX_ . 'module` SET `version` = \'' . pSQL($currentVersion) . '\' WHERE `name` = \'' . pSQL($moduleName) . '\''
+            $db = Db::getInstance();
+            if (!$db) {
+                return false;
+            }
+
+            $currentDbVersion = (string)$db->getValue(
+                'SELECT `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = \'' . pSQL($moduleName) . '\''
             );
+
+            if ($currentDbVersion !== (string)$currentVersion) {
+                $db->execute(
+                    'UPDATE `' . _DB_PREFIX_ . 'module` SET `version` = \'' . pSQL($currentVersion) . '\' WHERE `name` = \'' . pSQL($moduleName) . '\''
+                );
+                self::clearAllCaches();
+            }
+            return true;
         } catch (\Throwable $e) {
             return false;
         }
