@@ -247,4 +247,62 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(item.price, 74.99, `price mismatch at step ${index}`);
     });
   });
+
+  it('8. Order HTAIWHXQL financial breakdown and order_totals verification', function () {
+    const rawUserData = {
+      email: 'weba@gmail.com',
+      address: {
+        first_name: 'Web',
+        last_name: 'Raihan',
+        street: 'Neuer Jungfernstieg 19',
+        city: 'amsterdam',
+        postal_code: '84125',
+        country: 'DE'
+      }
+    };
+
+    const purchasePayload = {
+      event: 'raihan_purchase',
+      original_event: 'purchase',
+      ecommerce: {
+        transaction_id: 'HTAIWHXQL',
+        value: 57.60, // sum of items (19.20 * 3), excluding shipping
+        tax: 9.92,
+        shipping: 4.50,
+        currency: 'EUR',
+        coupon: '',
+        items: [
+          {
+            item_id: '153',
+            variant_id: '',
+            sku_id: 'FIT09',
+            item_name: 'FitKidz Barbell - Plush',
+            item_brand: '',
+            item_category: 'Sportspielzeug',
+            item_variant: '',
+            price: 19.20,
+            quantity: 3
+          }
+        ]
+      },
+      order_totals: {
+        product_subtotal: 57.60,
+        shipping_total: 4.50,
+        tax_total: 9.92,
+        order_total: 62.10,
+        currency: 'EUR'
+      },
+      user_data: rawUserData
+    };
+
+    assert.strictEqual(purchasePayload.ecommerce.value, 57.60, 'GA4 value must equal items sum');
+    assert.strictEqual(purchasePayload.ecommerce.shipping, 4.50, 'Shipping must be 4.50');
+    assert.strictEqual(purchasePayload.ecommerce.tax, 9.92, 'Tax must be 9.92');
+    assert.strictEqual(purchasePayload.order_totals.product_subtotal, 57.60);
+    assert.strictEqual(purchasePayload.order_totals.shipping_total, 4.50);
+    assert.strictEqual(purchasePayload.order_totals.tax_total, 9.92);
+    assert.strictEqual(purchasePayload.order_totals.order_total, 62.10);
+    assert.strictEqual(purchasePayload.user_data.email, 'weba@gmail.com');
+    assert.strictEqual(purchasePayload.user_data.meta_external_id, undefined, 'meta_external_id must not be present');
+  });
 });

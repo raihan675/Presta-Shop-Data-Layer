@@ -276,6 +276,28 @@ class PayloadBuilder
         $orderShipping = round((float)$order->total_shipping_tax_incl, 2);
         $orderTotal = round((float)$order->total_paid_tax_incl, 2);
 
+        // PrestaShop authoritative product subtotal
+        $productSubtotal = (isset($order->total_products_wt) && (float)$order->total_products_wt > 0)
+            ? round((float)$order->total_products_wt, 2)
+            : 0.0;
+
+        // GA4 item value = sum of (item price * quantity), excluding shipping and separate from tax
+        $itemsSum = 0.0;
+        foreach ($items as $it) {
+            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        }
+        $itemsSum = round($itemsSum, 2);
+
+        $ga4Value = ($itemsSum > 0) ? $itemsSum : ($productSubtotal > 0 ? $productSubtotal : $orderTotal);
+        if ($productSubtotal <= 0) {
+            $productSubtotal = $ga4Value;
+        }
+
+        $orderCurrency = Currency::getIsoCodeById((int)$order->id_currency);
+        if (empty($orderCurrency)) {
+            $orderCurrency = $this->context->currency ? $this->context->currency->iso_code : 'EUR';
+        }
+
         $coupon = '';
         $cartRules = $order->getCartRules();
         if (!empty($cartRules) && isset($cartRules[0]['name'])) {
@@ -287,12 +309,20 @@ class PayloadBuilder
             'original_event' => 'purchase',
             'ecommerce' => [
                 'transaction_id' => !empty($order->reference) ? (string)$order->reference : (string)$order->id,
-                'value' => $orderTotal,
+                'value' => $ga4Value, // GA4 item revenue: sum of items, excluding shipping
                 'tax' => $orderTax,
                 'shipping' => $orderShipping,
-                'currency' => Currency::getIsoCodeById((int)$order->id_currency),
+                'currency' => $orderCurrency,
                 'coupon' => $coupon,
                 'items' => $items,
+            ],
+            // Custom PrestaShop financial breakdown preserving exact order totals
+            'order_totals' => [
+                'product_subtotal' => $productSubtotal,
+                'shipping_total' => $orderShipping,
+                'tax_total' => $orderTax,
+                'order_total' => $orderTotal,
+                'currency' => $orderCurrency,
             ],
             'user_data' => $userData,
         ];
