@@ -73,47 +73,6 @@ In the module configuration screen (**Modules > Module Manager > Enterprise GA4 
 
 ---
 
-## Codebase Architecture
-
-```text
-ps_gtm_datalayer/
-├── ps_gtm_datalayer.php            # Main module class, hook registrations & Back Office configuration
-├── config.xml                      # PrestaShop module manifest
-├── logo.png                        # Module logo
-├── update-manifest.json            # Version and checksum registry for 1-click updates
-├── sync_release.ps1                # Automated packaging and validation script
-├── classes/
-│   ├── PlatformAdapter.php         # Multi-version adapter (PrestaShop 1.7.8 through 8.2.x and 9.x)
-│   ├── PricingEngine.php           # Storefront price parity, commercial rounding & core price static bridge
-│   ├── CanonicalDataModel.php      # GA4 ecommerce schema validation and mathematical value calculator
-│   ├── ProductIdentityResolver.php # Combinations, SKUs, and attribute matrix resolver
-│   ├── CustomerDataEngine.php      # Normalized first-party user data engine (Enhanced Conversions / CAPI)
-│   ├── PayloadBuilder.php          # GA4 payload formatting engine across all funnel steps
-│   ├── DeduplicationManager.php    # Database-backed purchase idempotency engine
-│   ├── WishlistIntegrationLayer.php# Wishlist module adapter (blockwishlist, iqitwishlist, custom themes)
-│   └── UpdateManager.php           # Automated 1-click update & rollback engine
-├── controllers/
-│   └── front/
-│       └── ajax.php                # Authoritative backend AJAX resolver for client-side events
-├── upgrade/
-│   ├── upgrade-1.5.0.php ... upgrade-1.9.2.php # Native database and cache migration scripts
-├── views/
-│   ├── js/
-│   │   ├── datalayer-core.js       # Universal DataLayer normalization & Cart Delta Engine
-│   │   └── prestashop-adapter.js   # PrestaShop event listeners and Pub/Sub bridge
-│   └── templates/
-│       ├── admin/
-│       │   └── module_manager_update_banner.tpl # 1-Click Back Office update UI
-│       └── hook/
-│           ├── gtm_head.tpl        # GTM container & Consent Mode v2 loader
-│           ├── gtm_body.tpl        # Noscript iframe fallback
-│           └── datalayer_init.tpl  # Server-hydrated initial event injection
-└── tests/
-    └── catalogIdentity.test.js     # Automated unit & integration test suite (36 passing tests)
-```
-
----
-
 ## License
 
 This project is licensed under the **Academic Free License (AFL 3.0)**.
