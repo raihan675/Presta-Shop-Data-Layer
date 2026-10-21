@@ -8,8 +8,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
-require_once _PS_MODULE_DIR_ . 'ps_gtm_datalayer/classes/ProductIdentityResolver.php';
-require_once _PS_MODULE_DIR_ . 'ps_gtm_datalayer/classes/PayloadBuilder.php';
+require_once dirname(__FILE__, 3) . '/classes/ProductIdentityResolver.php';
+require_once dirname(__FILE__, 3) . '/classes/PayloadBuilder.php';
 
 class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
 {

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.9.1';
+        $this->version = '1.9.2';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -429,91 +429,100 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayHeader($params)
     {
-        $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
-        $sgtmUrl = Configuration::get('PS_SGTM_TRANSPORT_URL');
-        $consentEnabled = (bool)Configuration::get('PS_GTM_CONSENT_MODE');
-        $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
+        try {
+            $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
+            $sgtmUrl = Configuration::get('PS_SGTM_TRANSPORT_URL');
+            $consentEnabled = (bool)Configuration::get('PS_GTM_CONSENT_MODE');
+            $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
 
-        $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
-        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
-        $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
+            $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
+            $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+            $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
-        // Pre-build combinations dictionary for PDP directly from database models
-        $combosMap = [];
-        if ($controller === 'product') {
-            $idProduct = (int)Tools::getValue('id_product');
-            if ($idProduct > 0) {
-                $productObj = new Product($idProduct, false, $this->context->language ? (int)$this->context->language->id : 1);
-                if (Validate::isLoadedObject($productObj)) {
-                    $combosMap = ProductIdentityResolver::getProductCombinationsMap($productObj, $this->context->language ? (int)$this->context->language->id : 1);
+            // Pre-build combinations dictionary for PDP directly from database models
+            $combosMap = [];
+            if ($controller === 'product') {
+                $idProduct = (int)Tools::getValue('id_product');
+                if ($idProduct > 0) {
+                    $productObj = new Product($idProduct, false, $this->context->language ? (int)$this->context->language->id : 1);
+                    if (Validate::isLoadedObject($productObj)) {
+                        $combosMap = ProductIdentityResolver::getProductCombinationsMap($productObj, $this->context->language ? (int)$this->context->language->id : 1);
+                    }
                 }
             }
-        }
 
-        $pendingEvents = $this->getAndClearPendingEvents();
-        $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
-        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+            $pendingEvents = $this->getAndClearPendingEvents();
+            $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
+            $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
-        // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
-        $cartProductsMap = [];
-        $cartProductsData = [];
-        if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
-            $prods = $this->context->cart->getProducts();
-            if (is_array($prods)) {
-                $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
-                foreach ($prods as $p) {
-                    $k = (int)$p['id_product'] . '_' . (int)$p['id_product_attribute'];
-                    $cartProductsMap[$k] = (int)$p['cart_quantity'];
+            // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
+            $cartProductsMap = [];
+            $cartProductsData = [];
+            if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
+                $prods = $this->context->cart->getProducts();
+                if (is_array($prods)) {
+                    $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
+                    foreach ($prods as $p) {
+                        $k = (int)$p['id_product'] . '_' . (int)$p['id_product_attribute'];
+                        $cartProductsMap[$k] = (int)$p['cart_quantity'];
 
-                    $priceRaw = $isTaxIncl
-                        ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
-                        : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
-                    $price = PricingEngine::roundHalfUp($priceRaw, $currencyPrecision);
+                        $priceRaw = $isTaxIncl
+                            ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                            : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+                        $price = PricingEngine::roundHalfUp($priceRaw, $currencyPrecision);
 
-                    $cartProductsData[$k] = [
-                        'item_id' => (string)$p['id_product'],
-                        'variant_id' => !empty($p['id_product_attribute']) ? (string)$p['id_product_attribute'] : '',
-                        'sku_id' => !empty($p['reference']) ? (string)$p['reference'] : '',
-                        'item_name' => !empty($p['name']) ? (string)$p['name'] : '',
-                        'item_brand' => !empty($p['manufacturer_name']) ? (string)$p['manufacturer_name'] : '',
-                        'item_category' => !empty($p['category']) ? (string)$p['category'] : '',
-                        'item_variant' => !empty($p['attributes']) ? (string)$p['attributes'] : (!empty($p['attributes_small']) ? (string)$p['attributes_small'] : ''),
-                        'price' => $price,
-                        'quantity' => (int)$p['cart_quantity']
-                    ];
+                        $cartProductsData[$k] = [
+                            'item_id' => (string)$p['id_product'],
+                            'variant_id' => !empty($p['id_product_attribute']) ? (string)$p['id_product_attribute'] : '',
+                            'sku_id' => !empty($p['reference']) ? (string)$p['reference'] : '',
+                            'item_name' => !empty($p['name']) ? (string)$p['name'] : '',
+                            'item_brand' => !empty($p['manufacturer_name']) ? (string)$p['manufacturer_name'] : '',
+                            'item_category' => !empty($p['category']) ? (string)$p['category'] : '',
+                            'item_variant' => !empty($p['attributes']) ? (string)$p['attributes'] : (!empty($p['attributes_small']) ? (string)$p['attributes_small'] : ''),
+                            'price' => $price,
+                            'quantity' => (int)$p['cart_quantity']
+                        ];
+                    }
                 }
             }
+
+            $this->context->smarty->assign([
+                'gtm_id' => $gtmId,
+                'sgtm_url' => $sgtmUrl,
+                'consent_mode_enabled' => $consentEnabled,
+                'event_prefix' => $eventPrefix,
+                'currency_precision' => $currencyPrecision,
+                'ajax_url' => $ajaxUrl,
+                'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+                'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
+                'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+                'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
+                'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+            ]);
+
+            if (is_object($this->context->controller) && method_exists($this->context->controller, 'registerJavascript')) {
+                $this->context->controller->registerJavascript(
+                    'gtm-datalayer-core',
+                    'modules/' . $this->name . '/views/js/datalayer-core.js',
+                    ['position' => 'head', 'priority' => 10]
+                );
+
+                $this->context->controller->registerJavascript(
+                    'gtm-prestashop-adapter',
+                    'modules/' . $this->name . '/views/js/prestashop-adapter.js',
+                    ['position' => 'bottom', 'priority' => 50]
+                );
+            } elseif (is_object($this->context->controller) && method_exists($this->context->controller, 'addJS')) {
+                $this->context->controller->addJS($this->_path . 'views/js/datalayer-core.js');
+                $this->context->controller->addJS($this->_path . 'views/js/prestashop-adapter.js');
+            }
+
+            return $this->display(__FILE__, 'views/templates/hook/gtm_head.tpl')
+                . $this->display(__FILE__, 'views/templates/hook/datalayer_init.tpl');
+        } catch (\Throwable $e) {
+            return '';
         }
-
-        $this->context->smarty->assign([
-            'gtm_id' => $gtmId,
-            'sgtm_url' => $sgtmUrl,
-            'consent_mode_enabled' => $consentEnabled,
-            'event_prefix' => $eventPrefix,
-            'currency_precision' => $currencyPrecision,
-            'ajax_url' => $ajaxUrl,
-            'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
-            'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
-            'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
-            'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
-            'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
-        ]);
-
-        $this->context->controller->registerJavascript(
-            'gtm-datalayer-core',
-            'modules/' . $this->name . '/views/js/datalayer-core.js',
-            ['position' => 'head', 'priority' => 10]
-        );
-
-        $this->context->controller->registerJavascript(
-            'gtm-prestashop-adapter',
-            'modules/' . $this->name . '/views/js/prestashop-adapter.js',
-            ['position' => 'bottom', 'priority' => 50]
-        );
-
-        return $this->display(__FILE__, 'views/templates/hook/gtm_head.tpl')
-            . $this->display(__FILE__, 'views/templates/hook/datalayer_init.tpl');
     }
 
     public function hookDisplayAfterBodyOpeningTag($params)
@@ -529,25 +538,29 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayOrderConfirmation($params)
     {
-        $order = isset($params['order']) ? $params['order'] : null;
-        if (!$order || !Validate::isLoadedObject($order)) {
+        try {
+            $order = isset($params['order']) ? $params['order'] : null;
+            if (!$order || !Validate::isLoadedObject($order)) {
+                return '';
+            }
+
+            if (DeduplicationManager::isTransactionTracked($order->id)) {
+                return '<!-- GTM DataLayer: Purchase transaction ' . (int)$order->id . ' already recorded -->';
+            }
+
+            $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
+            $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+            $purchasePayload = $payloadBuilder->buildPurchasePayload($order);
+
+            DeduplicationManager::markTransactionTracked($order->id, $order->reference);
+
+            return '<script type="text/javascript">
+                window.dataLayer = window.dataLayer || [];
+                window.dataLayer.push({ ecommerce: null });
+                window.dataLayer.push(' . json_encode($purchasePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ');
+            </script>';
+        } catch (\Throwable $e) {
             return '';
         }
-
-        if (DeduplicationManager::isTransactionTracked($order->id)) {
-            return '<!-- GTM DataLayer: Purchase transaction ' . (int)$order->id . ' already recorded -->';
-        }
-
-        $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
-        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
-        $purchasePayload = $payloadBuilder->buildPurchasePayload($order);
-
-        DeduplicationManager::markTransactionTracked($order->id, $order->reference);
-
-        return '<script type="text/javascript">
-            window.dataLayer = window.dataLayer || [];
-            window.dataLayer.push({ ecommerce: null });
-            window.dataLayer.push(' . json_encode($purchasePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ');
-        </script>';
     }
 }

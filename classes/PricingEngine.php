@@ -63,49 +63,57 @@ class PricingEngine
         $useTax = PlatformAdapter::isTaxIncluded($context);
 
         // 1. Query PrestaShop Core pricing engine directly (authoritative net-base tax & reduction resolution)
-        $specificPriceOutput = null;
-        $coreCustomerPrice = (float)Product::getPriceStatic(
-            $idProduct,
-            $useTax,
-            $idAttr ? $idAttr : null,
-            6,
-            null,
-            false,
-            true, // usereduc = true (authoritative discounted customer price)
-            $qty,
-            false,
-            $idCustomer,
-            ($context && $context->cart) ? (int)$context->cart->id : null,
-            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
-            $specificPriceOutput,
-            true,
-            true,
-            $context
-        );
+        try {
+            $specificPriceOutput = null;
+            $coreCustomerPrice = (float)Product::getPriceStatic(
+                $idProduct,
+                $useTax,
+                $idAttr ? $idAttr : null,
+                6,
+                null,
+                false,
+                true, // usereduc = true (authoritative discounted customer price)
+                $qty,
+                false,
+                $idCustomer,
+                ($context && $context->cart) ? (int)$context->cart->id : null,
+                ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+                $specificPriceOutput,
+                true,
+                true,
+                $context
+            );
 
-        if ($coreCustomerPrice > 0) {
-            return self::roundHalfUp($coreCustomerPrice, $precision);
-        }
+            if ($coreCustomerPrice > 0) {
+                return self::roundHalfUp($coreCustomerPrice, $precision);
+            }
+        } catch (\Throwable $e) {}
 
         // 2. Authoritative base retail price without reductions, evaluated with full 6-decimal precision
-        $regularGross = (float)Product::getPriceStatic(
-            $idProduct,
-            $useTax,
-            $idAttr ? $idAttr : null,
-            6,
-            null,
-            false,
-            false, // usereduc = false (authoritative regular catalog price)
-            $qty,
-            false,
-            $idCustomer,
-            ($context && $context->cart) ? (int)$context->cart->id : null,
-            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
-            $specificPriceOutput,
-            true,
-            true,
-            $context
-        );
+        $regularGross = 0.0;
+        try {
+            $specificPriceOutput = null;
+            $regularGross = (float)Product::getPriceStatic(
+                $idProduct,
+                $useTax,
+                $idAttr ? $idAttr : null,
+                6,
+                null,
+                false,
+                false, // usereduc = false (authoritative regular catalog price)
+                $qty,
+                false,
+                $idCustomer,
+                ($context && $context->cart) ? (int)$context->cart->id : null,
+                ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+                $specificPriceOutput,
+                true,
+                true,
+                $context
+            );
+        } catch (\Throwable $e) {
+            $regularGross = isset($product->price) ? (float)$product->price : 0.0;
+        }
 
         $regularRounded = self::roundHalfUp($regularGross, $precision);
 
@@ -156,25 +164,32 @@ class PricingEngine
         }
 
         // Standard calculation fallback with full precision then round half-up
-        $staticPrice = (float)Product::getPriceStatic(
-            $idProduct,
-            $useTax,
-            $idAttr ? $idAttr : null,
-            6,
-            null,
-            false,
-            true,
-            $qty,
-            false,
-            $idCustomer,
-            ($context && $context->cart) ? (int)$context->cart->id : null,
-            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
-            $specificPriceOutput,
-            true,
-            true,
-            $context
-        );
+        try {
+            $specificPriceOutput = null;
+            $staticPrice = (float)Product::getPriceStatic(
+                $idProduct,
+                $useTax,
+                $idAttr ? $idAttr : null,
+                6,
+                null,
+                false,
+                true,
+                $qty,
+                false,
+                $idCustomer,
+                ($context && $context->cart) ? (int)$context->cart->id : null,
+                ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+                $specificPriceOutput,
+                true,
+                true,
+                $context
+            );
 
-        return self::roundHalfUp($staticPrice, $precision);
+            if ($staticPrice > 0) {
+                return self::roundHalfUp($staticPrice, $precision);
+            }
+        } catch (\Throwable $e) {}
+
+        return self::roundHalfUp(isset($product->price) ? (float)$product->price : 0.0, $precision);
     }
 }

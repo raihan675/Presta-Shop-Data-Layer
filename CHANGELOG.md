@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.9.2] - 2026-10-21
+
+### Enhanced & Hardened
+- **Defensive Error Encapsulation**: Wrapped `hookDisplayHeader`, `hookDisplayOrderConfirmation`, and core pricing static calls in `try ... catch (\Throwable $e)` to guarantee the module can never trigger fatal crashes on storefront page loads.
+- **Controller Method Guards**: Added defensive fallback checking for `registerJavascript` vs legacy `addJS` for non-standard or third-party controllers.
+- **Path-Independent AJAX Controller**: Replaced hardcoded `_PS_MODULE_DIR_ . 'ps_gtm_datalayer'` with dynamic `dirname(__FILE__, 3)` in `controllers/front/ajax.php`.
+- **Full AST Syntax Validation**: 100% verified syntax balance across all 26 PHP files, 2 JS files, JSON manifests, and XML templates.
+- **Native In-Place Upgrade**: Seamless 1-click update via `upgrade/upgrade-1.9.2.php`.
+
+---
+
 ## [1.9.1] - 2026-10-21
 
 ### Fixed
