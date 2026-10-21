@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.4.4/ps_gtm_datalayer.zip",
-  "checksum": "e56469a946473c2ba7ee540ca7f31f7f8990a724a9b3a08f27d5d1c666a9fc8c",
+  "checksum": "d94acb5aad3c90856fa385846a764da647e58058dd5bde5fff583bdffe9af9eb",
   "release_type": "patch",
   "release_notes": "1. Fix Add-to-Cart Product ID Leak: Completely eliminates cross-talk between related product carousels (e.g. Trink und Snack Tasse) and simple products. Strictly binds cart updates to added product identifiers.\n2. Variant ID Sanitization: Ensures variant_id is strictly populated only when a genuine combination exists (ID > 0) and normalizes numeric zero to empty string for simple products.\n3. Exact Selling Price Parity: Authoritatively pulls backend gross discounted consumer prices (e.g. 50% discount = 12.99 €) matching PrestaShop back office.\n4. Robust Server Cart Matching: Pairs added cart item by both product ID and combination attribute ID directly from CartController response."
 }
