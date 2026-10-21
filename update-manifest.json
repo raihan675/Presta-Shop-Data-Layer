@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.8.3",
+  "latest_version": "1.9.0",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.8.3/ps_gtm_datalayer.zip",
-  "checksum": "253b61627d671f14c504b571c93d75fa258220e7bb7a643a902e84df7855fe72",
-  "release_type": "patch",
-  "release_notes": "1. Storefront Price Parity: Direct native core price resolution eliminating intermediate rounding drift.\n2. Exact Bruttopreis Alignment: Matches discounted gross price (e.g. 14.99 €) down to the cent.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.8.3.php."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.9.0/ps_gtm_datalayer.zip",
+  "checksum": "a39a32cb97520fc5a04e7136ada3a7d683aba33af4dd6697a895188fe9ee452b",
+  "release_type": "minor",
+  "release_notes": "1. Universal PrestaShop Pricing Logic: 100% storefront and database price parity across all ecommerce events.\n2. Exact Value Calculation: ecommerce.value strictly reconciles as Σ(price * quantity) excluding shipping/tax.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.9.0.php."
 }

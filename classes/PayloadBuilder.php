@@ -95,6 +95,7 @@ class PayloadBuilder
         $listName = ucfirst($controller) . ' Page';
 
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
         $items = [];
 
         if ($controller === 'category') {
@@ -114,7 +115,7 @@ class PayloadBuilder
                             if (!empty($pItem['manufacturer_name'])) {
                                 $productObj->manufacturer_name = $pItem['manufacturer_name'];
                             }
-                            $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $item['item_list_id'] = $listId;
@@ -139,7 +140,7 @@ class PayloadBuilder
                         foreach ($prods as $pItem) {
                             $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
                             $productObj->manufacturer_name = (string)$manufacturer->name;
-                            $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $item['item_list_id'] = $listId;
@@ -164,7 +165,7 @@ class PayloadBuilder
                         if (!empty($pItem['manufacturer_name'])) {
                             $productObj->manufacturer_name = $pItem['manufacturer_name'];
                         }
-                        $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
                         $item = $this->formatItem($productObj, 0, 1, $price);
                         $item['index'] = $idx++;
                         $item['item_list_id'] = $listId;
@@ -178,7 +179,6 @@ class PayloadBuilder
         $currencyCode = ($this->context->currency && !empty($this->context->currency->iso_code))
             ? (string)$this->context->currency->iso_code
             : 'EUR';
-        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
         $totalListValue = 0.0;
         foreach ($items as $it) {
@@ -208,8 +208,8 @@ class PayloadBuilder
 
         $cartProducts = $cart->getProducts(true);
         $items = [];
-        $totalValue = (float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS);
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
@@ -219,12 +219,18 @@ class PayloadBuilder
             $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
+        $itemsSum = 0.0;
+        foreach ($items as $it) {
+            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        }
+        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+
         return [
             'event' => $this->getEventName('view_cart'),
             'original_event' => 'view_cart',
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
-                'value' => round($totalValue, 2),
+                'value' => $totalValue,
                 'items' => $items,
             ],
         ];
@@ -240,6 +246,7 @@ class PayloadBuilder
         $cartProducts = $cart->getProducts(true);
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
@@ -249,12 +256,18 @@ class PayloadBuilder
             $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
+        $itemsSum = 0.0;
+        foreach ($items as $it) {
+            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        }
+        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+
         return [
             'event' => $this->getEventName('begin_checkout'),
             'original_event' => 'begin_checkout',
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
-                'value' => round((float)$cart->getOrderTotal(true, Cart::ONLY_PRODUCTS), 2),
+                'value' => $totalValue,
                 'items' => $items,
             ],
         ];
@@ -265,6 +278,7 @@ class PayloadBuilder
         $orderProducts = $order->getProducts();
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
         foreach ($orderProducts as $p) {
             $productObj = new Product((int)$p['product_id'], false, $idLanguage);
@@ -290,7 +304,7 @@ class PayloadBuilder
                 'item_brand' => $brand,
                 'item_category' => '',
                 'item_variant' => $identifiers['item_variant'],
-                'price' => round((float)$p['unit_price_tax_incl'], 2),
+                'price' => PricingEngine::roundHalfUp((float)$p['unit_price_tax_incl'], $currencyPrecision),
                 'quantity' => (int)$p['product_quantity'],
             ];
 
@@ -306,13 +320,13 @@ class PayloadBuilder
         $address = new Address((int)$order->id_address_invoice);
         $userData = CustomerDataEngine::buildCustomerPayload($customer, $address);
 
-        $orderTax = round((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), 2);
-        $orderShipping = round((float)$order->total_shipping_tax_incl, 2);
-        $orderTotal = round((float)$order->total_paid_tax_incl, 2);
+        $orderTax = PricingEngine::roundHalfUp((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), $currencyPrecision);
+        $orderShipping = PricingEngine::roundHalfUp((float)$order->total_shipping_tax_incl, $currencyPrecision);
+        $orderTotal = PricingEngine::roundHalfUp((float)$order->total_paid_tax_incl, $currencyPrecision);
 
         // PrestaShop authoritative product subtotal
         $productSubtotal = (isset($order->total_products_wt) && (float)$order->total_products_wt > 0)
-            ? round((float)$order->total_products_wt, 2)
+            ? PricingEngine::roundHalfUp((float)$order->total_products_wt, $currencyPrecision)
             : 0.0;
 
         // GA4 item value = sum of (item price * quantity), excluding shipping and separate from tax
@@ -320,7 +334,7 @@ class PayloadBuilder
         foreach ($items as $it) {
             $itemsSum += (float)$it['price'] * (int)$it['quantity'];
         }
-        $itemsSum = round($itemsSum, 2);
+        $itemsSum = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
 
         $ga4Value = ($itemsSum > 0) ? $itemsSum : ($productSubtotal > 0 ? $productSubtotal : $orderTotal);
         if ($productSubtotal <= 0) {
@@ -362,6 +376,9 @@ class PayloadBuilder
             ],
             'user_data' => $userData,
         ];
+
+        return $purchasePayload;
+    }
 
         return $purchasePayload;
     }

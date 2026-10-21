@@ -1306,5 +1306,97 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(resE.productId, '1015');
       assert.strictEqual(resE.productAttributeId, '298');
     });
+
+    it('36. Universal GA4 Pricing & Financial Value Reconciliation (Storefront & Order Parity)', function () {
+      EDL.setEventPrefix('raihan');
+
+      // 1. Gili 2-in-1 Sonnenbrille: 50% discount on base net 25.20 EUR + 19% German MwSt
+      // PrestaShop Core formula: Net Discounted = 25.20 * (1 - 0.50) = 12.60 EUR
+      // Gross Discounted = 12.60 * 1.19 = 14.994 EUR -> 14.99 EUR
+      const netBase = 25.20;
+      const discountRate = 0.50;
+      const taxRate = 0.19;
+      const netDiscounted = netBase * (1 - discountRate);
+      const grossCalculated = netDiscounted * (1 + taxRate);
+      const authoritativeUnitPrice = EDL.roundHalfUp(grossCalculated, 2);
+      assert.strictEqual(authoritativeUnitPrice, 14.99, 'Gili Sonnenbrille must resolve to exactly 14.99 EUR');
+
+      // 2. View Item Event Verification
+      const viewItem = EDL.normalizeItem({
+        item_id: '1023',
+        variant_id: '',
+        sku_id: '3511110',
+        item_name: 'Gili 2-in-1 Sonnenbrille Baby-Junior Blau',
+        item_brand: 'Dooky - Xplorys BV',
+        item_category: 'Sonnenbrille',
+        price: authoritativeUnitPrice,
+        quantity: 1
+      });
+
+      EDL.pushEvent('view_item', {
+        currency: 'EUR',
+        value: viewItem.price,
+        items: [viewItem]
+      });
+
+      const pushedView = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushedView.event, 'raihan_view_item');
+      assert.strictEqual(pushedView.ecommerce.value, 14.99);
+      assert.strictEqual(pushedView.ecommerce.items[0].price, 14.99);
+
+      // 3. Purchase Event Verification with Stored Order Details & Reconciliation
+      // Simulating Order with 2 x Gili Sonnenbrille (14.99 each) + 1 x Dooky Gehorschutz (27.99)
+      const orderLines = [
+        {
+          item_id: '1023',
+          variant_id: '',
+          sku_id: '3511110',
+          item_name: 'Gili 2-in-1 Sonnenbrille Baby-Junior Blau',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Sonnenbrille',
+          price: 14.99,
+          quantity: 2 // 2 x 14.99 = 29.98
+        },
+        {
+          item_id: '1015',
+          variant_id: '',
+          sku_id: '3001201',
+          item_name: 'Dooky Gehörschutz 2-in-1 Baby & Kleinkinder',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Gehörschutz',
+          price: 27.99,
+          quantity: 1 // 1 x 27.99 = 27.99
+        }
+      ];
+
+      const normOrderItems = EDL.normalizeItems(orderLines, 2);
+      const itemsSum = EDL.calculateCartValue(normOrderItems, 2);
+      assert.strictEqual(itemsSum, 57.97, 'Item sum (29.98 + 27.99) must equal exactly 57.97');
+
+      const shippingCost = 4.50;
+      const taxTotal = 9.26;
+      const orderTotalGross = EDL.roundHalfUp(itemsSum + shippingCost, 2); // 62.47
+
+      EDL.pushEvent('purchase', {
+        transaction_id: '1250',
+        value: itemsSum, // Standard GA4 revenue: items sum, excluding shipping
+        tax: taxTotal,
+        shipping: shippingCost,
+        currency: 'EUR',
+        items: normOrderItems
+      });
+
+      const pushedPurchase = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushedPurchase.event, 'raihan_purchase');
+      assert.strictEqual(pushedPurchase.ecommerce.transaction_id, '1250');
+      assert.strictEqual(pushedPurchase.ecommerce.value, 57.97, 'GA4 value must equal sum of items without shipping');
+      assert.strictEqual(pushedPurchase.ecommerce.shipping, 4.50);
+      assert.strictEqual(pushedPurchase.ecommerce.tax, 9.26);
+      assert.strictEqual(pushedPurchase.ecommerce.items.length, 2);
+      assert.strictEqual(pushedPurchase.ecommerce.items[0].price, 14.99);
+      assert.strictEqual(pushedPurchase.ecommerce.items[0].quantity, 2);
+      assert.strictEqual(pushedPurchase.ecommerce.items[1].price, 27.99);
+      assert.strictEqual(pushedPurchase.ecommerce.items[1].quantity, 1);
+    });
   });
 });

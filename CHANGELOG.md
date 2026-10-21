@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.9.0] - 2026-10-21
+
+### Added
+- **Universal PrestaShop Backend Pricing & Financial Reconciliation**:
+  - Direct integration with native PrestaShop core pricing engine (`Product::getPriceStatic(..., usereduc = true)`).
+  - Eliminates intermediate gross rounding drift by evaluating discounts on the unrounded net base before applying taxes and currency precision ($25.20 \times 0.50 \times 1.19 = 14.994 \to \mathbf{14.99\ €}$).
+  - Strictly reconciles `ecommerce.value = Σ(items[i].price * items[i].quantity)` across all funnel events (`view_item`, `view_item_list`, `add_to_cart`, `remove_from_cart`, `add_to_wishlist`, `begin_checkout`, `purchase`).
+  - Purchases use stored, finalized order-line prices (`OrderDetail::$unit_price_tax_incl`) from the order record rather than recalculating against the live catalog.
+  - Strict isolation of shipping and tax from `ecommerce.value`, while preserving clean custom `order_totals` (`order_id`, `order_reference`, `product_subtotal`, `shipping_total`, `tax_total`, `order_total`, `currency`).
+  - Added native upgrade migration `upgrade/upgrade-1.9.0.php`.
+
+---
+
 ## [1.8.3] - 2026-10-21
 
 ### Fixed
