@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.8.2] - 2026-10-21
+
+### Fixed
+- **`add_to_wishlist` Event Dispatch in Official `blockwishlist` & Themes**:
+  - Fixed query string parameter extraction for PrestaShop official `blockwishlist` GraphQL/fetch calls (`params[id_product]` and `params%5Bid_product%5D`).
+  - Added native integration with PrestaShop's official Vue `window.WishlistEventBus` (`addedToWishlist`).
+  - Added `currentList` lookup in `resolveBackendProduct` for instant resolution on category and listing pages without waiting for AJAX.
+  - Added fallback delegated click listener on wishlist triggers with 1,500ms debounce protection to support custom themes (Warehouse, Leo, Alysum, Transformer) while strictly preserving backend data resolution (Zero DOM).
+
+---
+
 ## [1.8.1] - 2026-10-21
 
 ### Added

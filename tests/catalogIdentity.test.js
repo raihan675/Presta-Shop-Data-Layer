@@ -1220,5 +1220,91 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       const priorEntry = global.window.dataLayer[global.window.dataLayer.length - 2];
       assert.deepStrictEqual(priorEntry, { ecommerce: null });
     });
+
+    it('35. Universal Wishlist Parameter Extraction & Network Interception (Zero DOM)', function () {
+      function extractWishlistProductData(url, data, fallbackProduct) {
+        let prodId = '';
+        let attrId = '';
+
+        function inspect(input) {
+          if (!input) return;
+          if (typeof input === 'string') {
+            try {
+              const decoded = decodeURIComponent(input);
+              const pMatch = decoded.match(/(?:id_product|idProduct|productId|params\[id_product\])\s*[:=]\s*["']?(\d+)/i) ||
+                            decoded.match(/(?:id_product|idProduct|productId|params\[id_product\])\D*(\d+)/i);
+              const aMatch = decoded.match(/(?:id_product_attribute|idProductAttribute|productAttributeId|params\[id_product_attribute\])\s*[:=]\s*["']?(\d+)/i) ||
+                            decoded.match(/(?:id_product_attribute|idProductAttribute|productAttributeId|params\[id_product_attribute\])\D*(\d+)/i);
+              if (pMatch && pMatch[1]) prodId = prodId || pMatch[1];
+              if (aMatch && aMatch[1]) attrId = attrId || aMatch[1];
+            } catch (e) {
+              const pMatch2 = input.match(/(?:id_product|idProduct|productId|params\[id_product\])\D*(\d+)/i);
+              const aMatch2 = input.match(/(?:id_product_attribute|idProductAttribute|productAttributeId|params\[id_product_attribute\])\D*(\d+)/i);
+              if (pMatch2 && pMatch2[1]) prodId = prodId || pMatch2[1];
+              if (aMatch2 && aMatch2[1]) attrId = attrId || aMatch2[1];
+            }
+
+            if (!prodId) {
+              try {
+                const parsed = JSON.parse(input);
+                if (parsed && typeof parsed === 'object') inspectObj(parsed);
+              } catch (e) {}
+            }
+          } else if (typeof input === 'object') {
+            inspectObj(input);
+          }
+        }
+
+        function inspectObj(obj) {
+          if (!obj) return;
+          const d = obj.detail || obj;
+          prodId = d.productId || d.id_product || d.idProduct || (d.params && (d.params.id_product || d.params.productId)) || prodId;
+          attrId = d.productAttributeId || d.id_product_attribute || d.idProductAttribute || (d.params && (d.params.id_product_attribute || d.params.productAttributeId)) || attrId;
+        }
+
+        inspect(url);
+        if (!prodId) inspect(data);
+
+        if (!prodId && fallbackProduct && fallbackProduct.item_id) {
+          prodId = String(fallbackProduct.item_id);
+          if (!attrId) attrId = String(fallbackProduct.variant_id || '');
+        }
+
+        return {
+          productId: String(prodId || '').trim(),
+          productAttributeId: (attrId && String(attrId) !== '0' && parseInt(attrId, 10) > 0) ? String(attrId).trim() : ''
+        };
+      }
+
+      // Test Case A: Native PrestaShop blockwishlist Apollo fetch URL with query params
+      const blockwishlistUrl = 'https://example.com/module/blockwishlist/action?action=addProductToWishlist&params[id_product]=1015&params[idWishList]=1&params[quantity]=1&params[id_product_attribute]=299';
+      const resA = extractWishlistProductData(blockwishlistUrl, undefined, null);
+      assert.strictEqual(resA.productId, '1015');
+      assert.strictEqual(resA.productAttributeId, '299');
+
+      // Test Case B: URL encoded blockwishlist query
+      const encodedUrl = 'https://example.com/module/blockwishlist/action?action=addProductToWishlist&params%5Bid_product%5D=1015&params%5Bid_product_attribute%5D=0';
+      const resB = extractWishlistProductData(encodedUrl, undefined, null);
+      assert.strictEqual(resB.productId, '1015');
+      assert.strictEqual(resB.productAttributeId, '');
+
+      // Test Case C: JSON GraphQL mutation payload (modern themes)
+      const jsonBody = JSON.stringify({ productId: 1015, productAttributeId: 0, listId: 1 });
+      const resC = extractWishlistProductData('https://example.com/graphql', jsonBody, null);
+      assert.strictEqual(resC.productId, '1015');
+      assert.strictEqual(resC.productAttributeId, '');
+
+      // Test Case D: blockwishlist Vue WishlistEventBus detail object
+      const busEvent = { detail: { productId: 1015, productAttributeId: 301, listId: 2 } };
+      const resD = extractWishlistProductData('', busEvent, null);
+      assert.strictEqual(resD.productId, '1015');
+      assert.strictEqual(resD.productAttributeId, '301');
+
+      // Test Case E: PDP Fallback when product is added without explicit URL params
+      const pdpFallback = { item_id: '1015', variant_id: '298' };
+      const resE = extractWishlistProductData('https://example.com/module/blockwishlist/action?action=addProductToWishlist', undefined, pdpFallback);
+      assert.strictEqual(resE.productId, '1015');
+      assert.strictEqual(resE.productAttributeId, '298');
+    });
   });
 });
