@@ -31,6 +31,11 @@ class UpdateManager
         curl_setopt($ch, CURLOPT_TIMEOUT, 6);
         curl_setopt($ch, CURLOPT_USERAGENT, 'PrestaShop-Module-Updater/' . $this->module->version);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Cache-Control: no-cache, no-store, must-revalidate',
+            'Pragma: no-cache',
+            'Expires: 0'
+        ]);
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
