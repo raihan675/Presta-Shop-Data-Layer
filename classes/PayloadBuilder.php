@@ -380,9 +380,6 @@ class PayloadBuilder
         return $purchasePayload;
     }
 
-        return $purchasePayload;
-    }
-
     public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null)
     {
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;

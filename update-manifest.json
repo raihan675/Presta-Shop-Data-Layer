@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.9.0",
+  "latest_version": "1.9.1",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.9.0/ps_gtm_datalayer.zip",
-  "checksum": "9ad2efa38fae19e2ba5bc249bc5b5ccc58b7b18c2d2cf6db74113436eb527105",
-  "release_type": "minor",
-  "release_notes": "1. Universal PrestaShop Pricing Logic: 100% storefront and database price parity across all ecommerce events.\n2. Exact Value Calculation: ecommerce.value strictly reconciles as Σ(price * quantity) excluding shipping/tax.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.9.0.php."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.9.1/ps_gtm_datalayer.zip",
+  "checksum": "40242fd8823f52c2836fb17c7dc837775cc674bb4bab31524a4b6c2ad552a015",
+  "release_type": "patch",
+  "release_notes": "1. Critical Hotfix: Fix PHP parse error in PayloadBuilder.php.\n2. 100% PHP syntax integrity across all module files.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.9.1.php."
 }

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.9.1] - 2026-10-21
+
+### Fixed
+- **Critical Hotfix (`classes/PayloadBuilder.php`)**:
+  - Removed duplicate return statement and closing brace in `buildPurchasePayload` that caused PHP fatal parse error on server execution.
+  - Added automated syntax parser validation across all module PHP files.
+  - Added in-place upgrade script `upgrade/upgrade-1.9.1.php`.
+
+---
+
 ## [1.9.0] - 2026-10-21
 
 ### Added
