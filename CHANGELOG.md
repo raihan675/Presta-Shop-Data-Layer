@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.8.3] - 2026-10-21
+
+### Fixed
+- **Price Calculation Parity (`PricingEngine.php`)**:
+  - Direct integration with native PrestaShop core pricing engine (`Product::getPriceStatic(..., usereduc = true)`).
+  - Eliminates intermediate gross rounding drift ($29.99 \times 0.50 = 14.995 \to 15.00$).
+  - Correctly calculates tax on net discounted base ($25.20 \times 0.50 \times 1.19 = 14.994 \to 14.99\ €$), ensuring 100% exact parity with storefront Bruttopreis.
+
+---
+
 ## [1.8.2] - 2026-10-21
 
 ### Fixed

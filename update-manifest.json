@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.8.2",
+  "latest_version": "1.8.3",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.8.2/ps_gtm_datalayer.zip",
-  "checksum": "87bfe6a68bec5c9957cdbc58c7775c377b2315a60ed6670997cf1be73b72cad9",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.8.3/ps_gtm_datalayer.zip",
+  "checksum": "9f2df8bec94efc2c3d4648226c075683135f10c878dcf27e54e8f364448395a7",
   "release_type": "patch",
-  "release_notes": "1. Wishlist Event Dispatch Fix: Added support for blockwishlist GraphQL query params (params[id_product]), WishlistEventBus, and theme triggers.\n2. Instant Listing Hydration: Instant product resolution from currentList on category pages.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.8.2.php."
+  "release_notes": "1. Storefront Price Parity: Direct native core price resolution eliminating intermediate rounding drift.\n2. Exact Bruttopreis Alignment: Matches discounted gross price (e.g. 14.99 €) down to the cent.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.8.3.php."
 }

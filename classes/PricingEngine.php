@@ -62,8 +62,32 @@ class PricingEngine
         $precision = PlatformAdapter::getCurrencyPrecision($context);
         $useTax = PlatformAdapter::isTaxIncluded($context);
 
-        // 1. Authoritative base retail price without reductions, evaluated with full 6-decimal precision
+        // 1. Query PrestaShop Core pricing engine directly (authoritative net-base tax & reduction resolution)
         $specificPriceOutput = null;
+        $coreCustomerPrice = (float)Product::getPriceStatic(
+            $idProduct,
+            $useTax,
+            $idAttr ? $idAttr : null,
+            6,
+            null,
+            false,
+            true, // usereduc = true (authoritative discounted customer price)
+            $qty,
+            false,
+            $idCustomer,
+            ($context && $context->cart) ? (int)$context->cart->id : null,
+            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+            $specificPriceOutput,
+            true,
+            true,
+            $context
+        );
+
+        if ($coreCustomerPrice > 0) {
+            return self::roundHalfUp($coreCustomerPrice, $precision);
+        }
+
+        // 2. Authoritative base retail price without reductions, evaluated with full 6-decimal precision
         $regularGross = (float)Product::getPriceStatic(
             $idProduct,
             $useTax,
@@ -85,7 +109,7 @@ class PricingEngine
 
         $regularRounded = self::roundHalfUp($regularGross, $precision);
 
-        // 2. Query for active specific price rules (discounts/promotions)
+        // 3. Query for active specific price rules (discounts/promotions)
         $specificPrice = null;
         if (class_exists('SpecificPrice')) {
             $specificPrice = SpecificPrice::getSpecificPrice(
