@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.4.2",
+  "latest_version": "1.4.3",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.4.2/ps_gtm_datalayer.zip",
-  "checksum": "13e08761aa8a7f729398fb15ad3eaf3001ca516eb34445a9744595ab58d6838b",
-  "release_type": "patch",
-  "release_notes": "1. GA4-Compliant Item Revenue: ecommerce.value in purchase accurately calculates the item subtotal (sum of price * quantity, excluding shipping).\n2. Dedicated order_totals Breakdown: Adds product_subtotal, shipping_total, tax_total, order_total, and currency from PrestaShop backend Order records.\n3. Raw Unhashed user_data: Outputs plaintext customer info without SHA-256 hashing and completely omits meta_external_id.\n4. Zero DOM Scraping: 100% authoritative database-driven data sourcing."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.4.3/ps_gtm_datalayer.zip",
+  "checksum": "ece9835781a34193448304e0d403199817c8d683b06e594e52ccf2a74209591b",
+  "release_type": "minor",
+  "release_notes": "1. Module Manager 1-Click Update: Prominent update notification and 1-Click Update button directly inside PrestaShop Module Manager (AdminModulesManage/AdminModulesUpdates) and on the module card.\n2. GA4-Compliant Item Revenue: ecommerce.value in purchase accurately calculates the item subtotal (sum of price * quantity, excluding shipping).\n3. Dedicated order_totals Breakdown: Adds product_subtotal, shipping_total, tax_total, order_total, and currency from PrestaShop backend Order records.\n4. Raw Unhashed user_data: Outputs plaintext customer info without SHA-256 hashing and completely omits meta_external_id.\n5. Zero DOM Scraping: 100% authoritative database-driven data sourcing."
 }

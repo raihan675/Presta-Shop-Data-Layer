@@ -21,10 +21,23 @@ class UpdateManager
     }
 
     /**
-     * Check if a newer version exists on GitHub
+     * Check if a newer version exists on GitHub.
+     * Uses a transient cache to avoid slowing down back office page loads.
      */
-    public function checkForUpdates()
+    public function checkForUpdates($force = false)
     {
+        $cacheTime = (int)Configuration::get('PS_GTM_UPDATE_CACHE_TIME');
+        $cacheData = Configuration::get('PS_GTM_UPDATE_CACHE_DATA');
+
+        if (!$force && ($cacheTime > 0) && (time() - $cacheTime < 900) && !empty($cacheData)) {
+            $cached = json_decode($cacheData, true);
+            if (is_array($cached) && isset($cached['latest_version'])) {
+                $cached['has_update'] = version_compare($cached['latest_version'], $this->module->version, '>');
+                $cached['current_version'] = $this->module->version;
+                return $cached;
+            }
+        }
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, self::MANIFEST_URL . '?t=' . time());
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -51,7 +64,7 @@ class UpdateManager
 
         $hasUpdate = version_compare($manifest['latest_version'], $this->module->version, '>');
 
-        return [
+        $result = [
             'has_update' => $hasUpdate,
             'current_version' => $this->module->version,
             'latest_version' => $manifest['latest_version'],
@@ -60,6 +73,17 @@ class UpdateManager
             'checksum' => isset($manifest['checksum']) ? $manifest['checksum'] : '',
             'min_ps_version' => isset($manifest['min_ps_version']) ? $manifest['min_ps_version'] : '1.7.8.0',
         ];
+
+        Configuration::updateValue('PS_GTM_UPDATE_CACHE_TIME', time());
+        Configuration::updateValue('PS_GTM_UPDATE_CACHE_DATA', json_encode($result));
+
+        return $result;
+    }
+
+    public static function clearUpdateCache()
+    {
+        Configuration::deleteByName('PS_GTM_UPDATE_CACHE_TIME');
+        Configuration::deleteByName('PS_GTM_UPDATE_CACHE_DATA');
     }
 
     /**
@@ -103,33 +127,32 @@ class UpdateManager
             }
         }
 
-        // 3. Create Backup of current module
+        // 3. Backup Current Module Files
         $this->recursiveCopy($moduleDir, $backupDir);
 
-        // 4. Extract update archive over existing module
+        // 4. Extract and In-Place Overwrite
         $zip = new ZipArchive();
         if ($zip->open($tempZip) === true) {
-            $tempExtract = _PS_CACHE_DIR_ . 'ps_gtm_extract_' . time();
-            @mkdir($tempExtract, 0755, true);
-            $zip->extractTo($tempExtract);
+            $extractPath = _PS_CACHE_DIR_ . $this->module->name . '_extracted_' . time();
+            @mkdir($extractPath, 0755, true);
+            $zip->extractTo($extractPath);
             $zip->close();
             @unlink($tempZip);
 
-            $sourceDir = file_exists($tempExtract . '/' . $this->module->name) 
-                ? $tempExtract . '/' . $this->module->name 
-                : $tempExtract;
-
-            // Overwrite files safely
-            $this->recursiveCopy($sourceDir, $moduleDir);
-            $this->recursiveDelete($tempExtract);
-
-            // 5. Trigger PrestaShop Module Upgrade routines if present
-            if (method_exists('Module', 'initUpgradeModule')) {
-                Module::initUpgradeModule($this->module);
+            $sourceContentDir = $extractPath;
+            if (is_dir($extractPath . '/' . $this->module->name)) {
+                $sourceContentDir = $extractPath . '/' . $this->module->name;
             }
+
+            $this->recursiveCopy($sourceContentDir, $moduleDir);
+            $this->recursiveDelete($extractPath);
+
+            // 5. Trigger Native PrestaShop Module Upgrade Routines
             if (method_exists($this->module, 'runUpgradeModule')) {
                 $this->module->runUpgradeModule();
             }
+
+            self::clearUpdateCache();
 
             // Clear Smarty & PrestaShop Class Cache
             Tools::clearSmartyCache();

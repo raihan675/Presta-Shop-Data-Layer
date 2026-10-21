@@ -21,7 +21,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.4.2';
+        $this->version = '1.4.3';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -32,6 +32,17 @@ class Ps_Gtm_DataLayer extends Module
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
         $this->description = $this->l('Universal backend-driven DataLayer with zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
+
+        // Auto-register back-office hooks seamlessly when admin visits Back Office
+        if (defined('_PS_ADMIN_DIR_') && !Configuration::get('PS_GTM_BO_HOOKS_V143')) {
+            if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
+                $this->registerHook('displayBackOfficeTop');
+            }
+            if (!$this->isRegisteredInHook('displayBackOfficeHeader')) {
+                $this->registerHook('displayBackOfficeHeader');
+            }
+            Configuration::updateValue('PS_GTM_BO_HOOKS_V143', 1);
+        }
     }
 
     public function install()
@@ -41,6 +52,8 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('displayAfterBodyOpeningTag')
             && $this->registerHook('displayOrderConfirmation')
             && $this->registerHook('actionCartUpdateQuantityBefore')
+            && $this->registerHook('displayBackOfficeTop')
+            && $this->registerHook('displayBackOfficeHeader')
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
@@ -60,6 +73,11 @@ class Ps_Gtm_DataLayer extends Module
 
     public function getContent()
     {
+        // Auto-register displayBackOfficeTop if upgrading from earlier version
+        if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
+            $this->registerHook('displayBackOfficeTop');
+        }
+
         $output = '';
         $updateManager = new UpdateManager($this);
 
@@ -95,7 +113,7 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
-        $updateInfo = $updateManager->checkForUpdates();
+        $updateInfo = $updateManager->checkForUpdates(true);
         $output .= $this->renderUpdateBanner($updateInfo);
 
         return $output . $this->renderForm();
@@ -114,6 +132,7 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<form action="' . Tools::safeOutput($_SERVER['REQUEST_URI']) . '" method="post" style="display:inline-block;">';
             $html .= '<input type="hidden" name="update_download_url" value="' . htmlspecialchars($updateInfo['download_url']) . '">';
             $html .= '<input type="hidden" name="update_checksum" value="' . htmlspecialchars($updateInfo['checksum']) . '">';
+            $html .= '<input type="hidden" name="update_version" value="' . htmlspecialchars($updateInfo['latest_version']) . '">';
             $html .= '<button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm(\'' . $this->l('Are you sure you want to upgrade the module now? All your settings will be preserved.') . '\');">';
             $html .= '<i class="icon-download"></i> ' . $this->l('1-Click Update to Version ') . htmlspecialchars($updateInfo['latest_version']);
             $html .= '</button>';
@@ -127,6 +146,84 @@ class Ps_Gtm_DataLayer extends Module
 
         $html .= '</div>';
         return $html;
+    }
+
+    public function hookDisplayBackOfficeTop($params)
+    {
+        // Auto-register displayBackOfficeTop if not registered
+        if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
+            $this->registerHook('displayBackOfficeTop');
+        }
+
+        // 1. Handle 1-Click Update if triggered from Module Manager or any admin page
+        if (Tools::isSubmit('submitRunModuleUpdate')) {
+            $downloadUrl = Tools::getValue('update_download_url');
+            $checksum = Tools::getValue('update_checksum');
+            $versionTarget = Tools::getValue('update_version', 'latest');
+
+            $updateManager = new UpdateManager($this);
+            $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+
+            if ($updateResult['success']) {
+                $msg = sprintf($this->l('Enterprise GA4 & sGTM DataLayer successfully updated to version %s! All your settings were preserved.'), htmlspecialchars($versionTarget));
+                if (isset($this->context->controller->confirmations) && is_array($this->context->controller->confirmations)) {
+                    $this->context->controller->confirmations[] = $msg;
+                }
+            } else {
+                if (isset($this->context->controller->errors) && is_array($this->context->controller->errors)) {
+                    $this->context->controller->errors[] = $this->l($updateResult['message']);
+                }
+            }
+        }
+
+        // 2. Target Module Manager and Module List pages
+        $controllerName = Tools::getValue('controller');
+        $tabName = Tools::getValue('tab');
+        $requestUri = isset($_SERVER['REQUEST_URI']) ? (string)$_SERVER['REQUEST_URI'] : '';
+        $isModuleManager = (
+            $controllerName === 'AdminModules' 
+            || $controllerName === 'AdminModulesManage' 
+            || $controllerName === 'AdminModulesUpdates' 
+            || $controllerName === 'AdminModulesNotifications'
+            || $tabName === 'AdminModules'
+            || $tabName === 'AdminModulesManage'
+            || stripos($requestUri, 'improve/modules') !== false
+            || stripos($requestUri, 'module/manage') !== false
+            || stripos($requestUri, 'controller=AdminModules') !== false
+        );
+
+        // Do not render duplicate banner if already on module configuration page
+        if (Tools::getValue('configure') === $this->name) {
+            return '';
+        }
+
+        if (!$isModuleManager) {
+            return '';
+        }
+
+        $updateManager = new UpdateManager($this);
+        $updateInfo = $updateManager->checkForUpdates();
+        if (empty($updateInfo['has_update'])) {
+            return '';
+        }
+
+        $this->context->smarty->assign([
+            'module_name' => $this->name,
+            'module_display_name' => $this->displayName,
+            'current_version' => $this->version,
+            'latest_version' => $updateInfo['latest_version'],
+            'release_notes' => $updateInfo['release_notes'],
+            'download_url' => $updateInfo['download_url'],
+            'checksum' => $updateInfo['checksum'],
+            'current_request_url' => Tools::safeOutput($_SERVER['REQUEST_URI']),
+        ]);
+
+        return $this->display(__FILE__, 'views/templates/admin/module_manager_update_banner.tpl');
+    }
+
+    public function hookDisplayBackOfficeHeader($params)
+    {
+        return '';
     }
 
     public static function normalizePrefix($prefix)
