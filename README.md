@@ -1,50 +1,119 @@
 # Enterprise GA4 & sGTM DataLayer Module for PrestaShop
 
-Production-ready PrestaShop module (compatible with PrestaShop 1.7.8.0 through 8.2.x and 9.x) that implements an enterprise-grade Google Tag Manager (GTM) Data Layer following the canonical Google Analytics 4 (GA4) ecommerce measurement schema with precision variant combination tracking and automated version management.
+[![PrestaShop Compatibility](https://img.shields.io/badge/PrestaShop-1.7.8%20--%208.2.x%20%2F%209.x-blue.svg)](https://www.prestashop.com/)
+[![License: Academic Free License (AFL 3.0)](https://img.shields.io/badge/License-AFL%203.0-green.svg)](https://opensource.org/licenses/AFL-3.0)
+[![Latest Release](https://img.shields.io/github/v/release/raihan675/Presta-Shop-Data-Layer?color=brightgreen)](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest)
 
-## Key Features
+An enterprise-grade, high-performance PrestaShop tracking module implementing the canonical **Google Analytics 4 (GA4)** ecommerce dataLayer specification with **Server-Side GTM (sGTM)** support, **Google Consent Mode v2**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
-- **Full Product Variant & Combination Tracking:** For every product, pushes explicit identifiers into the `items` array:
-  - `item_id`: Base product ID (e.g. `68`).
-  - `variant_id`: Active combination/attribute ID (e.g. `298`, `299`), or empty string for simple products.
-  - `sku_id`: Exact article number/reference for the selected variant (e.g. `BHK125-R`, `BHK125-B`), never falling back to parent SKU when variant reference exists.
-  - `item_variant`: Human-readable combination attribute name (e.g. `Farbe: Rostrot`, `Stahlblau`).
-- **Precision Value & Order Reconciliation:** Exact floating-point price calculations derived directly from PrestaShop core ObjectModels (`Product::getPriceStatic()`, `$cart->getOrderTotal()`, `$order->total_paid_tax_incl`).
-- **Automated Version Management & 1-Click Updates:** Never manually re-upload a ZIP file again. The module queries GitHub releases via `update-manifest.json` and allows safe, 1-click in-place updates from the PrestaShop Back Office while preserving all settings.
-- **Dynamic Data Layer Event Prefix:** Set any custom identifier in the Back Office (e.g. `raihan`, `masum`, `client_a`). The module automatically generates `{prefix}_{canonical_event}` while keeping `original_event` intact for clean GTM mapping.
-- **Enhanced Conversions & Meta CAPI Hash Support:** Automatic SHA-256 hashing of customer email, phone, and address data attached as `user_data` to purchase events.
+---
+
+## Supported E-Commerce Events
+
+The module supports **9 core GA4 ecommerce events**, providing complete visibility across every step of the customer purchase journey:
+
+| # | GA4 Event Name | Trigger Location / User Action | Key Parameters Captured |
+| :-: | :--- | :--- | :--- |
+| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. | `item_list_id`, `item_list_name`, `currency`, `value`, `items[]` (with `index`, `item_id`, `price`, `item_brand`, `item_category`) |
+| **2** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `item_list_id`, `item_list_name`, `items[]` (the exact clicked item with list position and identifiers) |
+| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `currency`, `value`, `items[]` (`item_id`, `variant_id`, `sku_id`, `item_variant`, discounted customer price) |
+| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `currency`, `value`, `items[]` (authoritative base `item_id`, combination `variant_id`, exact price, quantity) |
+| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `currency`, `value`, `items[]` (calculated mathematically via the Cart Delta Engine, zero DOM dependency) |
+| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `currency`, `value`, `items[]` (the exact units removed and their corresponding value delta) |
+| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `currency`, `value`, `items[]` (all items currently in cart with quantities and subtotal) |
+| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `currency`, `value`, `items[]` (reconciled item revenue excluding shipping) |
+| **9** | **`purchase`** | Order completion on the **Order Confirmation page**. | `transaction_id`, `value`, `tax`, `shipping`, `currency`, `coupon`, `items[]`, `order_totals`, `user_data` |
+
+---
+
+## Key Architectural Highlights
+
+- **100% Authoritative Backend Data (Zero DOM Scraping):** All prices, variants, combinations, brands, categories, and stock numbers are resolved directly from PrestaShop's core ObjectModels (`Product`, `Combination`, `SpecificPrice`, `Category`, `Manufacturer`). No fragile CSS selectors or HTML scraping.
+- **Storefront & Database Price Parity:** Native calculation of promotions and specific prices on net bases before tax application, guaranteeing cent-perfect alignment with customer-facing prices (e.g. `14.99 €`).
+- **Mathematical GA4 Financial Reconciliation:** Strictly enforces $\text{ecommerce.value} = \sum (\text{items}[i].\text{price} \times \text{items}[i].\text{quantity})$ across all funnel events. Shipping and taxes are isolated cleanly into GA4 `shipping`, `tax`, and custom `order_totals`.
+- **Full Product Variant & Combination Tracking:** 
+  - `item_id`: Primary product ID (e.g. `1023`).
+  - `variant_id`: Active combination attribute ID (e.g. `299`), or empty string for simple products.
+  - `sku_id`: Combination reference when present, falling back to base reference.
+  - `item_variant`: Human-readable combination string (e.g. `Color: Blue | Size: M`).
+- **Purchase Idempotency & Deduplication:** Dedicated MySQL database table (`ps_gtm_purchase_log`) guarantees purchase conversions are tracked **strictly once per order**, eliminating duplicate revenue when customers refresh the order confirmation page.
+- **Enhanced Conversions & Meta CAPI Ready:** Unhashed first-party customer data (`email`, `phone_number`, `address`) formatted under `user_data` on purchase events for server-side GTM and Meta Conversion API normalization.
 - **Google Consent Mode v2:** Default denied parameters configured prior to GTM container loading (`ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`).
-- **Server-Side GTM (sGTM) Ready:** Option to set custom transport URLs (e.g., Stape.io or GCP Cloud Run endpoints) to load `gtm.js` from first-party domains and bypass ad blockers.
-- **Purchase Idempotency / Deduplication:** Dedicated MySQL database table (`ps_gtm_purchase_log`) preventing duplicate conversion tracking when customers reload the `OrderConfirmation` page.
+- **Server-Side GTM (sGTM) Ready:** Direct custom transport URLs (e.g. Stape.io or GCP Cloud Run) to bypass ad blockers and improve tracking resilience.
+- **Dynamic Event Prefixing:** Back-office setting allowing custom event namespaces (e.g. `raihan_view_item`, `raihan_purchase`) while preserving canonical GA4 event names in `original_event`.
+- **Automated 1-Click Updates:** Automated update mechanism querying `update-manifest.json` from GitHub releases, allowing safe 1-click in-place upgrades from the PrestaShop Module Manager without manual file uploads.
 
-## Configuration Options
+---
 
-- **GTM Container ID:** Your Google Tag Manager container ID (e.g. `GTM-XXXXXXX`).
-- **Data Layer Event Prefix:** Custom prefix for dataLayer events (e.g. `raihan`, `client_a`). Leave blank for default standard GA4 names.
-- **Server-Side GTM Transport URL:** Optional custom domain endpoint (e.g. `https://gtm.yourdomain.com`).
-- **Google Consent Mode v2:** Enable or disable default denied consent setup.
+## Installation & Setup
 
-## Architecture
+### Method 1: PrestaShop Back Office Upload (Recommended)
+1. Download the latest release: [ps_gtm_datalayer.zip](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest/download/ps_gtm_datalayer.zip).
+2. In your PrestaShop Back Office, navigate to **Modules > Module Manager**.
+3. Click **Upload a module** and select `ps_gtm_datalayer.zip`.
+4. Click **Configure** once the installation completes.
+
+### Method 2: Manual FTP / SFTP Installation
+1. Download and extract `ps_gtm_datalayer.zip`.
+2. Upload the unzipped `ps_gtm_datalayer` directory to `/modules/` on your web server.
+3. In PrestaShop Back Office, go to **Modules > Module Manager**, find **Enterprise GA4 & sGTM DataLayer**, and click **Install**.
+
+---
+
+## Configuration Settings
+
+In the module configuration screen (**Modules > Module Manager > Enterprise GA4 & sGTM DataLayer > Configure**):
+
+| Setting | Description | Default / Example |
+| :--- | :--- | :--- |
+| **GTM Container ID** | Your Google Tag Manager Web Container ID | `GTM-XXXXXXX` |
+| **Server-Side GTM Transport URL** | Custom domain endpoint for Server-side GTM | `https://gtm.yourdomain.com` |
+| **Enable Google Consent Mode v2** | Initializes default denied consent flags for GDPR/DMA | Enabled (`Yes`) |
+| **Custom Event Prefix** | Optional custom prefix for DataLayer events | Blank (standard GA4) or custom (e.g. `raihan`) |
+
+---
+
+## Codebase Architecture
 
 ```text
 ps_gtm_datalayer/
-├── ps_gtm_datalayer.php            # Main entry, hooks, and back-office configuration
-├── config.xml                      # Module metadata (v1.3.1)
-├── logo.png                        # Module icon
-├── update-manifest.json            # Remote version manifest for automated 1-click updates
+├── ps_gtm_datalayer.php            # Main module class, hook registrations & Back Office configuration
+├── config.xml                      # PrestaShop module manifest
+├── logo.png                        # Module logo
+├── update-manifest.json            # Version and checksum registry for 1-click updates
+├── sync_release.ps1                # Automated packaging and validation script
 ├── classes/
-│   ├── ProductIdentityResolver.php # Product & variant combination resolution engine
-│   ├── CustomerDataEngine.php      # PII normalization and SHA-256 cryptographic hasher
-│   ├── PayloadBuilder.php          # GA4 payload formatting engine
-│   ├── DeduplicationManager.php    # Database-driven purchase idempotency engine
+│   ├── PlatformAdapter.php         # Multi-version adapter (PrestaShop 1.7.8 through 8.2.x and 9.x)
+│   ├── PricingEngine.php           # Storefront price parity, commercial rounding & core price static bridge
+│   ├── CanonicalDataModel.php      # GA4 ecommerce schema validation and mathematical value calculator
+│   ├── ProductIdentityResolver.php # Combinations, SKUs, and attribute matrix resolver
+│   ├── CustomerDataEngine.php      # Normalized first-party user data engine (Enhanced Conversions / CAPI)
+│   ├── PayloadBuilder.php          # GA4 payload formatting engine across all funnel steps
+│   ├── DeduplicationManager.php    # Database-backed purchase idempotency engine
+│   ├── WishlistIntegrationLayer.php# Wishlist module adapter (blockwishlist, iqitwishlist, custom themes)
 │   └── UpdateManager.php           # Automated 1-click update & rollback engine
-└── views/
-    ├── js/
-    │   ├── datalayer-core.js       # Standalone normalization and validation library
-    │   └── prestashop-adapter.js   # PrestaShop event listeners and DOM binders
-    └── templates/
-        └── hook/
-            ├── gtm_head.tpl        # GTM container & Consent Mode v2 loader
-            ├── gtm_body.tpl        # Noscript iframe fallback
-            └── datalayer_init.tpl  # Server-hydrated initial event injection
+├── controllers/
+│   └── front/
+│       └── ajax.php                # Authoritative backend AJAX resolver for client-side events
+├── upgrade/
+│   ├── upgrade-1.5.0.php ... upgrade-1.9.2.php # Native database and cache migration scripts
+├── views/
+│   ├── js/
+│   │   ├── datalayer-core.js       # Universal DataLayer normalization & Cart Delta Engine
+│   │   └── prestashop-adapter.js   # PrestaShop event listeners and Pub/Sub bridge
+│   └── templates/
+│       ├── admin/
+│       │   └── module_manager_update_banner.tpl # 1-Click Back Office update UI
+│       └── hook/
+│           ├── gtm_head.tpl        # GTM container & Consent Mode v2 loader
+│           ├── gtm_body.tpl        # Noscript iframe fallback
+│           └── datalayer_init.tpl  # Server-hydrated initial event injection
+└── tests/
+    └── catalogIdentity.test.js     # Automated unit & integration test suite (36 passing tests)
 ```
+
+---
+
+## License
+
+This project is licensed under the **Academic Free License (AFL 3.0)**.
