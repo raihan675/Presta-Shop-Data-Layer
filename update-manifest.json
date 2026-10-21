@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.8.1/ps_gtm_datalayer.zip",
-  "checksum": "7379cfb57ab27ec3aa522d11e89f2c717082752807fa9912373484a8402d51f5",
+  "checksum": "06508024c63572c8cba04a7c7ea98a370b32814b77db121f4ed4493e9adc5a3e",
   "release_type": "minor",
   "release_notes": "1. Zero-DOM Wishlist Detection: Intercepts network AJAX (XHR/Fetch) and verified PrestaShop event bus; removes all DOM/CSS click listeners.\n2. Universal Wishlist Integration Layer: Authoritative backend ObjectModel resolution for blockwishlist, ps_wishlist, and custom theme wishlists.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.8.1.php."
 }
