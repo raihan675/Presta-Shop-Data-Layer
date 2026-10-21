@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.8.0] - 2026-10-21
+
+### Added
+- **GA4 `add_to_wishlist` Event Tracking**:
+  - Implemented according to official Google Analytics 4 reference specifications (`currency`, `value`, `items`).
+  - Multi-tier universal capture:
+    - XMLHttpRequest & Fetch API interceptor for native PrestaShop wishlist modules (`blockwishlist`, `ps_wishlist`, custom theme wishlist controllers).
+    - Event bus listeners for `prestashop.on('addToWishlist')` and custom document events (`blockwishlist:added`).
+    - Delegated click listeners with 1,200ms debounce protection.
+  - 100% backend product data resolution via `resolveBackendProduct()` (Zero DOM).
+  - Added native upgrade migration `upgrade/upgrade-1.8.0.php`.
+
+---
+
 ## [1.7.0] - 2026-10-21
 
 ### Added

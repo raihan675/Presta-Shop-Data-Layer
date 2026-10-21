@@ -1170,5 +1170,55 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(item.item_list_id, 'category_27');
       assert.strictEqual(item.item_list_name, 'Baby Geschirr');
     });
+
+    it('34. GA4 add_to_wishlist: Adding product to wishlist pushes add_to_wishlist with currency, value, and item schema', function () {
+      EDL.setEventPrefix('raihan');
+
+      const mockWishlistItem = EDL.normalizeItem({
+        item_id: '68',
+        variant_id: '298',
+        sku_id: 'BHK125-R',
+        item_name: 'Trink und Snack Tasse',
+        item_brand: 'Haakaa - Think Green Ltd.',
+        item_category: 'Baby Geschirr',
+        item_variant: 'Farbe1: Rostrot',
+        price: 13.00,
+        quantity: 1
+      });
+
+      const items = [mockWishlistItem];
+      const totalVal = EDL.calculateCartValue(items);
+
+      EDL.pushEvent('add_to_wishlist', {
+        currency: 'EUR',
+        value: totalVal,
+        items: items
+      });
+
+      const pushed = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushed.event, 'raihan_add_to_wishlist');
+      assert.strictEqual(pushed.original_event, 'add_to_wishlist');
+
+      // Verify event-level parameters according to official GA4 guideline
+      assert.strictEqual(pushed.ecommerce.currency, 'EUR');
+      assert.strictEqual(pushed.ecommerce.value, 13.00);
+      assert.strictEqual(pushed.ecommerce.items.length, 1);
+
+      // Verify item parameters
+      const item = pushed.ecommerce.items[0];
+      assert.strictEqual(item.item_id, '68');
+      assert.strictEqual(item.variant_id, '298');
+      assert.strictEqual(item.sku_id, 'BHK125-R');
+      assert.strictEqual(item.item_name, 'Trink und Snack Tasse');
+      assert.strictEqual(item.item_brand, 'Haakaa - Think Green Ltd.');
+      assert.strictEqual(item.item_category, 'Baby Geschirr');
+      assert.strictEqual(item.item_variant, 'Farbe1: Rostrot');
+      assert.strictEqual(item.price, 13.00);
+      assert.strictEqual(item.quantity, 1);
+
+      // Verify prior ecommerce state reset
+      const priorEntry = global.window.dataLayer[global.window.dataLayer.length - 2];
+      assert.deepStrictEqual(priorEntry, { ecommerce: null });
+    });
   });
 });

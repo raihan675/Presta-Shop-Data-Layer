@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.7.0",
+  "latest_version": "1.8.0",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.7.0/ps_gtm_datalayer.zip",
-  "checksum": "3a170f70fe6783d293fa58e317eea00ac9d53f5d9676ff645a7b504c32c87b4f",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.8.0/ps_gtm_datalayer.zip",
+  "checksum": "eb920248b7de806a3cd2ced3980b222f238eda3260098bb2af8f358c005a3b0b",
   "release_type": "minor",
-  "release_notes": "1. GA4 select_item Tracking: Emits select_item with complete list context (item_list_id, item_list_name) and item parameters (item_id, item_name, sku, brand, category, price, index) on category/search listing clicks.\n2. Quick View & Direct Navigation Support: Intercepts native prestashop.on('clickQuickView') and direct link clicks during pre-unload capture phase.\n3. Zero DOM Scraping: 100% backend data correlation from authoritative server-hydrated listing state."
+  "release_notes": "1. GA4 add_to_wishlist Tracking: Implemented according to official Google GA4 specification (currency, value, items) for blockwishlist, ps_wishlist, and custom themes.\n2. Multi-tier Interception: Intercepts AJAX network requests, native PrestaShop event bus, and wishlist buttons without DOM scraping.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.8.0.php."
 }
