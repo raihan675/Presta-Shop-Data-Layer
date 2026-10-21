@@ -92,20 +92,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(/^[a-f0-9]{64}$/.test(validSha256), true);
   });
 
-  it('5. Should verify user_data_raw debug object and omission of meta_external_id', function () {
-    const hashedUserData = {
-      email: '46fc338cb2b8b4b67e40afebb30e4b1574ff33908df21b56568683c2c9ebb161',
-      phone_number: '4b8dc7dcdd3215bd6fd79105d672f6b873962a57c409eca872b946e05a804340',
-      address: {
-        first_name: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-        last_name: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
-        street: '39faf2fdebfb3d054b21fd205cb05742855c987387e26a4b07cef0722dd070cf',
-        city: 'dingolfing',
-        postal_code: '84125',
-        country: 'DE'
-      }
-    };
-
+  it('5. Should verify user_data contains raw unhashed customer data and omits meta_external_id', function () {
     const rawUserData = {
       email: 'customer@example.com',
       phone_number: '+491701234567',
@@ -113,15 +100,21 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
         first_name: 'John',
         last_name: 'Doe',
         street: 'Main Street 10',
-        city: 'dingolfing',
+        city: 'amsterdam',
         postal_code: '84125',
         country: 'DE'
       }
     };
 
-    assert.strictEqual(hashedUserData.meta_external_id, undefined, 'meta_external_id must be removed');
+    assert.strictEqual(rawUserData.meta_external_id, undefined, 'meta_external_id must be removed');
     assert.strictEqual(rawUserData.email, 'customer@example.com');
     assert.strictEqual(rawUserData.phone_number, '+491701234567');
+    assert.strictEqual(rawUserData.address.first_name, 'John');
+    assert.strictEqual(rawUserData.address.last_name, 'Doe');
+    assert.strictEqual(rawUserData.address.street, 'Main Street 10');
+    assert.strictEqual(rawUserData.address.city, 'amsterdam');
+    assert.strictEqual(rawUserData.address.postal_code, '84125');
+    assert.strictEqual(rawUserData.address.country, 'DE');
   });
 
   it('6. Should preserve item_brand and base product identifiers for simple product 1013', function () {

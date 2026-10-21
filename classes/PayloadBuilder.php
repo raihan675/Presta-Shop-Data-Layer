@@ -270,7 +270,7 @@ class PayloadBuilder
 
         $customer = new Customer((int)$order->id_customer);
         $address = new Address((int)$order->id_address_invoice);
-        $customerData = CustomerDataEngine::buildCustomerPayload($customer, $address);
+        $userData = CustomerDataEngine::buildCustomerPayload($customer, $address);
 
         $orderTax = round((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), 2);
         $orderShipping = round((float)$order->total_shipping_tax_incl, 2);
@@ -294,13 +294,8 @@ class PayloadBuilder
                 'coupon' => $coupon,
                 'items' => $items,
             ],
-            'user_data' => $customerData['hashed'],
+            'user_data' => $userData,
         ];
-
-        // Expose unhashed normalized customer data separately for Tag Assistant debugging
-        if (!empty($customerData['raw'])) {
-            $purchasePayload['user_data_raw'] = $customerData['raw'];
-        }
 
         return $purchasePayload;
     }

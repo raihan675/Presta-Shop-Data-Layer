@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.4.0",
+  "latest_version": "1.4.1",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.4.0/ps_gtm_datalayer.zip",
-  "checksum": "4ea06940081bf7fbf535844b5aa601a04b6663dc4dc0b55a7a78615e12841f55",
-  "release_type": "major",
-  "release_notes": "1. Universal PrestaShop Compatibility (Zero DOM Dependency): Eliminated 100% of DOM scraping, CSS selector reliance, and HTML element parsing across the entire module.\n2. Authoritative Backend Data Pipeline: All product IDs, combination IDs, variant SKUs, brands, categories, and prices are resolved directly from PrestaShop database ObjectModels and CartController JSON.\n3. Dedicated AJAX Front Controller: Added ps_gtm_datalayer/ajax controller to dynamically resolve database-backed product records for front-office event buses.\n4. Server-Side Pending Cart Event Queue: Integrated actionCartUpdateQuantityBefore hook to reliably queue cart updates in the backend session.\n5. Consistent Funnel Schema: 100% parameter integrity across view_item, add_to_cart, begin_checkout, and purchase."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.4.1/ps_gtm_datalayer.zip",
+  "checksum": "b5bc691b7a47ee9e3aa940fe33a05a034455eea7e6729b065b9989ac7a2bffb1",
+  "release_type": "patch",
+  "release_notes": "1. Raw Customer PII in user_data: user_data directly outputs plaintext/unhashed customer information (email, phone, address fields) as requested.\n2. Complete Removal of meta_external_id: meta_external_id has been removed from all purchase and customer payloads.\n3. Universal Backend Tracking: Retains 100% backend-driven data pipeline without DOM scraping."
 }
