@@ -49,14 +49,15 @@
         return;
       } else if (!idAttrStr) {
         // Simple product or base combination
+        var hasCombinations = window.psGtmConfig.productCombinations && Object.keys(window.psGtmConfig.productCombinations).length > 0;
         var itemBase = {
           item_id: String(currProd.item_id),
-          variant_id: String(currProd.variant_id || ''),
+          variant_id: (hasCombinations && currProd.variant_id && parseInt(currProd.variant_id, 10) > 0) ? String(currProd.variant_id) : '',
           sku_id: String(currProd.sku_id || ''),
           item_name: String(currProd.item_name || ''),
           item_brand: String(currProd.item_brand || ''),
           item_category: String(currProd.item_category || ''),
-          item_variant: String(currProd.item_variant || ''),
+          item_variant: hasCombinations ? String(currProd.item_variant || '') : '',
           price: parseFloat(currProd.price) || 0.0,
           quantity: qty
         };
@@ -126,10 +127,15 @@
         if (now - lastAddToCartTime < 800) return;
         lastAddToCartTime = now;
 
-        var addedIdProduct = reason.idProduct || reason.id_product || '';
-        var addedIdAttr = (reason.idProductAttribute !== undefined && reason.idProductAttribute !== null)
+        var addedIdProduct = reason.idProduct || reason.id_product || (event.resp && (event.resp.id_product || event.resp.idProduct)) || '';
+        if (!addedIdProduct && window.psGtmConfig && window.psGtmConfig.currentProduct) {
+          addedIdProduct = window.psGtmConfig.currentProduct.item_id;
+        }
+
+        var rawAttr = (reason.idProductAttribute !== undefined && reason.idProductAttribute !== null)
           ? reason.idProductAttribute
-          : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : '');
+          : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
+        var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
         var qty = parseInt(reason.quantity, 10) || 1;
 
         // First attempt to match from server cart response (pure JSON from CartController)
@@ -137,8 +143,8 @@
         if (cart && Array.isArray(cart.products) && addedIdProduct) {
           for (var i = 0; i < cart.products.length; i++) {
             var cp = cart.products[i];
-            if (String(cp.id_product) === String(addedIdProduct) &&
-                (!addedIdAttr || String(cp.id_product_attribute) === String(addedIdAttr))) {
+            var cpAttr = (cp.id_product_attribute && parseInt(cp.id_product_attribute, 10) > 0) ? String(cp.id_product_attribute) : '';
+            if (String(cp.id_product) === String(addedIdProduct) && cpAttr === addedIdAttr) {
               matchedProduct = cp;
               break;
             }
@@ -164,17 +170,15 @@
             quantity: qty
           };
 
-          // If brand is populated, dispatch immediately
-          if (cartItem.item_brand) {
-            var normItems = EDL.normalizeItems([cartItem]);
-            if (normItems.length > 0) {
-              EDL.pushEvent('add_to_cart', {
-                currency: currencyCode,
-                value: EDL.calculateCartValue(normItems),
-                items: normItems
-              });
-              return;
-            }
+          // Dispatch immediately from authoritative cart data
+          var normItems = EDL.normalizeItems([cartItem]);
+          if (normItems.length > 0) {
+            EDL.pushEvent('add_to_cart', {
+              currency: currencyCode,
+              value: EDL.calculateCartValue(normItems),
+              items: normItems
+            });
+            return;
           }
         }
 
@@ -197,12 +201,13 @@
 
       } else if (action === 'delete-from-cart' || action === 'remove-from-cart') {
         var removedIdProduct = reason.idProduct || reason.id_product || '';
-        var removedIdAttr = reason.idProductAttribute || reason.id_product_attribute || '';
+        var rawRemovedAttr = reason.idProductAttribute || reason.id_product_attribute || '';
+        var normRemovedAttr = (rawRemovedAttr && parseInt(rawRemovedAttr, 10) > 0) ? String(rawRemovedAttr) : '';
 
-        resolveBackendProduct(removedIdProduct, removedIdAttr, 1, function (resolvedItem) {
+        resolveBackendProduct(removedIdProduct, normRemovedAttr, 1, function (resolvedItem) {
           var item = resolvedItem ? resolvedItem : {
             item_id: String(removedIdProduct),
-            variant_id: (removedIdAttr && parseInt(removedIdAttr, 10) > 0) ? String(removedIdAttr) : '',
+            variant_id: normRemovedAttr,
             item_name: 'Product',
             price: 0.0,
             quantity: 1

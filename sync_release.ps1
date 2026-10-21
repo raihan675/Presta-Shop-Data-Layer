@@ -55,7 +55,7 @@ if (Test-Path $targetZip) {
     Remove-Item -Force $targetZip
 }
 
-tar.exe -a -cf $targetZip --exclude=".git" --exclude="tests" --exclude="*.test.js" --exclude="sync_release.ps1" ps_gtm_datalayer
+tar.exe -a -cf $targetZip --exclude=".git" --exclude="tests" --exclude="*.test.js" --exclude="sync_release.ps1" --exclude="update-manifest.json" ps_gtm_datalayer
 
 $hash = (Get-FileHash -Algorithm SHA256 $targetZip).Hash.ToLower()
 Write-Host "Built archive: $targetZip"

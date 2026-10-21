@@ -62,9 +62,12 @@
     if (!raw || typeof raw !== 'object') return null;
 
     var baseId = String(raw.item_id || raw.base_product_id || raw.id || '');
-    var variantId = (raw.variant_id !== undefined && raw.variant_id !== null)
-      ? String(raw.variant_id)
-      : (raw.id_product_attribute ? String(raw.id_product_attribute) : '');
+    var rawVariant = (raw.variant_id !== undefined && raw.variant_id !== null)
+      ? raw.variant_id
+      : (raw.id_product_attribute !== undefined ? raw.id_product_attribute : '');
+    var variantId = (rawVariant && String(rawVariant) !== '0' && parseInt(rawVariant, 10) > 0)
+      ? String(rawVariant)
+      : '';
     var skuId = String(raw.sku_id || raw.reference || raw.item_sku || '');
     var variant = (raw.item_variant || raw.variant) ? String(raw.item_variant || raw.variant) : '';
 

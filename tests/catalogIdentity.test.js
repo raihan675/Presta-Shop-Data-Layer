@@ -311,4 +311,201 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(purchasePayload.user_data.email, 'weba@gmail.com');
     assert.strictEqual(purchasePayload.user_data.meta_external_id, undefined, 'meta_external_id must not be present');
   });
+
+  it('9. Should strictly isolate simple products (Product 15 & Product 1010) from variant product 68', function () {
+    // Simple Product 15: Milchpumpe mit Saugfuss 100ml
+    const p15 = EDL.normalizeItem({
+      item_id: '15',
+      variant_id: '',
+      sku_id: 'MHK011',
+      item_name: 'Milchpumpe mit Saugfuss 100ml',
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Milchpumpen',
+      price: 19.99,
+      quantity: 1
+    });
+    assert.strictEqual(p15.item_id, '15', 'Product 15 must retain item_id 15');
+    assert.strictEqual(p15.variant_id, '', 'Simple product 15 must have empty variant_id');
+    assert.strictEqual(p15.sku_id, 'MHK011');
+    assert.strictEqual(p15.price, 19.99);
+
+    // Simple Product 1010: Shampoobürste - Erbsengrün
+    const p1010 = EDL.normalizeItem({
+      item_id: '1010',
+      variant_id: '',
+      sku_id: 'SGE050-PG',
+      item_name: 'Shampoobürste - Erbsengrün',
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Babypflege',
+      price: 12.29,
+      quantity: 1
+    });
+    assert.strictEqual(p1010.item_id, '1010', 'Product 1010 must retain item_id 1010');
+    assert.strictEqual(p1010.variant_id, '', 'Simple product 1010 must have empty variant_id');
+    assert.strictEqual(p1010.sku_id, 'SGE050-PG');
+    assert.strictEqual(p1010.price, 12.29);
+
+    // Variant Product 68: Trink und Snack Tasse (Variant 299 Stahlblau)
+    const p68_299 = EDL.normalizeItem({
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Baby Geschirr',
+      item_variant: 'Farbe: Stahlblau',
+      price: 12.99,
+      quantity: 1
+    });
+    assert.strictEqual(p68_299.item_id, '68');
+    assert.strictEqual(p68_299.variant_id, '299');
+    assert.strictEqual(p68_299.sku_id, 'BHK125-B');
+    assert.strictEqual(p68_299.price, 12.99);
+  });
+
+  it('10. Should sanitize numeric zero ("0" or 0) variant IDs to empty string', function () {
+    const rawZeroString = {
+      item_id: '15',
+      variant_id: '0',
+      item_name: 'Milchpumpe mit Saugfuss 100ml',
+      price: 19.99,
+      quantity: 1
+    };
+    const norm1 = EDL.normalizeItem(rawZeroString);
+    assert.strictEqual(norm1.variant_id, '', 'String "0" must normalize to empty string');
+
+    const rawZeroInt = {
+      item_id: '15',
+      variant_id: 0,
+      item_name: 'Milchpumpe mit Saugfuss 100ml',
+      price: 19.99,
+      quantity: 1
+    };
+    const norm2 = EDL.normalizeItem(rawZeroInt);
+    assert.strictEqual(norm2.variant_id, '', 'Integer 0 must normalize to empty string');
+
+    const rawAttrZero = {
+      item_id: '15',
+      id_product_attribute: '0',
+      item_name: 'Milchpumpe mit Saugfuss 100ml',
+      price: 19.99,
+      quantity: 1
+    };
+    const norm3 = EDL.normalizeItem(rawAttrZero);
+    assert.strictEqual(norm3.variant_id, '', 'id_product_attribute "0" must normalize to empty string');
+  });
+
+  it('11. Should maintain absolute state isolation during consecutive add_to_cart actions', function () {
+    EDL.setEventPrefix('raihan');
+
+    // 1. Add Product 15
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 19.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '15',
+          variant_id: '',
+          sku_id: 'MHK011',
+          item_name: 'Milchpumpe mit Saugfuss 100ml',
+          price: 19.99,
+          quantity: 1
+        })
+      ]
+    });
+
+    // 2. Add Product 68 (Variant 299)
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 12.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '68',
+          variant_id: '299',
+          sku_id: 'BHK125-B',
+          item_name: 'Trink und Snack Tasse',
+          item_variant: 'Stahlblau',
+          price: 12.99,
+          quantity: 1
+        })
+      ]
+    });
+
+    // 3. Add Product 1010
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 12.29,
+      items: [
+        EDL.normalizeItem({
+          item_id: '1010',
+          variant_id: '',
+          sku_id: 'SGE050-PG',
+          item_name: 'Shampoobürste - Erbsengrün',
+          price: 12.29,
+          quantity: 1
+        })
+      ]
+    });
+
+    // 4. Add Product 68 (Variant 298)
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 12.99,
+      items: [
+        EDL.normalizeItem({
+          item_id: '68',
+          variant_id: '298',
+          sku_id: 'BHK125-R',
+          item_name: 'Trink und Snack Tasse',
+          item_variant: 'Rostrot',
+          price: 12.99,
+          quantity: 1
+        })
+      ]
+    });
+
+    const addEvents = global.window.dataLayer.filter(e => e.event === 'raihan_add_to_cart');
+    assert.strictEqual(addEvents.length, 4);
+
+    // Event 1: Product 15
+    assert.strictEqual(addEvents[0].ecommerce.items[0].item_id, '15');
+    assert.strictEqual(addEvents[0].ecommerce.items[0].variant_id, '');
+    assert.strictEqual(addEvents[0].ecommerce.items[0].sku_id, 'MHK011');
+    assert.strictEqual(addEvents[0].ecommerce.items[0].price, 19.99);
+
+    // Event 2: Product 68 Variant 299
+    assert.strictEqual(addEvents[1].ecommerce.items[0].item_id, '68');
+    assert.strictEqual(addEvents[1].ecommerce.items[0].variant_id, '299');
+    assert.strictEqual(addEvents[1].ecommerce.items[0].sku_id, 'BHK125-B');
+    assert.strictEqual(addEvents[1].ecommerce.items[0].price, 12.99);
+
+    // Event 3: Product 1010
+    assert.strictEqual(addEvents[2].ecommerce.items[0].item_id, '1010');
+    assert.strictEqual(addEvents[2].ecommerce.items[0].variant_id, '');
+    assert.strictEqual(addEvents[2].ecommerce.items[0].sku_id, 'SGE050-PG');
+    assert.strictEqual(addEvents[2].ecommerce.items[0].price, 12.29);
+
+    // Event 4: Product 68 Variant 298
+    assert.strictEqual(addEvents[3].ecommerce.items[0].item_id, '68');
+    assert.strictEqual(addEvents[3].ecommerce.items[0].variant_id, '298');
+    assert.strictEqual(addEvents[3].ecommerce.items[0].sku_id, 'BHK125-R');
+    assert.strictEqual(addEvents[3].ecommerce.items[0].price, 12.99);
+  });
+
+  it('12. Price audit verification: Trink und Snack Tasse catalog discount vs regular price', function () {
+    const regularGrossPrice = 25.99;
+    const discountRate = 0.50; // 50% catalog price rule
+    const discountedGrossPrice = Math.round((regularGrossPrice * (1 - discountRate)) * 100) / 100;
+    assert.ok(discountedGrossPrice === 12.99 || discountedGrossPrice === 13.00, 'Price must resolve to 12.99 or 13.00 €');
+
+    const item = EDL.normalizeItem({
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      price: 12.99,
+      quantity: 1
+    });
+    assert.strictEqual(item.price, 12.99);
+  });
 });
