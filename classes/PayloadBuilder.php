@@ -98,17 +98,21 @@ class PayloadBuilder
                 if (Validate::isLoadedObject($category)) {
                     $listId = 'category_' . $idCategory;
                     $listName = (string)$category->name;
-                    $prods = $category->getProducts($idLanguage, 1, 24, 'position', 'asc', false, true);
+                    $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+                    $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+                    $prods = $category->getProducts($idLanguage, $p, $n, 'position', 'asc', false, true);
                     if (!empty($prods) && is_array($prods)) {
                         $idx = 1;
-                        foreach ($prods as $p) {
-                            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
-                            if (!empty($p['manufacturer_name'])) {
-                                $productObj->manufacturer_name = $p['manufacturer_name'];
+                        foreach ($prods as $pItem) {
+                            $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                            if (!empty($pItem['manufacturer_name'])) {
+                                $productObj->manufacturer_name = $pItem['manufacturer_name'];
                             }
-                            $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
+                            $item['item_list_id'] = $listId;
+                            $item['item_list_name'] = $listName;
                             $items[] = $item;
                         }
                     }
@@ -121,15 +125,19 @@ class PayloadBuilder
                 if (Validate::isLoadedObject($manufacturer)) {
                     $listId = 'manufacturer_' . $idManufacturer;
                     $listName = (string)$manufacturer->name;
-                    $prods = $manufacturer->getProducts($idManufacturer, $idLanguage, 1, 24, 'name', 'asc');
+                    $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+                    $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+                    $prods = $manufacturer->getProducts($idManufacturer, $idLanguage, $p, $n, 'name', 'asc');
                     if (!empty($prods) && is_array($prods)) {
                         $idx = 1;
-                        foreach ($prods as $p) {
-                            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+                        foreach ($prods as $pItem) {
+                            $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
                             $productObj->manufacturer_name = (string)$manufacturer->name;
-                            $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
+                            $item['item_list_id'] = $listId;
+                            $item['item_list_name'] = $listName;
                             $items[] = $item;
                         }
                     }
@@ -140,27 +148,44 @@ class PayloadBuilder
             if ($query) {
                 $listId = 'search_results';
                 $listName = 'Search: ' . $query;
-                $searchRes = Search::find($idLanguage, $query, 1, 24, 'position', 'desc');
+                $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+                $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+                $searchRes = Search::find($idLanguage, $query, $p, $n, 'position', 'desc');
                 if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
                     $idx = 1;
-                    foreach ($searchRes['result'] as $p) {
-                        $productObj = new Product((int)$p['id_product'], false, $idLanguage);
-                        if (!empty($p['manufacturer_name'])) {
-                            $productObj->manufacturer_name = $p['manufacturer_name'];
+                    foreach ($searchRes['result'] as $pItem) {
+                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                        if (!empty($pItem['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
                         }
-                        $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $price = isset($pItem['price_wt']) ? ProductIdentityResolver::roundHalfUp($pItem['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                         $item = $this->formatItem($productObj, 0, 1, $price);
                         $item['index'] = $idx++;
+                        $item['item_list_id'] = $listId;
+                        $item['item_list_name'] = $listName;
                         $items[] = $item;
                     }
                 }
             }
         }
 
+        $currencyCode = ($this->context->currency && !empty($this->context->currency->iso_code))
+            ? (string)$this->context->currency->iso_code
+            : 'EUR';
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+
+        $totalListValue = 0.0;
+        foreach ($items as $it) {
+            $totalListValue += (float)$it['price'];
+        }
+        $totalListValue = PricingEngine::roundHalfUp($totalListValue, $currencyPrecision);
+
         return [
             'event' => $this->getEventName('view_item_list'),
             'original_event' => 'view_item_list',
             'ecommerce' => [
+                'currency' => $currencyCode,
+                'value' => (float)$totalListValue,
                 'item_list_id' => $listId,
                 'item_list_name' => $listName,
                 'items' => $items,

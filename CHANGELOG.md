@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.6.1] - 2026-10-21
+
+### Fixed
+- **Category `view_item_list` Complete GA4 Schema**:
+  - Added `ecommerce.currency` (`ISO 4217` code e.g. `'EUR'`) dynamically retrieved from PrestaShop context.
+  - Added `ecommerce.value` calculating the total retail gross value of displayed category products.
+  - Propagated `item_list_id` and `item_list_name` to both the event level and each individual item in `items[]` for granular item-scoped GA4 reporting.
+  - Enhanced pagination to dynamically read `Tools::getValue('page', Tools::getValue('p', 1))` and dynamic per-page configuration (`PS_PRODUCTS_PER_PAGE`).
+  - Added native upgrade migration `upgrade/upgrade-1.6.1.php`.
+
+---
+
 ## [1.6.0] - 2026-10-21
 
 ### Added

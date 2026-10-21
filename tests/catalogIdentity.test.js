@@ -1044,4 +1044,83 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(EDL.calculateCartValue(res.itemsRemoved), 39.00, 'Total cart removal value must be 13*2 + 13*1 = 39');
     });
   });
+
+  describe('Category Page: view_item_list 14-Parameter GA4 Compliance Test', function () {
+    it('32. Should validate view_item_list schema with all 14 parameters and authoritative backend values', function () {
+      const mockCategoryPayload = {
+        event: 'raihan_view_item_list',
+        original_event: 'view_item_list',
+        ecommerce: {
+          currency: 'EUR',
+          value: 39.99,
+          item_list_id: 'category_27',
+          item_list_name: 'Baby Geschirr',
+          items: [
+            EDL.normalizeItem({
+              item_id: '68',
+              variant_id: '',
+              sku_id: 'BHK125',
+              item_name: 'Trink und Snack Tasse',
+              item_brand: 'Haakaa - Think Green Ltd.',
+              item_category: 'Baby Geschirr',
+              item_variant: '',
+              price: 13.00,
+              quantity: 1,
+              index: 1,
+              item_list_id: 'category_27',
+              item_list_name: 'Baby Geschirr'
+            }),
+            EDL.normalizeItem({
+              item_id: '1015',
+              variant_id: '',
+              sku_id: '3001201',
+              item_name: 'Dooky Gehörschutz 2-in-1 Baby & Kleinkinder',
+              item_brand: 'Dooky - Xplorys BV',
+              item_category: 'Gehörschutz',
+              item_variant: '',
+              price: 26.99,
+              quantity: 1,
+              index: 2,
+              item_list_id: 'category_27',
+              item_list_name: 'Baby Geschirr'
+            })
+          ]
+        }
+      };
+
+      EDL.setEventPrefix('raihan');
+      EDL.pushEvent('view_item_list', mockCategoryPayload.ecommerce);
+
+      const pushed = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushed.event, 'raihan_view_item_list');
+      assert.strictEqual(pushed.original_event, 'view_item_list');
+
+      // Event-level parameters
+      assert.strictEqual(pushed.ecommerce.currency, 'EUR', '1. currency must be present');
+      assert.strictEqual(pushed.ecommerce.value, 39.99, '2. value must equal sum of product prices (13.00 + 26.99)');
+      assert.strictEqual(pushed.ecommerce.item_list_id, 'category_27', '3. item_list_id must match category id');
+      assert.strictEqual(pushed.ecommerce.item_list_name, 'Baby Geschirr', '4. item_list_name must match category name');
+      assert.strictEqual(pushed.ecommerce.items.length, 2, '5. items array must contain all category products');
+
+      // Item-level parameters (Item 1)
+      const it1 = pushed.ecommerce.items[0];
+      assert.strictEqual(it1.item_id, '68', '6. item_id must be base product id');
+      assert.strictEqual(it1.item_name, 'Trink und Snack Tasse', '7. item_name must be accurate');
+      assert.strictEqual(it1.item_brand, 'Haakaa - Think Green Ltd.', '8. item_brand must be accurate');
+      assert.strictEqual(it1.item_category, 'Baby Geschirr', '9. item_category must match default category');
+      assert.strictEqual(it1.item_variant, '', '10. item_variant must be empty string for base listing');
+      assert.strictEqual(it1.sku_id, 'BHK125', '11. sku_id must match product reference');
+      assert.strictEqual(it1.price, 13.00, '12. price must be customer gross price');
+      assert.strictEqual(it1.index, 1, '13. index must be 1 for first item');
+      assert.strictEqual(it1.quantity, 1, '14. quantity must be 1');
+      assert.strictEqual(it1.item_list_id, 'category_27', 'item_list_id must be present on item');
+      assert.strictEqual(it1.item_list_name, 'Baby Geschirr', 'item_list_name must be present on item');
+
+      // Item-level parameters (Item 2)
+      const it2 = pushed.ecommerce.items[1];
+      assert.strictEqual(it2.item_id, '1015');
+      assert.strictEqual(it2.index, 2, 'index must increment for second item');
+      assert.strictEqual(it2.item_list_id, 'category_27');
+    });
+  });
 });

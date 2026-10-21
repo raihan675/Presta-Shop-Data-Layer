@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.6.0",
+  "latest_version": "1.6.1",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.6.0/ps_gtm_datalayer.zip",
-  "checksum": "1b284e3120cb6d3a5291d22922ee04b487876adbde7a01f541fc535189b1375c",
-  "release_type": "minor",
-  "release_notes": "1. Universal Cart Activity Tracking: Accurately maps additions, quantity increases, decrements, and product removals to GA4 add_to_cart and remove_from_cart events using pure mathematical state deltas without DOM querying.\n2. Removed Item Metadata Preservation: Retains full product attributes (SKU, brand, category, variant, price) even after items disappear from updated cart.\n3. Multi-Product Batch Support: Correctly partitions simultaneous updates across multiple products into separate add/remove events.\n4. Failure & Retry Protection: Suppresses tracking events on failed or out-of-stock cart operations."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.6.1/ps_gtm_datalayer.zip",
+  "checksum": "e85551bb383156961bba05db1beec26eb17cd7d2766de04fcbcd8f415aa92a93",
+  "release_type": "patch",
+  "release_notes": "1. Category Page view_item_list Parity: Emits currency, total list value, and propagates item_list_id and item_list_name to both event and item levels.\n2. Dynamic Pagination: Reads active page (?page=X or ?p=X) and shop-configured PS_PRODUCTS_PER_PAGE limit.\n3. Zero DOM Scraping: 100% authoritative backend ObjectModel extraction via Category::getProducts()."
 }

@@ -48,6 +48,14 @@ class CanonicalDataModel
             $item['index'] = (int)$raw['index'];
         }
 
+        if (!empty($raw['item_list_id'])) {
+            $item['item_list_id'] = trim((string)$raw['item_list_id']);
+        }
+
+        if (!empty($raw['item_list_name'])) {
+            $item['item_list_name'] = trim((string)$raw['item_list_name']);
+        }
+
         if (!empty($raw['coupon'])) {
             $item['coupon'] = trim((string)$raw['coupon']);
         }

@@ -157,6 +157,8 @@
     if (raw.item_category2) item.item_category2 = String(raw.item_category2);
     if (raw.item_category3) item.item_category3 = String(raw.item_category3);
     if (raw.index !== undefined) item.index = parseInt(raw.index, 10);
+    if (raw.item_list_id) item.item_list_id = String(raw.item_list_id);
+    if (raw.item_list_name) item.item_list_name = String(raw.item_list_name);
     if (raw.coupon) item.coupon = String(raw.coupon);
     if (raw.discount !== undefined) item.discount = sanitizeFloat(raw.discount, prec);
 
