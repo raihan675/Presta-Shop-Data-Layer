@@ -204,7 +204,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
 
     // Funnel Step 4: purchase (server hydrated with user_data & user_data_raw)
     const purchasePayload = {
-      transaction_id: 'OKAHUEEVW',
+      transaction_id: '1220',
       currency: 'EUR',
       value: 74.99,
       tax: 11.97,
@@ -265,7 +265,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       event: 'raihan_purchase',
       original_event: 'purchase',
       ecommerce: {
-        transaction_id: 'HTAIWHXQL',
+        transaction_id: '1221',
         value: 57.60, // sum of items (19.20 * 3), excluding shipping
         tax: 9.92,
         shipping: 4.50,
@@ -297,7 +297,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       user_data: rawUserData
     };
 
-    assert.strictEqual(purchasePayload.ecommerce.transaction_id, 'HTAIWHXQL');
+    assert.strictEqual(purchasePayload.ecommerce.transaction_id, '1221');
     assert.strictEqual(purchasePayload.order_totals.order_id, 1221);
     assert.strictEqual(purchasePayload.order_totals.order_reference, 'HTAIWHXQL');
 

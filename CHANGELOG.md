@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.5.2] - 2026-10-21
+
+### Changed
+- **Numeric Order ID as `ecommerce.transaction_id`**: In `raihan_purchase` / `purchase` dataLayer events, `ecommerce.transaction_id` now directly captures the PrestaShop numeric Order ID (e.g., `"1225"`) instead of the alphanumeric Order Reference (`"CLLAKIJQI"`).
+- **Audit Preservation**: The alphanumeric PrestaShop Order Reference is cleanly retained under `order_totals.order_reference` for back-office cross-referencing and reconciliation.
+- **Native Upgrade Script**: Added `upgrade/upgrade-1.5.2.php` for seamless 1-click update in Module Manager.
+
+---
+
 ## [1.5.1] - 2026-10-21
 
 ### Fixed

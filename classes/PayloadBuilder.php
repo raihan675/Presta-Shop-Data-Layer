@@ -311,7 +311,7 @@ class PayloadBuilder
             'event' => $this->getEventName('purchase'),
             'original_event' => 'purchase',
             'ecommerce' => [
-                'transaction_id' => !empty($order->reference) ? (string)$order->reference : (string)$order->id,
+                'transaction_id' => (string)$order->id,
                 'value' => $ga4Value, // GA4 item revenue: sum of items, excluding shipping
                 'tax' => $orderTax,
                 'shipping' => $orderShipping,

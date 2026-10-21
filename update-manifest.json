@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.5.1",
+  "latest_version": "1.5.2",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.5.1/ps_gtm_datalayer.zip",
-  "checksum": "59adee0636b7cabd988772cdf84274ae391d4c37c1ce15e08032212b5f7b42fe",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.5.2/ps_gtm_datalayer.zip",
+  "checksum": "afee6ca3cc4c17b81a533953f727598864c995f7434e01730eb15ebe0285b4f9",
   "release_type": "patch",
-  "release_notes": "1. Accurate Add-to-Cart Quantity: Captures multi-quantity additions (e.g. 2 units) via CartController HTTP request and ps_cart_product state with zero DOM querying.\n2. Variant Object Sanitization: Formats combination descriptors cleanly and eliminates [object Object] leaks.\n3. Category Name Parity: Standardizes canonical display category (Baby Geschirr) across view_item and add_to_cart.\n4. Resilient 1-Click Update: Eliminates 500 error in Module Manager by routing through authenticated AdminModules controller."
+  "release_notes": "1. Numeric Order ID in Purchase: ecommerce.transaction_id captures the internal numeric Order ID (e.g. 1225) instead of the alphanumeric reference for standard GA4/GTM reporting.\n2. Preserved Reference for Back-Office: order_totals.order_reference continues to store the alphanumeric reference for audit trail.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.5.2.php."
 }
