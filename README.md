@@ -26,22 +26,17 @@ The module supports **9 core GA4 ecommerce events**, providing complete visibili
 
 ---
 
-## Key Architectural Highlights
+## Key Features
 
-- **100% Authoritative Backend Data (Zero DOM Scraping):** All prices, variants, combinations, brands, categories, and stock numbers are resolved directly from PrestaShop's core ObjectModels (`Product`, `Combination`, `SpecificPrice`, `Category`, `Manufacturer`). No fragile CSS selectors or HTML scraping.
-- **Storefront & Database Price Parity:** Native calculation of promotions and specific prices on net bases before tax application, guaranteeing cent-perfect alignment with customer-facing prices (e.g. `14.99 €`).
-- **Mathematical GA4 Financial Reconciliation:** Strictly enforces $\text{ecommerce.value} = \sum (\text{items}[i].\text{price} \times \text{items}[i].\text{quantity})$ across all funnel events. Shipping and taxes are isolated cleanly into GA4 `shipping`, `tax`, and custom `order_totals`.
-- **Full Product Variant & Combination Tracking:** 
-  - `item_id`: Primary product ID (e.g. `1023`).
-  - `variant_id`: Active combination attribute ID (e.g. `299`), or empty string for simple products.
-  - `sku_id`: Combination reference when present, falling back to base reference.
-  - `item_variant`: Human-readable combination string (e.g. `Color: Blue | Size: M`).
-- **Purchase Idempotency & Deduplication:** Dedicated MySQL database table (`ps_gtm_purchase_log`) guarantees purchase conversions are tracked **strictly once per order**, eliminating duplicate revenue when customers refresh the order confirmation page.
-- **Enhanced Conversions & Meta CAPI Ready:** Unhashed first-party customer data (`email`, `phone_number`, `address`) formatted under `user_data` on purchase events for server-side GTM and Meta Conversion API normalization.
-- **Google Consent Mode v2:** Default denied parameters configured prior to GTM container loading (`ad_storage`, `analytics_storage`, `ad_user_data`, `ad_personalization`).
-- **Server-Side GTM (sGTM) Ready:** Direct custom transport URLs (e.g. Stape.io or GCP Cloud Run) to bypass ad blockers and improve tracking resilience.
-- **Dynamic Event Prefixing:** Back-office setting allowing custom event namespaces (e.g. `raihan_view_item`, `raihan_purchase`) while preserving canonical GA4 event names in `original_event`.
-- **Automated 1-Click Updates:** Automated update mechanism querying `update-manifest.json` from GitHub releases, allowing safe 1-click in-place upgrades from the PrestaShop Module Manager without manual file uploads.
+- **Accurate Product & Variant Tracking:** Tracks the exact product ID, combination/variant (like Size or Color), and SKU so you always know precisely which item was viewed, added, or purchased.
+- **Accurate Prices & Discounts:** Gets real prices and promotional discounts directly from your store database, so the tracked price always matches what customers see on their screen down to the cent.
+- **Exact Cart & Revenue Calculation:** Total value is calculated cleanly from product prices and quantities, keeping shipping costs and taxes separated according to official GA4 standards.
+- **No Duplicate Purchases:** Prevents duplicate conversion tracking if a customer refreshes their order confirmation page.
+- **Built-in Google Consent Mode v2:** Fully compliant with EU GDPR and Digital Markets Act (DMA) regulations right out of the box.
+- **Enhanced Conversions & Meta CAPI Ready:** Collects customer details (email, phone, address) on purchase to boost tracking accuracy in Google Ads and Meta (Facebook) Ads.
+- **Server-Side GTM (sGTM) Compatible:** Easily route data through your own custom domain (e.g. Stape or Cloud Run) to bypass ad blockers.
+- **Custom Event Names:** Add a custom prefix to your events (e.g. `mybrand_view_item`) or keep standard GA4 names.
+- **1-Click Updates:** Update the module directly from your PrestaShop Back Office in one click whenever a new release is available.
 
 ---
 
