@@ -417,7 +417,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     // 2. Add Product 68 (Variant 299)
     EDL.pushEvent('add_to_cart', {
       currency: 'EUR',
-      value: 12.99,
+      value: 13.00,
       items: [
         EDL.normalizeItem({
           item_id: '68',
@@ -425,7 +425,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
           sku_id: 'BHK125-B',
           item_name: 'Trink und Snack Tasse',
           item_variant: 'Stahlblau',
-          price: 12.99,
+          price: 13.00,
           quantity: 1
         })
       ]
@@ -450,7 +450,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     // 4. Add Product 68 (Variant 298)
     EDL.pushEvent('add_to_cart', {
       currency: 'EUR',
-      value: 12.99,
+      value: 13.00,
       items: [
         EDL.normalizeItem({
           item_id: '68',
@@ -458,7 +458,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
           sku_id: 'BHK125-R',
           item_name: 'Trink und Snack Tasse',
           item_variant: 'Rostrot',
-          price: 12.99,
+          price: 13.00,
           quantity: 1
         })
       ]
@@ -477,7 +477,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(addEvents[1].ecommerce.items[0].item_id, '68');
     assert.strictEqual(addEvents[1].ecommerce.items[0].variant_id, '299');
     assert.strictEqual(addEvents[1].ecommerce.items[0].sku_id, 'BHK125-B');
-    assert.strictEqual(addEvents[1].ecommerce.items[0].price, 12.99);
+    assert.strictEqual(addEvents[1].ecommerce.items[0].price, 13.00);
 
     // Event 3: Product 1010
     assert.strictEqual(addEvents[2].ecommerce.items[0].item_id, '1010');
@@ -489,23 +489,85 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(addEvents[3].ecommerce.items[0].item_id, '68');
     assert.strictEqual(addEvents[3].ecommerce.items[0].variant_id, '298');
     assert.strictEqual(addEvents[3].ecommerce.items[0].sku_id, 'BHK125-R');
-    assert.strictEqual(addEvents[3].ecommerce.items[0].price, 12.99);
+    assert.strictEqual(addEvents[3].ecommerce.items[0].price, 13.00);
   });
 
-  it('12. Price audit verification: Trink und Snack Tasse catalog discount vs regular price', function () {
-    const regularGrossPrice = 25.99;
-    const discountRate = 0.50; // 50% catalog price rule
-    const discountedGrossPrice = Math.round((regularGrossPrice * (1 - discountRate)) * 100) / 100;
-    assert.ok(discountedGrossPrice === 12.99 || discountedGrossPrice === 13.00, 'Price must resolve to 12.99 or 13.00 €');
+  it('12. Exact commercial ROUND_HALF_UP decimal rounding tests across discount rates', function () {
+    // 50% discount on 25.99 € yields exactly 12.995 €, which rounds up to 13.00 €
+    assert.strictEqual(EDL.roundHalfUp(25.99 * 0.50, 2), 13.00, '25.99 * 0.5 must round up to 13.00');
+    assert.strictEqual(EDL.roundHalfUp(12.995, 2), 13.00, '12.995 must round up to 13.00');
+
+    // Values strictly below .005 round down
+    assert.strictEqual(EDL.roundHalfUp(12.994, 2), 12.99, '12.994 must round down to 12.99');
+    assert.strictEqual(EDL.roundHalfUp(12.991, 2), 12.99, '12.991 must round down to 12.99');
+
+    // 20% discount on 19.99 € = 15.992 €, rounds down to 15.99 €
+    assert.strictEqual(EDL.roundHalfUp(19.99 * 0.80, 2), 15.99, '19.99 * 0.8 must round down to 15.99');
+
+    // 25% discount on 19.90 € = 14.925 €, rounds up to 14.93 €
+    assert.strictEqual(EDL.roundHalfUp(19.90 * 0.75, 2), 14.93, '19.90 * 0.75 must round up to 14.93');
+
+    // 15% discount on 29.99 € = 25.4915 €, rounds down to 25.49 €
+    assert.strictEqual(EDL.roundHalfUp(29.99 * 0.85, 2), 25.49, '29.99 * 0.85 must round down to 25.49');
+  });
+
+  it('13. Trink und Snack Tasse customer-facing price parity in raihan_view_item (13.00 €)', function () {
+    EDL.setEventPrefix('raihan');
+    const regularGross = 25.99;
+    const discount = 0.50;
+    const customerPrice = EDL.roundHalfUp(regularGross * (1 - discount), 2);
+    assert.strictEqual(customerPrice, 13.00);
 
     const item = EDL.normalizeItem({
       item_id: '68',
-      variant_id: '299',
-      sku_id: 'BHK125-B',
+      variant_id: '298',
+      sku_id: 'BHK125-R',
       item_name: 'Trink und Snack Tasse',
-      price: 12.99,
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Baby Geschirr',
+      item_variant: 'Farbe1: Rostrot',
+      price: customerPrice,
       quantity: 1
     });
-    assert.strictEqual(item.price, 12.99);
+
+    EDL.pushEvent('view_item', {
+      currency: 'EUR',
+      value: item.price,
+      items: [item]
+    });
+
+    const event = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(event.event, 'raihan_view_item');
+    assert.strictEqual(event.ecommerce.value, 13.00, 'ecommerce.value must be 13.00');
+    assert.strictEqual(event.ecommerce.currency, 'EUR');
+    assert.strictEqual(event.ecommerce.items[0].price, 13.00, 'items[0].price must be 13.00');
+    assert.strictEqual(event.ecommerce.items[0].item_id, '68');
+    assert.strictEqual(event.ecommerce.items[0].variant_id, '298');
+  });
+
+  it('14. Multi-quantity cart calculation with ROUND_HALF_UP commercial pricing', function () {
+    const item = EDL.normalizeItem({
+      item_id: '68',
+      variant_id: '298',
+      sku_id: 'BHK125-R',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 2
+    });
+
+    const items = [item];
+    const totalValue = EDL.calculateCartValue(items);
+    assert.strictEqual(totalValue, 26.00, 'Cart value for 2 x 13.00 must be exactly 26.00');
+
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: totalValue,
+      items: items
+    });
+
+    const event = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(event.ecommerce.value, 26.00);
+    assert.strictEqual(event.ecommerce.items[0].price, 13.00);
+    assert.strictEqual(event.ecommerce.items[0].quantity, 2);
   });
 });

@@ -74,7 +74,7 @@ class PayloadBuilder
             'original_event' => 'view_item',
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
-                'value' => round($price, 2),
+                'value' => (float)$price,
                 'items' => [$item],
             ],
         ];
@@ -103,7 +103,7 @@ class PayloadBuilder
                             if (!empty($p['manufacturer_name'])) {
                                 $productObj->manufacturer_name = $p['manufacturer_name'];
                             }
-                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
+                            $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $items[] = $item;
@@ -124,7 +124,7 @@ class PayloadBuilder
                         foreach ($prods as $p) {
                             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
                             $productObj->manufacturer_name = (string)$manufacturer->name;
-                            $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
+                            $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                             $item = $this->formatItem($productObj, 0, 1, $price);
                             $item['index'] = $idx++;
                             $items[] = $item;
@@ -145,7 +145,7 @@ class PayloadBuilder
                         if (!empty($p['manufacturer_name'])) {
                             $productObj->manufacturer_name = $p['manufacturer_name'];
                         }
-                        $price = isset($p['price_wt']) ? (float)$p['price_wt'] : (float)Product::getPriceStatic((int)$p['id_product'], true, null, 2);
+                        $price = isset($p['price_wt']) ? ProductIdentityResolver::roundHalfUp($p['price_wt'], 2) : ProductIdentityResolver::getCustomerPrice($productObj, 0, 1, $this->context);
                         $item = $this->formatItem($productObj, 0, 1, $price);
                         $item['index'] = $idx++;
                         $items[] = $item;
@@ -336,8 +336,8 @@ class PayloadBuilder
     {
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $price = $overridePrice !== null 
-            ? $overridePrice 
-            : Product::getPriceStatic($product->id, true, $idAttribute ? $idAttribute : null, 2);
+            ? ProductIdentityResolver::roundHalfUp($overridePrice, 2)
+            : ProductIdentityResolver::getCustomerPrice($product, $idAttribute, $quantity, $this->context);
 
         $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
         $category = new Category((int)$product->id_category_default, $idLanguage);
@@ -358,7 +358,7 @@ class PayloadBuilder
             'item_brand' => $brand,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
             'item_variant' => $identifiers['item_variant'],
-            'price' => round((float)$price, 2),
+            'price' => (float)$price,
             'quantity' => (int)$quantity,
         ];
     }

@@ -48,9 +48,16 @@
     return p + '_' + String(canonicalName);
   }
 
+  function roundHalfUp(val, decimals) {
+    var d = decimals !== undefined ? decimals : 2;
+    var factor = Math.pow(10, d);
+    var num = Number(val);
+    if (isNaN(num)) return 0.0;
+    return Math.round((num + Number.EPSILON) * factor) / factor;
+  }
+
   function sanitizeFloat(val) {
-    var parsed = parseFloat(val);
-    return isNaN(parsed) ? 0.0 : Math.round(parsed * 100) / 100;
+    return roundHalfUp(val, 2);
   }
 
   function sanitizeInt(val) {
@@ -111,7 +118,7 @@
     for (var i = 0; i < items.length; i++) {
       total += items[i].price * items[i].quantity;
     }
-    return Math.round(total * 100) / 100;
+    return roundHalfUp(total, 2);
   }
 
   function pushEcommerceEvent(canonicalEventName, ecommerceData, userData) {
@@ -166,6 +173,7 @@
     pushEvent: pushEcommerceEvent,
     normalizeItem: normalizeItem,
     normalizeItems: normalizeItems,
-    calculateCartValue: calculateCartValue
+    calculateCartValue: calculateCartValue,
+    roundHalfUp: roundHalfUp
   };
 });

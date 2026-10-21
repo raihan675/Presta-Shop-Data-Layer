@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.4.5] - 2026-10-21
+
+### Fixed
+- **Customer-Facing Price Parity & Commercial Rounding (`ROUND_HALF_UP`)**: Aligned the data layer product price (`price` and `ecommerce.value`) with the exact displayed retail price on the storefront. Eliminated the premature intermediate net pre-tax truncation in `Product::getPriceStatic` ($10.92 \times 1.19 = 12.9948 \rightarrow 12.99$) and replaced it with customer-facing gross retail reduction math ($25.99 \times 0.50 = 12.995 \rightarrow 13.00$).
+- **Dedicated Backend Price Resolver**: Implemented `ProductIdentityResolver::getCustomerPrice()` which dynamically checks active specific prices, promotional percentages, fixed discounts, and taxes with full 6-decimal precision before applying commercial half-up rounding.
+- **Universal Dynamic Coverage**: Applies consistently across simple products, multi-variant combinations, category/search listings, cart events, and checkout.
+- **Client-Side Epsilon Rounding**: Integrated `roundHalfUp()` with IEEE-754 epsilon protection in `datalayer-core.js` and `prestashop-adapter.js` to ensure absolute parity between frontend and backend.
+- **Native Upgrade Script**: Added `upgrade/upgrade-1.4.5.php` to automatically update the `ps_module` database version table upon upgrade.
+
+---
+
 ## [1.4.4] - 2026-10-21
 
 ### Fixed

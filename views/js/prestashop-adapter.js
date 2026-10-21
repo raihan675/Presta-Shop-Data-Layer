@@ -152,7 +152,8 @@
         }
 
         if (matchedProduct) {
-          var resolvedPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
+          var rawPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
+          var resolvedPrice = EDL.roundHalfUp ? EDL.roundHalfUp(rawPrice, 2) : (Math.round((rawPrice + Number.EPSILON) * 100) / 100);
           var brand = String(matchedProduct.manufacturer_name || '');
           if (!brand && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
             brand = window.psGtmConfig.currentProduct.item_brand || '';
@@ -166,7 +167,7 @@
             item_brand: brand,
             item_category: String(matchedProduct.category_name || matchedProduct.category || ''),
             item_variant: String(matchedProduct.attributes || ''),
-            price: Math.round(resolvedPrice * 100) / 100,
+            price: resolvedPrice,
             quantity: qty
           };
 

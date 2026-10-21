@@ -105,6 +105,149 @@ class ProductIdentityResolver
     }
 
     /**
+     * Exact decimal-based commercial rounding (ROUND_HALF_UP).
+     *
+     * @param float|int|string $value
+     * @param int $precision
+     * @return float
+     */
+    public static function roundHalfUp($value, $precision = 2)
+    {
+        return round((float)$value, (int)$precision, PHP_ROUND_HALF_UP);
+    }
+
+    /**
+     * Resolves the authoritative customer-facing price exactly as displayed on the storefront,
+     * respecting specific prices (promotions/catalog discounts), taxes, currency precision,
+     * and ROUND_HALF_UP commercial rounding.
+     *
+     * @param Product $product
+     * @param int $idAttribute
+     * @param int $quantity
+     * @param Context|null $context
+     * @return float
+     */
+    public static function getCustomerPrice(Product $product, $idAttribute = 0, $quantity = 1, Context $context = null)
+    {
+        if (!$context) {
+            $context = Context::getContext();
+        }
+
+        $idProduct = (int)$product->id;
+        $idAttr = (int)$idAttribute;
+        $idCustomer = ($context && $context->customer) ? (int)$context->customer->id : 0;
+        $idGroup = ($context && $context->customer && !empty($context->customer->id_default_group)) 
+            ? (int)$context->customer->id_default_group 
+            : (class_exists('Group') ? (int)Group::getCurrent()->id : 1);
+        $idShop = ($context && $context->shop) ? (int)$context->shop->id : 1;
+        $idCurrency = ($context && $context->currency) ? (int)$context->currency->id : (int)Configuration::get('PS_CURRENCY_DEFAULT');
+        $idCountry = ($context && $context->country) ? (int)$context->country->id : (int)Configuration::get('PS_COUNTRY_DEFAULT');
+
+        $precision = ($context && $context->currency && isset($context->currency->precision)) 
+            ? (int)$context->currency->precision 
+            : 2;
+        if ($precision <= 0) {
+            $precision = 2;
+        }
+
+        $useTax = true;
+        if (class_exists('Product') && method_exists('Product', 'getTaxCalculationMethod')) {
+            $useTax = !Product::getTaxCalculationMethod($idCustomer);
+        }
+
+        // 1. Authoritative regular price without reduction, keeping full precision (6 decimals)
+        $specificPriceOutput = null;
+        $regularGross = (float)Product::getPriceStatic(
+            $idProduct,
+            $useTax,
+            $idAttr ? $idAttr : null,
+            6,
+            null,
+            false,
+            false, // usereduc = false (regular price)
+            $quantity,
+            false,
+            $idCustomer,
+            ($context && $context->cart) ? (int)$context->cart->id : null,
+            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+            $specificPriceOutput,
+            true,
+            true,
+            $context
+        );
+
+        $regularRounded = self::roundHalfUp($regularGross, $precision);
+
+        // 2. Query for active specific price (discount/promotion)
+        $specificPrice = null;
+        if (class_exists('SpecificPrice')) {
+            $specificPrice = SpecificPrice::getSpecificPrice(
+                $idProduct,
+                $idShop,
+                $idCurrency,
+                $idCountry,
+                $idGroup,
+                $quantity,
+                $idAttr,
+                $idCustomer,
+                ($context && $context->cart) ? (int)$context->cart->id : 0
+            );
+        }
+
+        if (!empty($specificPrice)) {
+            if ($specificPrice['reduction_type'] === 'percentage') {
+                $reduction = (float)$specificPrice['reduction'];
+                // Apply percentage discount directly to the customer-facing gross regular price
+                $finalPrice = $regularRounded * (1.0 - $reduction);
+                return self::roundHalfUp($finalPrice, $precision);
+            } elseif ($specificPrice['reduction_type'] === 'amount') {
+                $reduction = (float)$specificPrice['reduction'];
+                if (!$specificPrice['reduction_tax'] && $useTax) {
+                    $taxRate = method_exists($product, 'getTaxesRate') 
+                        ? (float)$product->getTaxesRate(new Address(($context && $context->cart) ? (int)$context->cart->id_address_delivery : 0)) 
+                        : 0.0;
+                    $reduction = $reduction * (1 + ($taxRate / 100));
+                }
+                $finalPrice = max(0.0, $regularRounded - $reduction);
+                return self::roundHalfUp($finalPrice, $precision);
+            } elseif ((float)$specificPrice['price'] >= 0) {
+                $fixedPrice = (float)$specificPrice['price'];
+                if ($useTax) {
+                    $taxRate = method_exists($product, 'getTaxesRate') 
+                        ? (float)$product->getTaxesRate(new Address(($context && $context->cart) ? (int)$context->cart->id_address_delivery : 0)) 
+                        : 0.0;
+                    $finalPrice = $fixedPrice * (1 + ($taxRate / 100));
+                } else {
+                    $finalPrice = $fixedPrice;
+                }
+                return self::roundHalfUp($finalPrice, $precision);
+            }
+        }
+
+        // Standard calculation fallback with 6 decimals then round half-up
+        $staticPrice = (float)Product::getPriceStatic(
+            $idProduct,
+            $useTax,
+            $idAttr ? $idAttr : null,
+            6,
+            null,
+            false,
+            true,
+            $quantity,
+            false,
+            $idCustomer,
+            ($context && $context->cart) ? (int)$context->cart->id : null,
+            ($context && $context->cart) ? (int)$context->cart->id_address_delivery : null,
+            $specificPriceOutput,
+            true,
+            true,
+            $context
+        );
+
+        return self::roundHalfUp($staticPrice, $precision);
+    }
+
+    /**
      * Returns a database-sourced dictionary of all combinations for this product.
      * Each entry contains the exact item_id, variant_id, sku_id, item_name, and price.
      *
@@ -132,14 +275,14 @@ class ProductIdentityResolver
                     $ref = !empty($c['reference']) ? trim($c['reference']) : trim((string)$product->reference);
 
                     if (!isset($map[$idAttr])) {
-                        $price = Product::getPriceStatic($product->id, true, (int)$idAttr, 2);
+                        $price = self::getCustomerPrice($product, (int)$idAttr, 1);
                         $map[$idAttr] = [
                             'item_id' => (string)$product->id,
                             'variant_id' => $idAttr,
                             'sku_id' => $ref,
                             'item_name' => (string)$product->name,
                             'item_variant' => $label,
-                            'price' => round((float)$price, 2),
+                            'price' => (float)$price,
                         ];
                     } else {
                         if ($label) {
