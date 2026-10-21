@@ -16,6 +16,7 @@ require_once __DIR__ . '/classes/ProductIdentityResolver.php';
 require_once __DIR__ . '/classes/CustomerDataEngine.php';
 require_once __DIR__ . '/classes/PayloadBuilder.php';
 require_once __DIR__ . '/classes/DeduplicationManager.php';
+require_once __DIR__ . '/classes/WishlistIntegrationLayer.php';
 require_once __DIR__ . '/classes/UpdateManager.php';
 
 class Ps_Gtm_DataLayer extends Module
@@ -24,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.8.0';
+        $this->version = '1.8.1';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -495,6 +496,7 @@ class Ps_Gtm_DataLayer extends Module
             'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
             'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
             'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+            'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);
 

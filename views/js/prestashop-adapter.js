@@ -158,6 +158,9 @@
           this._psGtmUrl.indexOf('action=add') !== -1 ||
           this._psGtmUrl.indexOf('add-to-wishlist') !== -1 ||
           this._psGtmUrl.indexOf('addWishlist') !== -1
+        ) && (
+          this._psGtmUrl.indexOf('delete') === -1 &&
+          this._psGtmUrl.indexOf('remove') === -1
         );
 
         if (isWishlistUrl) {
@@ -180,12 +183,15 @@
             if (this.status >= 200 && this.status < 300) {
               try {
                 var resp = JSON.parse(this.responseText);
-                if (resp && (resp.success === true || resp.status === 'success' || !resp.hasError)) {
+                var isSuccess = resp && (
+                  resp.success === true ||
+                  resp.status === 'success' ||
+                  (resp.hasError === false && !resp.errors && !resp.error)
+                );
+                if (isSuccess && wishProdId) {
                   dispatchAddToWishlist(wishProdId, wishAttrId);
                 }
-              } catch (e) {
-                dispatchAddToWishlist(wishProdId, wishAttrId);
-              }
+              } catch (e) {}
             }
           });
         }
@@ -209,6 +215,9 @@
         url.indexOf('action=add') !== -1 ||
         url.indexOf('add-to-wishlist') !== -1 ||
         url.indexOf('addWishlist') !== -1
+      ) && (
+        url.indexOf('delete') === -1 &&
+        url.indexOf('remove') === -1
       );
 
       if (isWishlistUrl) {
@@ -227,7 +236,16 @@
 
         return origFetch.apply(this, arguments).then(function (res) {
           if (res.ok) {
-            dispatchAddToWishlist(wishProdId, wishAttrId);
+            res.clone().json().then(function (resp) {
+              var isSuccess = resp && (
+                resp.success === true ||
+                resp.status === 'success' ||
+                (resp.hasError === false && !resp.errors && !resp.error)
+              );
+              if (isSuccess && wishProdId) {
+                dispatchAddToWishlist(wishProdId, wishAttrId);
+              }
+            }).catch(function () {});
           }
           return res;
         });
@@ -555,25 +573,6 @@
       var idAttr = detail.idProductAttribute || detail.id_product_attribute || '';
       if (idProd) dispatchAddToWishlist(idProd, idAttr);
     });
-
-    // Capture Wishlist button clicks across standard and custom themes
-    document.addEventListener('click', function (e) {
-      if (!e.target || !e.target.closest) return;
-      var btn = e.target.closest('.wishlist-button, .btn-wishlist, [data-action="add-to-wishlist"], [data-wishlist-add], .js-wishlist-button, .wishtlist-btn');
-      if (btn) {
-        var idProd = btn.getAttribute('data-id-product') || btn.getAttribute('data-product-id');
-        var idAttr = btn.getAttribute('data-id-product-attribute') || btn.getAttribute('data-product-attribute-id');
-        if (!idProd && window.psGtmConfig && window.psGtmConfig.currentProduct) {
-          idProd = window.psGtmConfig.currentProduct.item_id;
-          idAttr = window.psGtmConfig.currentProduct.variant_id;
-        }
-        if (idProd) {
-          setTimeout(function () {
-            dispatchAddToWishlist(idProd, idAttr);
-          }, 350);
-        }
-      }
-    }, true);
 
     // Capture Product Link Selection from Listings (Capture phase for instant pre-unload execution)
     document.addEventListener('click', function (e) {

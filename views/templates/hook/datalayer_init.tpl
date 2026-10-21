@@ -35,6 +35,13 @@
     window.psGtmConfig.cartProductsData = {};
   }
   {/if}
+  {if isset($wishlist_capabilities)}
+  try {
+    window.psGtmConfig.wishlist = {$wishlist_capabilities nofilter};
+  } catch(e) {
+    window.psGtmConfig.wishlist = {};
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){

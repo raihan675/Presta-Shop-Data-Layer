@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.8.1] - 2026-10-21
+
+### Added
+- **Universal Wishlist Integration Layer (`classes/WishlistIntegrationLayer.php`)**:
+  - Reusable backend architectural layer separating wishlist detection, successful state validation, and canonical GA4 payload assembly.
+  - Automatic detection of active wishlist modules (`blockwishlist`, `ps_wishlist`, `iqitwishlist`, `leowishlist`, `wtwishlist`).
+- **Zero DOM Wishlist Tracking**:
+  - Completely eliminated all DOM/CSS selector click listeners (`.wishlist-button`, `.btn-wishlist`, etc.).
+  - Implemented strictly verified network response interception (XHR & Fetch API) checking HTTP 200 and backend `isSuccess` (`resp.success === true || resp.status === 'success' || !resp.hasError`).
+  - Explicit URL filtering preventing false positives on wishlist deletions/removals (`indexOf('delete') === -1 && indexOf('remove') === -1`).
+  - Integration with native PrestaShop event bus (`prestashop.on('addToWishlist')`, `prestashop.on('wishlist:add')`, `blockwishlist:added`).
+- **Authoritative Backend Data Resolution**:
+  - Direct resolution of base product ID, combination attribute ID, SKU, localized title, brand, default category, and gross customer price via `ProductIdentityResolver` and `PricingEngine`.
+  - 1,200ms deduplication signature ledger preventing duplicate events.
+- **Native In-Place Upgrade**: Added `upgrade/upgrade-1.8.1.php` for seamless 1-click update.
+
+---
+
 ## [1.8.0] - 2026-10-21
 
 ### Added

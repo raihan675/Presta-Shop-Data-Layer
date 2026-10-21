@@ -13,6 +13,7 @@ require_once __DIR__ . '/PricingEngine.php';
 require_once __DIR__ . '/CanonicalDataModel.php';
 require_once __DIR__ . '/ProductIdentityResolver.php';
 require_once __DIR__ . '/CustomerDataEngine.php';
+require_once __DIR__ . '/WishlistIntegrationLayer.php';
 
 class PayloadBuilder
 {
@@ -81,6 +82,11 @@ class PayloadBuilder
                 'items' => [$item],
             ],
         ];
+    }
+
+    public function buildAddToWishlistPayload($idProduct, $idProductAttribute = 0, $quantity = 1)
+    {
+        return WishlistIntegrationLayer::buildAddToWishlistPayload($this->context, $idProduct, $idProductAttribute, $quantity, $this->prefix);
     }
 
     public function buildViewItemListPayload($controller)
