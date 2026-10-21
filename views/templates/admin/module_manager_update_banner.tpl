@@ -19,8 +19,8 @@
     {/if}
   </div>
 
-  <div style="display: flex; align-items: center; gap: 10px;">
-    <form action="{$current_request_url}" method="post" style="margin: 0; display: inline-block;">
+  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+    <form action="{if isset($update_action_url)}{$update_action_url}{else}{$current_request_url}{/if}" method="post" style="margin: 0; display: inline-block;">
       <input type="hidden" name="update_download_url" value="{$download_url|escape:'html':'UTF-8'}">
       <input type="hidden" name="update_checksum" value="{$checksum|escape:'html':'UTF-8'}">
       <input type="hidden" name="update_version" value="{$latest_version|escape:'html':'UTF-8'}">
@@ -28,6 +28,9 @@
         <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">system_update_alt</i> 1-Click Update to v{$latest_version|escape:'html':'UTF-8'}
       </button>
     </form>
+    <a href="{$download_url|escape:'html':'UTF-8'}" class="btn btn-outline-secondary btn-lg" style="font-weight: 500; padding: 10px 16px; border: 1px solid #ccc; background: #fff;" target="_blank" download>
+      <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">file_download</i> Download ZIP
+    </a>
   </div>
 </div>
 
@@ -70,8 +73,9 @@
         var card = moduleCards[m];
         var actionsContainer = card.querySelector('.btn-group, .module-actions, .actions');
         if (actionsContainer && !actionsContainer.querySelector('.btn-ps-gtm-inline-update')) {
+          var targetActionUrl = '{if isset($update_action_url)}{$update_action_url|escape:'javascript':'UTF-8'}{else}{$current_request_url|escape:'javascript':'UTF-8'}{/if}';
           var form = document.createElement('form');
-          form.action = '{$current_request_url}';
+          form.action = targetActionUrl;
           form.method = 'POST';
           form.style.display = 'inline-block';
           form.style.marginRight = '6px';

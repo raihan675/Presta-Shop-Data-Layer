@@ -138,7 +138,7 @@ class PlatformAdapter
             return (bool)Db::getInstance()->execute(
                 'UPDATE `' . _DB_PREFIX_ . 'module` SET `version` = \'' . pSQL($currentVersion) . '\' WHERE `name` = \'' . pSQL($moduleName) . '\''
             );
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             return false;
         }
     }
@@ -149,29 +149,29 @@ class PlatformAdapter
      */
     public static function clearAllCaches()
     {
-        // 1. Clear Smarty cache
-        if (class_exists('Tools') && method_exists('Tools', 'clearSmartyCache')) {
-            @Tools::clearSmartyCache();
-        }
+        try {
+            // 1. Clear Smarty cache
+            if (class_exists('Tools') && method_exists('Tools', 'clearSmartyCache')) {
+                @Tools::clearSmartyCache();
+            }
 
-        // 2. Clear XML cache
-        if (class_exists('Tools') && method_exists('Tools', 'clearXMLCache')) {
-            @Tools::clearXMLCache();
-        }
+            // 2. Clear XML cache
+            if (class_exists('Tools') && method_exists('Tools', 'clearXMLCache')) {
+                @Tools::clearXMLCache();
+            }
 
-        // 3. Clear Symfony Module Catalog cache (PrestaShop 1.7.8 - 8.x / 9.x)
-        if (class_exists('\PrestaShop\PrestaShop\Adapter\SymfonyContainer')) {
-            try {
-                $container = \PrestaShop\PrestaShop\Adapter\SymfonyContainer::getInstance();
-                if ($container) {
-                    if ($container->has('prestashop.adapter.module.data_provider')) {
+            // 3. Clear Symfony Module Catalog cache (PrestaShop 1.7.8 - 8.x / 9.x)
+            if (class_exists('\PrestaShop\PrestaShop\Adapter\SymfonyContainer')) {
+                try {
+                    $container = \PrestaShop\PrestaShop\Adapter\SymfonyContainer::getInstance();
+                    if ($container && $container->has('prestashop.adapter.module.data_provider')) {
                         $dataProvider = $container->get('prestashop.adapter.module.data_provider');
-                        if (method_exists($dataProvider, 'clearCatalogCache')) {
-                            $dataProvider->clearCatalogCache();
+                        if ($dataProvider && method_exists($dataProvider, 'clearCatalogCache')) {
+                            @$dataProvider->clearCatalogCache();
                         }
                     }
-                }
-            } catch (Exception $e) {}
-        }
+                } catch (\Throwable $e) {}
+            }
+        } catch (\Throwable $e) {}
     }
 }

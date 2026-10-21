@@ -10,8 +10,17 @@ if (!defined('_PS_VERSION_')) {
 
 function upgrade_module_1_5_0($module)
 {
-    require_once dirname(__FILE__) . '/../classes/PlatformAdapter.php';
-    PlatformAdapter::syncModuleDatabaseVersion($module->name, $module->version);
-    PlatformAdapter::clearAllCaches();
+    try {
+        $adapterPath = dirname(__FILE__) . '/../classes/PlatformAdapter.php';
+        if (file_exists($adapterPath)) {
+            require_once $adapterPath;
+            if (class_exists('PlatformAdapter')) {
+                PlatformAdapter::syncModuleDatabaseVersion($module->name, $module->version);
+                PlatformAdapter::clearAllCaches();
+            }
+        }
+    } catch (\Throwable $e) {
+        // Silently prevent any upgrade hook crashes
+    }
     return true;
 }

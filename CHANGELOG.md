@@ -23,6 +23,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Universal Test Suite Expansion**: Added comprehensive automated tests for multi-currency precision (USD/EUR, JPY 0-decimal, BHD 3-decimal), complex multi-attribute apparel combinations (Size, Color, Material), brand-less fallbacks, and multi-store catalog pricing rules (18/18 passing).
 - **Native Upgrade Script**: Added `upgrade/upgrade-1.5.0.php` for seamless in-place updates.
 
+### Fixed
+- **1-Click Update 500 Error in Module Manager**: Resolved Symfony 500 Internal Server Error in PrestaShop 8 caused by update forms posting directly to the GET-only Symfony route (`/improve/modules/manage`). Routed update submissions safely through the authenticated `AdminModules` module controller with CSRF token validation.
+- **Resilient Update Pipeline**: Wrapped all update actions, upgrade scripts, and cache flushing operations in `\Throwable` safety nets with filesystem error suppression to prevent server crashes under strict host environments.
+- **Direct Package Download Option**: Added a direct "Download ZIP" action in the update notification banner for offline or upload-based upgrades.
+
 ### Changed
 - Refactored `classes/PayloadBuilder.php` and `classes/ProductIdentityResolver.php` to delegate cleanly to `PricingEngine`, `CanonicalDataModel`, and `PlatformAdapter`.
 - Updated client-side `datalayer-core.js` and `prestashop-adapter.js` to dynamically consume store currency precision from backend configuration.

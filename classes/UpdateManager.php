@@ -108,109 +108,133 @@ class UpdateManager
      */
     public function executeUpdate($downloadUrl, $expectedChecksum = '')
     {
-        if (empty($downloadUrl)) {
-            return ['success' => false, 'message' => 'Invalid download URL.'];
-        }
+        try {
+            if (empty($downloadUrl)) {
+                return ['success' => false, 'message' => 'Invalid download URL.'];
+            }
 
-        $moduleDir = _PS_MODULE_DIR_ . $this->module->name;
-        $tempZip = _PS_CACHE_DIR_ . $this->module->name . '_latest.zip';
-        $backupDir = _PS_CACHE_DIR_ . $this->module->name . '_backup_' . date('Ymd_His');
+            $moduleDir = _PS_MODULE_DIR_ . $this->module->name;
+            $baseTempDir = (defined('_PS_CACHE_DIR_') && is_dir(_PS_CACHE_DIR_) && is_writable(_PS_CACHE_DIR_))
+                ? _PS_CACHE_DIR_
+                : sys_get_temp_dir() . DIRECTORY_SEPARATOR;
 
-        // 1. Download Release Asset
-        $fp = fopen($tempZip, 'w+');
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $downloadUrl);
-        curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 45);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'PrestaShop-Module-Updater/' . $this->module->version);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        fclose($fp);
+            $tempZip = $baseTempDir . $this->module->name . '_latest.zip';
+            $backupDir = $baseTempDir . $this->module->name . '_backup_' . date('Ymd_His');
 
-        if ($httpCode !== 200 || !file_exists($tempZip) || filesize($tempZip) === 0) {
-            @unlink($tempZip);
-            return ['success' => false, 'message' => 'Failed to download release archive from GitHub.'];
-        }
+            // 1. Download Release Asset
+            $fp = @fopen($tempZip, 'w+');
+            if (!$fp) {
+                return ['success' => false, 'message' => 'Cannot create temporary download file in ' . htmlspecialchars($baseTempDir)];
+            }
 
-        // 2. Validate Checksum (if provided)
-        if (!empty($expectedChecksum)) {
-            $actualChecksum = hash_file('sha256', $tempZip);
-            if (strcasecmp($actualChecksum, $expectedChecksum) !== 0) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $downloadUrl);
+            curl_setopt($ch, CURLOPT_FILE, $fp);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+            curl_setopt($ch, CURLOPT_USERAGENT, 'PrestaShop-Module-Updater/' . $this->module->version);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            @fclose($fp);
+
+            if ($httpCode !== 200 || !file_exists($tempZip) || filesize($tempZip) === 0) {
                 @unlink($tempZip);
-                return ['success' => false, 'message' => 'Security validation failed: Checksum mismatch.'];
-            }
-        }
-
-        // 3. Backup Current Module Files
-        $this->recursiveCopy($moduleDir, $backupDir);
-
-        // 4. Extract and In-Place Overwrite
-        $zip = new ZipArchive();
-        if ($zip->open($tempZip) === true) {
-            $extractPath = _PS_CACHE_DIR_ . $this->module->name . '_extracted_' . time();
-            @mkdir($extractPath, 0755, true);
-            $zip->extractTo($extractPath);
-            $zip->close();
-            @unlink($tempZip);
-
-            $sourceContentDir = $extractPath;
-            if (is_dir($extractPath . '/' . $this->module->name)) {
-                $sourceContentDir = $extractPath . '/' . $this->module->name;
+                return ['success' => false, 'message' => 'Failed to download release archive from GitHub (HTTP ' . (int)$httpCode . ').'];
             }
 
-            $this->recursiveCopy($sourceContentDir, $moduleDir);
-            $this->recursiveDelete($extractPath);
-
-            // 5. Trigger Native PrestaShop Module Upgrade Routines
-            if (method_exists($this->module, 'runUpgradeModule')) {
-                $this->module->runUpgradeModule();
+            // 2. Validate Checksum (if provided)
+            if (!empty($expectedChecksum)) {
+                $actualChecksum = hash_file('sha256', $tempZip);
+                if (strcasecmp($actualChecksum, $expectedChecksum) !== 0) {
+                    @unlink($tempZip);
+                    return ['success' => false, 'message' => 'Security validation failed: Checksum mismatch.'];
+                }
             }
 
-            // Synchronize database registry and clear all cache layers
-            if (class_exists('PlatformAdapter')) {
-                PlatformAdapter::syncModuleDatabaseVersion($this->module->name, $this->module->version);
-                PlatformAdapter::clearAllCaches();
+            // 3. Backup Current Module Files
+            $this->recursiveCopy($moduleDir, $backupDir);
+
+            // 4. Extract and In-Place Overwrite
+            if (!class_exists('ZipArchive')) {
+                @unlink($tempZip);
+                return ['success' => false, 'message' => 'PHP ZipArchive extension is required for automated update. Please update via module ZIP upload.'];
+            }
+
+            $zip = new ZipArchive();
+            if ($zip->open($tempZip) === true) {
+                $extractPath = $baseTempDir . $this->module->name . '_extracted_' . time();
+                @mkdir($extractPath, 0755, true);
+                $zip->extractTo($extractPath);
+                $zip->close();
+                @unlink($tempZip);
+
+                $sourceContentDir = $extractPath;
+                if (is_dir($extractPath . '/' . $this->module->name)) {
+                    $sourceContentDir = $extractPath . '/' . $this->module->name;
+                }
+
+                $this->recursiveCopy($sourceContentDir, $moduleDir);
+                $this->recursiveDelete($extractPath);
+
+                // 5. Trigger Native PrestaShop Module Upgrade Routines
+                if (method_exists($this->module, 'runUpgradeModule')) {
+                    try {
+                        $this->module->runUpgradeModule();
+                    } catch (\Throwable $ue) {}
+                }
+
+                // Synchronize database registry and clear all cache layers
+                if (class_exists('PlatformAdapter')) {
+                    PlatformAdapter::syncModuleDatabaseVersion($this->module->name, $this->module->version);
+                    PlatformAdapter::clearAllCaches();
+                } else {
+                    if (class_exists('Tools')) {
+                        @Tools::clearSmartyCache();
+                        @Tools::clearXMLCache();
+                    }
+                }
+
+                self::clearUpdateCache();
+
+                return ['success' => true, 'message' => 'Module successfully updated to the latest version.'];
             } else {
-                Tools::clearSmartyCache();
-                Tools::clearXMLCache();
+                @unlink($tempZip);
+                return ['success' => false, 'message' => 'Could not unpack the downloaded ZIP archive.'];
             }
-
-            self::clearUpdateCache();
-
-            return ['success' => true, 'message' => 'Module successfully updated to the latest version.'];
-        } else {
-            @unlink($tempZip);
-            return ['success' => false, 'message' => 'Could not unpack the downloaded ZIP archive.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Update exception: ' . $e->getMessage()];
         }
     }
 
     private function recursiveCopy($src, $dst)
     {
         if (!is_dir($src)) return;
-        $dir = opendir($src);
+        $dir = @opendir($src);
+        if (!$dir) return;
         @mkdir($dst, 0755, true);
         while (false !== ($file = readdir($dir))) {
             if (($file != '.') && ($file != '..') && ($file != '.git')) {
                 if (is_dir($src . '/' . $file)) {
                     $this->recursiveCopy($src . '/' . $file, $dst . '/' . $file);
                 } else {
-                    copy($src . '/' . $file, $dst . '/' . $file);
+                    @copy($src . '/' . $file, $dst . '/' . $file);
                 }
             }
         }
-        closedir($dir);
+        @closedir($dir);
     }
 
     private function recursiveDelete($dir)
     {
         if (!is_dir($dir)) return;
-        $files = array_diff(scandir($dir), ['.', '..']);
+        $files = @scandir($dir);
+        if (!$files) return;
+        $files = array_diff($files, ['.', '..']);
         foreach ($files as $file) {
-            (is_dir("$dir/$file")) ? $this->recursiveDelete("$dir/$file") : unlink("$dir/$file");
+            (is_dir("$dir/$file")) ? $this->recursiveDelete("$dir/$file") : @unlink("$dir/$file");
         }
-        rmdir($dir);
+        @rmdir($dir);
     }
 }

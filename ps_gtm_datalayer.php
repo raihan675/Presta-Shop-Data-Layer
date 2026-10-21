@@ -91,14 +91,19 @@ class Ps_Gtm_DataLayer extends Module
 
         // Handle 1-Click Update Execution
         if (Tools::isSubmit('submitRunModuleUpdate')) {
-            $downloadUrl = Tools::getValue('update_download_url');
-            $checksum = Tools::getValue('update_checksum');
-            $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+            try {
+                $downloadUrl = Tools::getValue('update_download_url');
+                $checksum = Tools::getValue('update_checksum');
+                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
 
-            if ($updateResult['success']) {
-                $output .= $this->displayConfirmation($this->l($updateResult['message']));
-            } else {
-                $output .= $this->displayError($this->l($updateResult['message']));
+                if (!empty($updateResult['success'])) {
+                    $output .= $this->displayConfirmation($this->l($updateResult['message']));
+                } else {
+                    $errMsg = !empty($updateResult['message']) ? $updateResult['message'] : 'Update failed.';
+                    $output .= $this->displayError($this->l($errMsg));
+                }
+            } catch (\Throwable $e) {
+                $output .= $this->displayError('Update error: ' . $e->getMessage());
             }
         }
 
@@ -137,7 +142,8 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<h4><strong>' . sprintf($this->l('New version %s is available!'), htmlspecialchars($updateInfo['latest_version'])) . '</strong></h4>';
             $html .= '<p>' . nl2br(htmlspecialchars($updateInfo['release_notes'])) . '</p>';
             $html .= '<hr>';
-            $html .= '<form action="' . Tools::safeOutput($_SERVER['REQUEST_URI']) . '" method="post" style="display:inline-block;">';
+            $updateActionUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name;
+            $html .= '<form action="' . Tools::safeOutput($updateActionUrl) . '" method="post" style="display:inline-block;">';
             $html .= '<input type="hidden" name="update_download_url" value="' . htmlspecialchars($updateInfo['download_url']) . '">';
             $html .= '<input type="hidden" name="update_checksum" value="' . htmlspecialchars($updateInfo['checksum']) . '">';
             $html .= '<input type="hidden" name="update_version" value="' . htmlspecialchars($updateInfo['latest_version']) . '">';
@@ -165,21 +171,28 @@ class Ps_Gtm_DataLayer extends Module
 
         // 1. Handle 1-Click Update if triggered from Module Manager or any admin page
         if (Tools::isSubmit('submitRunModuleUpdate')) {
-            $downloadUrl = Tools::getValue('update_download_url');
-            $checksum = Tools::getValue('update_checksum');
-            $versionTarget = Tools::getValue('update_version', 'latest');
+            try {
+                $downloadUrl = Tools::getValue('update_download_url');
+                $checksum = Tools::getValue('update_checksum');
+                $versionTarget = Tools::getValue('update_version', 'latest');
 
-            $updateManager = new UpdateManager($this);
-            $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+                $updateManager = new UpdateManager($this);
+                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
 
-            if ($updateResult['success']) {
-                $msg = sprintf($this->l('Enterprise GA4 & sGTM DataLayer successfully updated to version %s! All your settings were preserved.'), htmlspecialchars($versionTarget));
-                if (isset($this->context->controller->confirmations) && is_array($this->context->controller->confirmations)) {
-                    $this->context->controller->confirmations[] = $msg;
+                if (!empty($updateResult['success'])) {
+                    $msg = sprintf($this->l('Enterprise GA4 & sGTM DataLayer successfully updated to version %s! All your settings were preserved.'), htmlspecialchars($versionTarget));
+                    if (isset($this->context->controller->confirmations) && is_array($this->context->controller->confirmations)) {
+                        $this->context->controller->confirmations[] = $msg;
+                    }
+                } else {
+                    $errMsg = !empty($updateResult['message']) ? $updateResult['message'] : 'Update failed.';
+                    if (isset($this->context->controller->errors) && is_array($this->context->controller->errors)) {
+                        $this->context->controller->errors[] = $this->l($errMsg);
+                    }
                 }
-            } else {
+            } catch (\Throwable $e) {
                 if (isset($this->context->controller->errors) && is_array($this->context->controller->errors)) {
-                    $this->context->controller->errors[] = $this->l($updateResult['message']);
+                    $this->context->controller->errors[] = 'Update error: ' . $e->getMessage();
                 }
             }
         }
@@ -215,6 +228,8 @@ class Ps_Gtm_DataLayer extends Module
             return '';
         }
 
+        $updateActionUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name;
+
         $this->context->smarty->assign([
             'module_name' => $this->name,
             'module_display_name' => $this->displayName,
@@ -223,6 +238,7 @@ class Ps_Gtm_DataLayer extends Module
             'release_notes' => $updateInfo['release_notes'],
             'download_url' => $updateInfo['download_url'],
             'checksum' => $updateInfo['checksum'],
+            'update_action_url' => $updateActionUrl,
             'current_request_url' => Tools::safeOutput($_SERVER['REQUEST_URI']),
         ]);
 
