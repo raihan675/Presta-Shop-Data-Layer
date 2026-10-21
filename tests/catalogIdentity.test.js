@@ -1,3 +1,4 @@
+const { describe, it, beforeEach } = require('node:test');
 const assert = require('assert');
 const EDL = require('../views/js/datalayer-core.js');
 
@@ -89,5 +90,59 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
   it('4. Should sanitize and validate customer SHA-256 strings', function () {
     const validSha256 = 'a6c24312b18974513568c07c2d92161bc7478d10b754961555543cbe27efcf99';
     assert.strictEqual(/^[a-f0-9]{64}$/.test(validSha256), true);
+  });
+
+  it('5. Should verify user_data_raw debug object and omission of meta_external_id', function () {
+    const hashedUserData = {
+      email: '46fc338cb2b8b4b67e40afebb30e4b1574ff33908df21b56568683c2c9ebb161',
+      phone_number: '4b8dc7dcdd3215bd6fd79105d672f6b873962a57c409eca872b946e05a804340',
+      address: {
+        first_name: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        last_name: '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08',
+        street: '39faf2fdebfb3d054b21fd205cb05742855c987387e26a4b07cef0722dd070cf',
+        city: 'dingolfing',
+        postal_code: '84125',
+        country: 'DE'
+      }
+    };
+
+    const rawUserData = {
+      email: 'customer@example.com',
+      phone_number: '+491701234567',
+      address: {
+        first_name: 'John',
+        last_name: 'Doe',
+        street: 'Main Street 10',
+        city: 'dingolfing',
+        postal_code: '84125',
+        country: 'DE'
+      }
+    };
+
+    assert.strictEqual(hashedUserData.meta_external_id, undefined, 'meta_external_id must be removed');
+    assert.strictEqual(rawUserData.email, 'customer@example.com');
+    assert.strictEqual(rawUserData.phone_number, '+491701234567');
+  });
+
+  it('6. Should preserve item_brand and base product identifiers for simple product 1013', function () {
+    const product1013 = {
+      item_id: '1013',
+      variant_id: '',
+      sku_id: '5326310',
+      item_name: 'Babytrage Terra Nova Beige',
+      item_brand: 'Dooky - Xplorys BV',
+      item_category: 'Babytrage',
+      item_variant: '',
+      price: 74.99,
+      quantity: 1
+    };
+
+    const normalized = EDL.normalizeItem(product1013);
+    assert.strictEqual(normalized.item_id, '1013');
+    assert.strictEqual(normalized.variant_id, '');
+    assert.strictEqual(normalized.sku_id, '5326310');
+    assert.strictEqual(normalized.item_name, 'Babytrage Terra Nova Beige');
+    assert.strictEqual(normalized.item_brand, 'Dooky - Xplorys BV');
+    assert.strictEqual(normalized.item_category, 'Babytrage');
   });
 });

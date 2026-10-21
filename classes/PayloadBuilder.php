@@ -128,6 +128,9 @@ class PayloadBuilder
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            if (!empty($p['manufacturer_name'])) {
+                $productObj->manufacturer_name = $p['manufacturer_name'];
+            }
             $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
@@ -155,6 +158,9 @@ class PayloadBuilder
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            if (!empty($p['manufacturer_name'])) {
+                $productObj->manufacturer_name = $p['manufacturer_name'];
+            }
             $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
         }
 
@@ -183,12 +189,20 @@ class PayloadBuilder
             $orderRef = !empty($p['product_reference']) ? trim($p['product_reference']) : '';
             $skuId = !empty($orderRef) ? $orderRef : $identifiers['sku_id'];
 
+            // Authoritative brand resolution: check manufacturer_name first, then query Manufacturer table directly
+            $brand = '';
+            if (!empty($productObj->manufacturer_name)) {
+                $brand = (string)$productObj->manufacturer_name;
+            } elseif (!empty($productObj->id_manufacturer)) {
+                $brand = (string)Manufacturer::getNameById((int)$productObj->id_manufacturer);
+            }
+
             $item = [
                 'item_id' => (string)$productObj->id, // Base product ID
                 'variant_id' => $identifiers['variant_id'],
                 'sku_id' => $skuId,
                 'item_name' => (string)$p['product_name'],
-                'item_brand' => (string)$productObj->manufacturer_name,
+                'item_brand' => $brand,
                 'item_category' => '',
                 'item_variant' => $identifiers['item_variant'],
                 'price' => round((float)$p['unit_price_tax_incl'], 2),
@@ -205,7 +219,7 @@ class PayloadBuilder
 
         $customer = new Customer((int)$order->id_customer);
         $address = new Address((int)$order->id_address_invoice);
-        $userData = CustomerDataEngine::buildCustomerPayload($customer, $address);
+        $customerData = CustomerDataEngine::buildCustomerPayload($customer, $address);
 
         $orderTax = round((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), 2);
         $orderShipping = round((float)$order->total_shipping_tax_incl, 2);
@@ -217,7 +231,7 @@ class PayloadBuilder
             $coupon = (string)$cartRules[0]['name'];
         }
 
-        return [
+        $purchasePayload = [
             'event' => $this->getEventName('purchase'),
             'original_event' => 'purchase',
             'ecommerce' => [
@@ -229,8 +243,15 @@ class PayloadBuilder
                 'coupon' => $coupon,
                 'items' => $items,
             ],
-            'user_data' => $userData,
+            'user_data' => $customerData['hashed'],
         ];
+
+        // Expose unhashed normalized customer data separately for Tag Assistant debugging without leaking PII to ad networks
+        if (!empty($customerData['raw'])) {
+            $purchasePayload['user_data_raw'] = $customerData['raw'];
+        }
+
+        return $purchasePayload;
     }
 
     public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null)
@@ -243,12 +264,20 @@ class PayloadBuilder
         $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
         $category = new Category((int)$product->id_category_default, $idLanguage);
 
+        // Authoritative brand resolution: check manufacturer_name first, then query Manufacturer table directly
+        $brand = '';
+        if (!empty($product->manufacturer_name)) {
+            $brand = (string)$product->manufacturer_name;
+        } elseif (!empty($product->id_manufacturer)) {
+            $brand = (string)Manufacturer::getNameById((int)$product->id_manufacturer);
+        }
+
         return [
             'item_id' => (string)$product->id, // Base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
             'item_name' => (string)$product->name,
-            'item_brand' => (string)$product->manufacturer_name,
+            'item_brand' => $brand,
             'item_category' => Validate::isLoadedObject($category) ? (string)$category->name : '',
             'item_variant' => $identifiers['item_variant'],
             'price' => round((float)$price, 2),

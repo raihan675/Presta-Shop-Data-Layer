@@ -1,3 +1,4 @@
+const { describe, it, beforeEach } = require('node:test');
 const assert = require('assert');
 const EDL = require('../views/js/datalayer-core.js');
 

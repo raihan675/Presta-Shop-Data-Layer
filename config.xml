@@ -2,7 +2,7 @@
 <module>
     <name>ps_gtm_datalayer</name>
     <displayName><![CDATA[Enterprise GA4 & sGTM DataLayer]]></displayName>
-    <version><![CDATA[1.3.1]]></version>
+    <version><![CDATA[1.3.2]]></version>
     <description><![CDATA[Catalog-accurate ecommerce DataLayer with base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.]]></description>
     <author><![CDATA[Analytics Engineer]]></author>
     <tab><![CDATA[analytics_stats]]></tab>

@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.3.1",
+  "latest_version": "1.3.2",
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.1/ps_gtm_datalayer.zip",
-  "checksum": "4ac59973b5378716ba0db179701e5967900b5c15de3712a17f6c5765d92c0fe3",
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.3.2/ps_gtm_datalayer.zip",
+  "checksum": "c6ccad03f16f5e54d810ed02be6bdd60990bddc08cdabfe69b8a87b38dfa4dc2",
   "release_type": "patch",
-  "release_notes": "1. Database-Accurate Identity Matching: Crosschecks every product and combination with the PrestaShop database to ensure exact item_id, variant_id, sku_id, item_name, and price.\n2. Server Cart Response Priority: Add-to-cart events directly read from PrestaShop CartController response for 100% parity with view_item.\n3. Container-Scoped PDP Isolation: Scopes selectors to active product container to prevent accessory carousels from leaking IDs."
+  "release_notes": "1. Brand Parameter Persistence: Resolved manufacturer name directly via Manufacturer table for begin_checkout and purchase events.\n2. PDP ID Isolation: Prevented accessory carousel items from mutating item_id and variant_id during add_to_cart on PDP.\n3. Debug user_data_raw Object: Separated unhashed customer fields into user_data_raw for live Tag Assistant verification.\n4. Cleaned Purchase Payload: Removed meta_external_id completely from purchase dataLayer."
 }

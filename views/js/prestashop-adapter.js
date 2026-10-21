@@ -20,9 +20,17 @@
       if (card && card.getAttribute('data-id-product')) {
         return String(card.getAttribute('data-id-product')).trim();
       }
+      var form = contextElement.closest('form');
+      if (form) {
+        var formInput = form.querySelector('#product_page_product_id, input[name="id_product"]');
+        if (formInput && formInput.value) {
+          return String(formInput.value).trim();
+        }
+      }
     }
 
-    var mainContainer = document.querySelector('#main-product-wrapper, #main, .product-container');
+    // Scoped strictly to the primary product wrapper on PDP
+    var mainContainer = document.querySelector('#main-product-wrapper');
     if (mainContainer) {
       var mainInput = mainContainer.querySelector('#product_page_product_id, input[name="id_product"]');
       if (mainInput && mainInput.value) {
@@ -52,11 +60,22 @@
     if (contextElement) {
       var card = contextElement.closest('article.product-miniature, .js-product-miniature, [data-id-product-attribute]');
       if (card && card.getAttribute('data-id-product-attribute')) {
-        return String(card.getAttribute('data-id-product-attribute')).trim();
+        var cardAttr = card.getAttribute('data-id-product-attribute');
+        if (cardAttr && parseInt(cardAttr, 10) > 0) {
+          return String(cardAttr).trim();
+        }
+      }
+      var form = contextElement.closest('form');
+      if (form) {
+        var formAttrInput = form.querySelector('#product_attribute_id, input[name="id_product_attribute"]');
+        if (formAttrInput && formAttrInput.value && parseInt(formAttrInput.value, 10) > 0) {
+          return String(formAttrInput.value).trim();
+        }
       }
     }
 
-    var mainContainer = document.querySelector('#main-product-wrapper, #main, .product-container');
+    // Check strictly within main product wrapper or product details
+    var mainContainer = document.querySelector('#main-product-wrapper');
     if (mainContainer) {
       var mainAttrInput = mainContainer.querySelector('#product_attribute_id, input[name="id_product_attribute"]');
       if (mainAttrInput && mainAttrInput.value && parseInt(mainAttrInput.value, 10) > 0) {
@@ -74,15 +93,21 @@
       } catch (e) {}
     }
 
-    var attrElem = document.querySelector('#product_attribute_id, input[name="id_product_attribute"]');
-    if (attrElem && attrElem.value && parseInt(attrElem.value, 10) > 0) {
-      return String(attrElem.value).trim();
-    }
-
     return '';
   }
 
-  function getReferenceFromDOM() {
+  function getReferenceFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (card) {
+        var cardRef = card.querySelector('.product-reference a, .product-reference');
+        if (cardRef) {
+          var crText = (cardRef.innerText || '').trim();
+          if (crText) return crText;
+        }
+      }
+    }
+
     var details = document.querySelector('#product-details[data-product]');
     if (details) {
       try {
@@ -98,7 +123,7 @@
       } catch (e) {}
     }
 
-    var refElem = document.querySelector('.product-reference span, .product-reference .value, .product-reference dd');
+    var refElem = document.querySelector('#main-product-wrapper .product-reference span, #main-product-wrapper .product-reference .value, #main-product-wrapper .product-reference dd, .product-reference span, .product-reference .value');
     if (refElem) {
       var text = (refElem.innerText || refElem.getAttribute('content') || '').trim();
       if (text) return text;
@@ -116,8 +141,21 @@
     return '';
   }
 
-  function getPriceFromDOM() {
-    var priceElem = document.querySelector('.product-price.current-price-value, .current-price [itemprop="price"], .product-prices [itemprop="price"]');
+  function getPriceFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (card) {
+        var cardPrice = card.querySelector('.product-price, .price');
+        if (cardPrice) {
+          var cVal = cardPrice.getAttribute('content');
+          if (cVal && !isNaN(parseFloat(cVal))) return parseFloat(cVal);
+          var tVal = (cardPrice.innerText || '').replace(/[^0-9,\.]/g, '').replace(',', '.');
+          if (!isNaN(parseFloat(tVal))) return parseFloat(tVal);
+        }
+      }
+    }
+
+    var priceElem = document.querySelector('#main-product-wrapper .product-price.current-price-value, #main-product-wrapper .current-price [itemprop="price"], .product-price.current-price-value, .current-price [itemprop="price"]');
     if (priceElem) {
       var contentVal = priceElem.getAttribute('content');
       if (contentVal && !isNaN(parseFloat(contentVal))) {
@@ -140,7 +178,15 @@
     return 0.0;
   }
 
-  function getProductNameFromDOM() {
+  function getProductNameFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (card) {
+        var cardTitle = card.querySelector('.product-title a, h2.product-title, .product-title, .product-name a');
+        if (cardTitle && cardTitle.innerText.trim()) return cardTitle.innerText.trim();
+      }
+    }
+
     if (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_name) {
       var cached = String(window.psGtmConfig.currentProduct.item_name).trim();
       if (cached && cached !== 'Product') {
@@ -158,7 +204,7 @@
       } catch (e) {}
     }
 
-    var titleElem = document.querySelector('h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title, .product-detail-name, h1');
+    var titleElem = document.querySelector('#main-product-wrapper h1.page-title span, #main-product-wrapper h1.page-title, h1.page-title span, h1.page-title, h1[itemprop="name"], h1.product-title');
     if (titleElem) {
       var text = (titleElem.innerText || '').trim();
       if (text) return text;
@@ -172,16 +218,30 @@
     return 'Product';
   }
 
-  function getProductBrandFromDOM() {
+  function getProductBrandFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (card) {
+        var cBrand = card.querySelector('.product-brand a, .product-brand');
+        if (cBrand && cBrand.innerText.trim()) return cBrand.innerText.trim();
+      }
+    }
     var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
     if (baseProd && baseProd.item_brand) {
       return baseProd.item_brand;
     }
-    var brandElem = document.querySelector('[itemprop="brand"], .product-brand a, .product-brand, .product-manufacturer a');
+    var brandElem = document.querySelector('#main-product-wrapper [itemprop="brand"], #main-product-wrapper .product-brand a, #main-product-wrapper .product-brand, [itemprop="brand"], .product-brand a, .product-brand, .product-manufacturer a');
     return brandElem ? brandElem.innerText.trim() : '';
   }
 
-  function getProductCategoryFromDOM() {
+  function getProductCategoryFromDOM(contextElement) {
+    if (contextElement) {
+      var card = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (card) {
+        var cCat = card.querySelector('.product-category-name');
+        if (cCat && cCat.innerText.trim()) return cCat.innerText.trim();
+      }
+    }
     var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
     if (baseProd && baseProd.item_category) {
       return baseProd.item_category;
@@ -191,7 +251,7 @@
   }
 
   function getSelectedVariantFromDOM() {
-    var activeVariants = document.querySelectorAll('.product-variants-item input:checked, .product-variants-item select');
+    var activeVariants = document.querySelectorAll('#main-product-wrapper .product-variants-item input:checked, #main-product-wrapper .product-variants-item select, .product-variants-item input:checked, .product-variants-item select');
     var parts = [];
     activeVariants.forEach(function (el) {
       if (el.tagName === 'SELECT') {
@@ -239,7 +299,7 @@
 
     return {
       item_id: String(idProduct),
-      variant_id: idAttr ? String(idAttr) : '',
+      variant_id: (idAttr && parseInt(idAttr, 10) > 0) ? String(idAttr) : '',
       sku_id: sku,
       item_name: title,
       item_brand: brand,
@@ -251,7 +311,7 @@
   }
 
   var lastAddToCartTimestamp = 0;
-  function handleAddToCart(rawItem, cartCurrency) {
+  function handleAddToCart(rawItem, cartCurrency, contextElement) {
     var now = new Date().getTime();
     if (now - lastAddToCartTimestamp < 800) {
       return;
@@ -260,59 +320,72 @@
 
     syncConfig();
     var baseProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
-    var domBaseId = getBaseProductIdFromDOM();
-    var domVariantId = getVariantIdFromDOM();
-    var domRef = getReferenceFromDOM();
-    var domPrice = getPriceFromDOM();
-    var domVariant = getSelectedVariantFromDOM();
+    var pdpId = baseProd ? String(baseProd.base_product_id || baseProd.item_id || '') : '';
+    var rawId = (rawItem && rawItem.id_product) ? String(rawItem.id_product).trim() : '';
+    
+    // Check if adding the main PDP product
+    var isMainPdp = Boolean(pdpId && (!rawId || rawId === pdpId) && (!contextElement || !contextElement.closest('article.product-miniature, .js-product-miniature')));
 
-    var baseId = (rawItem && rawItem.id_product)
-      ? String(rawItem.id_product)
-      : (domBaseId || (baseProd && (baseProd.base_product_id || baseProd.item_id)) || '');
+    var baseId = rawId || (isMainPdp ? pdpId : getBaseProductIdFromDOM(contextElement));
+    var rawAttr = (rawItem && rawItem.id_product_attribute !== undefined && rawItem.id_product_attribute !== null)
+      ? String(rawItem.id_product_attribute).trim()
+      : '';
 
-    var variantId = (rawItem && rawItem.id_product_attribute)
-      ? String(rawItem.id_product_attribute)
-      : (domVariantId || (baseProd ? baseProd.variant_id : '') || '');
+    // Determine variant ID with strict scoping
+    var variantId = '';
+    if (rawAttr && parseInt(rawAttr, 10) > 0) {
+      variantId = rawAttr;
+    } else if (rawAttr === '' && isMainPdp && baseProd && baseProd.variant_id) {
+      variantId = String(baseProd.variant_id);
+    } else if (!rawItem) {
+      variantId = getVariantIdFromDOM(contextElement);
+    }
 
     var cardItem = null;
-    if (baseId) {
-      var matchingCard = document.querySelector('article[data-id-product="' + baseId + '"]');
-      if (matchingCard && (!baseProd || String(baseProd.item_id) !== String(baseId))) {
+    if (!isMainPdp && contextElement) {
+      var matchingCard = contextElement.closest('article.product-miniature, .js-product-miniature');
+      if (matchingCard) {
         cardItem = extractItemFromCard(matchingCard);
       }
     }
 
-    var combo = (variantId && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId])
-      ? window.psGtmConfig.productCombinations[variantId]
-      : null;
+    // Lookup combination if valid
+    var combo = null;
+    if (variantId && window.psGtmConfig && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[variantId]) {
+      combo = window.psGtmConfig.productCombinations[variantId];
+    }
 
-    // Prioritize authoritative combination database record
-    var finalBaseId = (combo && combo.item_id) ? combo.item_id : (cardItem ? cardItem.item_id : baseId);
-    var finalVariantId = (combo && combo.variant_id) ? combo.variant_id : variantId;
-    var finalSkuId = (combo && combo.sku_id) 
-      ? combo.sku_id 
-      : (domRef || (rawItem && rawItem.reference) || (cardItem ? cardItem.sku_id : '') || (baseProd ? baseProd.sku_id : '') || '');
-    
-    var finalVariantName = (combo && combo.item_variant) 
-      ? combo.item_variant 
-      : (domVariant || (baseProd ? baseProd.item_variant : '') || '');
+    var finalBaseId = isMainPdp ? (pdpId || baseId) : ((combo && combo.item_id) ? combo.item_id : (cardItem ? cardItem.item_id : baseId));
+    var finalVariantId = isMainPdp ? (variantId ? variantId : (baseProd ? (baseProd.variant_id || '') : '')) : ((combo && combo.variant_id) ? combo.variant_id : variantId);
+
+    var domRef = getReferenceFromDOM(contextElement);
+    var domPrice = getPriceFromDOM(contextElement);
+    var domVariant = getSelectedVariantFromDOM();
+
+    var finalSkuId = (combo && combo.sku_id)
+      ? combo.sku_id
+      : (isMainPdp && baseProd && baseProd.sku_id ? baseProd.sku_id : (domRef || (rawItem && rawItem.reference) || (cardItem ? cardItem.sku_id : '') || ''));
+
+    var finalVariantName = (combo && combo.item_variant)
+      ? combo.item_variant
+      : (isMainPdp && baseProd ? (baseProd.item_variant || domVariant || '') : (domVariant || ''));
 
     var resolvedItemName = (combo && combo.item_name)
       ? combo.item_name
-      : ((cardItem && cardItem.item_name) ? cardItem.item_name : (getProductNameFromDOM() || (baseProd ? baseProd.item_name : 'Product')));
+      : (isMainPdp && baseProd && baseProd.item_name ? baseProd.item_name : ((cardItem && cardItem.item_name) ? cardItem.item_name : (getProductNameFromDOM(contextElement) || 'Product')));
 
-    var resolvedBrand = (cardItem && cardItem.item_brand) 
-      ? cardItem.item_brand 
-      : (getProductBrandFromDOM() || (baseProd ? baseProd.item_brand : ''));
+    var resolvedBrand = (cardItem && cardItem.item_brand)
+      ? cardItem.item_brand
+      : (isMainPdp && baseProd && baseProd.item_brand ? baseProd.item_brand : (getProductBrandFromDOM(contextElement) || ''));
 
-    var resolvedCategory = (cardItem && cardItem.item_category) 
-      ? cardItem.item_category 
-      : (getProductCategoryFromDOM() || (baseProd ? baseProd.item_category : ''));
+    var resolvedCategory = (cardItem && cardItem.item_category)
+      ? cardItem.item_category
+      : (isMainPdp && baseProd && baseProd.item_category ? baseProd.item_category : (getProductCategoryFromDOM(contextElement) || ''));
 
-    var resolvedPrice = (combo && combo.price > 0) 
-      ? combo.price 
-      : (domPrice > 0 ? domPrice : (cardItem && cardItem.price > 0 ? cardItem.price : ((baseProd && baseProd.price > 0) ? baseProd.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0))));
-    
+    var resolvedPrice = (combo && combo.price > 0)
+      ? combo.price
+      : (isMainPdp && baseProd && baseProd.price > 0 ? baseProd.price : (domPrice > 0 ? domPrice : (cardItem && cardItem.price > 0 ? cardItem.price : (rawItem && rawItem.price ? parseFloat(rawItem.price) : 0.0))));
+
     var resolvedQuantity = (rawItem && rawItem.quantity) ? parseInt(rawItem.quantity, 10) : 1;
 
     var addedItem = {
@@ -370,12 +443,17 @@
         // If matched from server cart response, use authoritative cart database product record
         if (matchedProduct) {
           var resolvedPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
+          var brand = String(matchedProduct.manufacturer_name || '');
+          if (!brand && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
+            brand = window.psGtmConfig.currentProduct.item_brand || '';
+          }
+
           var item = {
             item_id: String(matchedProduct.id_product),
             variant_id: (matchedProduct.id_product_attribute && parseInt(matchedProduct.id_product_attribute, 10) > 0) ? String(matchedProduct.id_product_attribute) : '',
             sku_id: String(matchedProduct.reference || ''),
             item_name: String(matchedProduct.name || ''),
-            item_brand: String(matchedProduct.manufacturer_name || ''),
+            item_brand: brand,
             item_category: String(matchedProduct.category_name || matchedProduct.category || ''),
             item_variant: String(matchedProduct.attributes || ''),
             price: Math.round(resolvedPrice * 100) / 100,
@@ -441,8 +519,8 @@
 
         var finalBaseId = (combo && combo.item_id) ? combo.item_id : domBaseId;
         var title = (combo && combo.item_name) ? combo.item_name : getProductNameFromDOM();
-        var brand = getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : '');
-        var category = getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : '');
+        var brand = (combo && combo.item_brand) ? combo.item_brand : (getProductBrandFromDOM() || (currentProd ? currentProd.item_brand : ''));
+        var category = (combo && combo.item_category) ? combo.item_category : (getProductCategoryFromDOM() || (currentProd ? currentProd.item_category : ''));
 
         var domPrice = getPriceFromDOM();
         var domRef = getReferenceFromDOM();
@@ -585,7 +663,7 @@
             id_product: idProd,
             id_product_attribute: idAttr,
             quantity: qty
-          });
+          }, null, btn);
         }, 500);
       }
     }, true);
