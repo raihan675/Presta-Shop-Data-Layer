@@ -9,6 +9,9 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once __DIR__ . '/classes/PlatformAdapter.php';
+require_once __DIR__ . '/classes/PricingEngine.php';
+require_once __DIR__ . '/classes/CanonicalDataModel.php';
 require_once __DIR__ . '/classes/ProductIdentityResolver.php';
 require_once __DIR__ . '/classes/CustomerDataEngine.php';
 require_once __DIR__ . '/classes/PayloadBuilder.php';
@@ -21,7 +24,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.4.5';
+        $this->version = '1.5.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -32,6 +35,11 @@ class Ps_Gtm_DataLayer extends Module
         $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
         $this->description = $this->l('Universal backend-driven DataLayer with zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
+
+        // Keep ps_module database version table synchronized
+        if (defined('_PS_ADMIN_DIR_') && $this->id) {
+            PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
+        }
 
         // Auto-register back-office hooks seamlessly when admin visits Back Office
         if (defined('_PS_ADMIN_DIR_') && !Configuration::get('PS_GTM_BO_HOOKS_V143')) {
@@ -373,12 +381,14 @@ class Ps_Gtm_DataLayer extends Module
         }
 
         $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        $precision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $totalVal = CanonicalDataModel::calculateItemsValue([$item], $precision);
         $events[] = [
             'event' => self::formatEventName($canonicalEvent, $eventPrefix),
             'original_event' => $canonicalEvent,
             'ecommerce' => [
                 'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
-                'value' => round((float)$item['price'] * (int)$item['quantity'], 2),
+                'value' => $totalVal,
                 'items' => [$item],
             ],
         ];
@@ -422,12 +432,14 @@ class Ps_Gtm_DataLayer extends Module
 
         $pendingEvents = $this->getAndClearPendingEvents();
         $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
         $this->context->smarty->assign([
             'gtm_id' => $gtmId,
             'sgtm_url' => $sgtmUrl,
             'consent_mode_enabled' => $consentEnabled,
             'event_prefix' => $eventPrefix,
+            'currency_precision' => $currencyPrecision,
             'ajax_url' => $ajaxUrl,
             'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

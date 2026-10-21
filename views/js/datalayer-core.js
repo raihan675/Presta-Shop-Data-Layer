@@ -56,8 +56,22 @@
     return Math.round((num + Number.EPSILON) * factor) / factor;
   }
 
-  function sanitizeFloat(val) {
-    return roundHalfUp(val, 2);
+  function sanitizeFloat(val, decimals) {
+    var num = Number(val);
+    if (isNaN(num)) return 0.0;
+    if (decimals !== undefined && decimals !== null) {
+      return roundHalfUp(num, decimals);
+    }
+    if (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) {
+      return roundHalfUp(num, window.psGtmConfig.currencyPrecision);
+    }
+    var str = String(val);
+    var dotIdx = str.indexOf('.');
+    if (dotIdx !== -1) {
+      var existingDecimals = str.length - dotIdx - 1;
+      return roundHalfUp(num, Math.min(6, existingDecimals));
+    }
+    return num;
   }
 
   function sanitizeInt(val) {
@@ -65,9 +79,10 @@
     return isNaN(parsed) ? 1 : Math.max(1, parsed);
   }
 
-  function normalizeItem(raw) {
+  function normalizeItem(raw, precision) {
     if (!raw || typeof raw !== 'object') return null;
 
+    var prec = (precision !== undefined && precision !== null) ? precision : raw.precision;
     var baseId = String(raw.item_id || raw.base_product_id || raw.id || '');
     var rawVariant = (raw.variant_id !== undefined && raw.variant_id !== null)
       ? raw.variant_id
@@ -83,27 +98,27 @@
       variant_id: variantId,
       sku_id: skuId,
       item_name: String(raw.item_name || raw.name || ''),
+      item_brand: (raw.item_brand || raw.manufacturer) ? String(raw.item_brand || raw.manufacturer) : '',
+      item_category: (raw.item_category || raw.category) ? String(raw.item_category || raw.category) : '',
       item_variant: variant,
-      price: sanitizeFloat(raw.price),
+      price: sanitizeFloat(raw.price, prec),
       quantity: sanitizeInt(raw.quantity)
     };
 
-    if (raw.item_brand || raw.manufacturer) item.item_brand = String(raw.item_brand || raw.manufacturer);
-    if (raw.item_category || raw.category) item.item_category = String(raw.item_category || raw.category);
     if (raw.item_category2) item.item_category2 = String(raw.item_category2);
     if (raw.item_category3) item.item_category3 = String(raw.item_category3);
     if (raw.index !== undefined) item.index = parseInt(raw.index, 10);
     if (raw.coupon) item.coupon = String(raw.coupon);
-    if (raw.discount !== undefined) item.discount = sanitizeFloat(raw.discount);
+    if (raw.discount !== undefined) item.discount = sanitizeFloat(raw.discount, prec);
 
     return item;
   }
 
-  function normalizeItems(itemsArray) {
+  function normalizeItems(itemsArray, precision) {
     if (!Array.isArray(itemsArray)) return [];
     var output = [];
     for (var i = 0; i < itemsArray.length; i++) {
-      var norm = normalizeItem(itemsArray[i]);
+      var norm = normalizeItem(itemsArray[i], precision);
       if (norm && norm.item_id && norm.item_name) {
         output.push(norm);
       } else {
@@ -113,12 +128,19 @@
     return output;
   }
 
-  function calculateCartValue(items) {
+  function calculateCartValue(items, precision) {
+    var dec = (precision !== undefined && precision !== null)
+      ? parseInt(precision, 10)
+      : (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined
+        ? parseInt(window.psGtmConfig.currencyPrecision, 10)
+        : 2);
     var total = 0.0;
     for (var i = 0; i < items.length; i++) {
-      total += items[i].price * items[i].quantity;
+      var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
+      var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
+      total += p * q;
     }
-    return roundHalfUp(total, 2);
+    return roundHalfUp(total, dec);
   }
 
   function pushEcommerceEvent(canonicalEventName, ecommerceData, userData) {

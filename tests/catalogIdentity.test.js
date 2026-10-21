@@ -570,4 +570,121 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(event.ecommerce.items[0].price, 13.00);
     assert.strictEqual(event.ecommerce.items[0].quantity, 2);
   });
+
+  it('15. Universal multi-currency precision (USD/EUR 2 decimals, JPY 0 decimals, BHD 3 decimals)', function () {
+    // Zero-decimal currencies like JPY
+    const jpyRegular = 1250;
+    const jpyDiscount = 0.15; // 15% discount -> 1062.5 JPY -> rounds to 1063 JPY
+    const jpyPrice = EDL.roundHalfUp(jpyRegular * (1 - jpyDiscount), 0);
+    assert.strictEqual(jpyPrice, 1063);
+
+    const jpyItem = EDL.normalizeItem({
+      item_id: '450',
+      variant_id: '',
+      sku_id: 'JP-SHIRT-01',
+      item_name: 'Tokyo Cotton Tee',
+      price: jpyPrice,
+      quantity: 3
+    });
+    const jpyTotal = EDL.calculateCartValue([jpyItem], 0);
+    assert.strictEqual(jpyTotal, 3189);
+
+    // Three-decimal currencies like BHD/KWD
+    const bhdRegular = 15.350;
+    const bhdDiscount = 0.3333; // 10.23384... -> rounds to 10.234 BHD
+    const bhdPrice = EDL.roundHalfUp(bhdRegular * (1 - bhdDiscount), 3);
+    assert.strictEqual(bhdPrice, 10.234);
+
+    const bhdItem = EDL.normalizeItem({
+      item_id: '990',
+      variant_id: '55',
+      sku_id: 'BHD-PERFUME',
+      item_name: 'Arabian Oud',
+      price: bhdPrice,
+      quantity: 2
+    });
+    const bhdTotal = EDL.calculateCartValue([bhdItem], 3);
+    assert.strictEqual(bhdTotal, 20.468);
+  });
+
+  it('16. Complex multi-combination apparel product with multiple attributes (Size, Color, Material)', function () {
+    EDL.setEventPrefix('raihan');
+
+    // Synthetic apparel product with multiple combination attributes
+    const apparelItem = EDL.normalizeItem({
+      item_id: '402',
+      variant_id: '1580',
+      sku_id: 'APP-HOODIE-L-BLK-COT',
+      item_name: 'Premium Heavyweight Hoodie',
+      item_brand: 'Nordic Apparel Co.',
+      item_category: 'Clothing > Outerwear',
+      item_variant: 'Size: L | Color: Black | Material: 100% Organic Cotton',
+      price: 89.95,
+      quantity: 1
+    });
+
+    assert.strictEqual(apparelItem.item_id, '402');
+    assert.strictEqual(apparelItem.variant_id, '1580');
+    assert.strictEqual(apparelItem.sku_id, 'APP-HOODIE-L-BLK-COT');
+    assert.strictEqual(apparelItem.item_variant, 'Size: L | Color: Black | Material: 100% Organic Cotton');
+
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: apparelItem.price,
+      items: [apparelItem]
+    });
+
+    const event = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(event.event, 'raihan_add_to_cart');
+    assert.strictEqual(event.ecommerce.items[0].variant_id, '1580');
+    assert.strictEqual(event.ecommerce.items[0].item_variant, 'Size: L | Color: Black | Material: 100% Organic Cotton');
+  });
+
+  it('17. Brand-less and category-less products fallback gracefully to empty string', function () {
+    EDL.setEventPrefix('raihan');
+
+    // Product with no manufacturer and no secondary category
+    const genericItem = EDL.normalizeItem({
+      item_id: '777',
+      variant_id: '',
+      sku_id: 'GENERIC-USB-C',
+      item_name: 'USB-C Cable 1m',
+      item_brand: null,
+      item_category: undefined,
+      price: 4.99,
+      quantity: 1
+    });
+
+    assert.strictEqual(genericItem.item_brand, '');
+    assert.strictEqual(genericItem.item_category, '');
+    assert.strictEqual(genericItem.variant_id, '');
+
+    EDL.pushEvent('view_item', {
+      currency: 'USD',
+      value: genericItem.price,
+      items: [genericItem]
+    });
+
+    const event = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(event.ecommerce.items[0].item_brand, '');
+    assert.strictEqual(event.ecommerce.items[0].item_category, '');
+    assert.strictEqual(event.ecommerce.items[0].item_id, '777');
+  });
+
+  it('18. Arbitrary catalog pricing rules on synthetic multi-store setup (100% store-agnostic)', function () {
+    // Store B (Electronics Store): 12.5% discount rule on 199.99 USD
+    const storeBPrice = EDL.roundHalfUp(199.99 * (1 - 0.125), 2); // 174.99125 -> 174.99
+    assert.strictEqual(storeBPrice, 174.99);
+
+    // Store C (Luxury Cosmetics): Fixed 50.00 EUR discount on 350.00 EUR
+    const storeCPrice = EDL.roundHalfUp(350.00 - 50.00, 2);
+    assert.strictEqual(storeCPrice, 300.00);
+
+    // Store D (B2B Bulk Hardware): Tiered volume pricing 5 units @ 42.155 EUR
+    const unitPrice = 42.155; // raw unit price
+    const roundedUnit = EDL.roundHalfUp(unitPrice, 2); // 42.16
+    assert.strictEqual(roundedUnit, 42.16);
+    const storeDTotal = EDL.calculateCartValue([{ price: roundedUnit, quantity: 5 }], 2);
+    assert.strictEqual(storeDTotal, 210.80);
+  });
 });

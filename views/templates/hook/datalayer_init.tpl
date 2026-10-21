@@ -8,6 +8,9 @@
   {if isset($event_prefix)}
   window.psGtmConfig.eventPrefix = '{$event_prefix|escape:'javascript':'UTF-8'}';
   {/if}
+  {if isset($currency_precision)}
+  window.psGtmConfig.currencyPrecision = {$currency_precision|intval};
+  {/if}
   {if isset($ajax_url)}
   window.psGtmConfig.ajaxUrl = '{$ajax_url|escape:'javascript':'UTF-8'}';
   {/if}

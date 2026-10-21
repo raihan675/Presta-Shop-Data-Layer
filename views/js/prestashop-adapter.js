@@ -152,8 +152,9 @@
         }
 
         if (matchedProduct) {
+          var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
           var rawPrice = parseFloat(matchedProduct.price_wt || matchedProduct.price_amount || matchedProduct.price || 0.0);
-          var resolvedPrice = EDL.roundHalfUp ? EDL.roundHalfUp(rawPrice, 2) : (Math.round((rawPrice + Number.EPSILON) * 100) / 100);
+          var resolvedPrice = EDL.roundHalfUp ? EDL.roundHalfUp(rawPrice, prec) : (Math.round((rawPrice + Number.EPSILON) * Math.pow(10, prec)) / Math.pow(10, prec));
           var brand = String(matchedProduct.manufacturer_name || '');
           if (!brand && window.psGtmConfig && window.psGtmConfig.currentProduct && String(window.psGtmConfig.currentProduct.item_id) === String(matchedProduct.id_product)) {
             brand = window.psGtmConfig.currentProduct.item_brand || '';
@@ -172,11 +173,11 @@
           };
 
           // Dispatch immediately from authoritative cart data
-          var normItems = EDL.normalizeItems([cartItem]);
+          var normItems = EDL.normalizeItems([cartItem], prec);
           if (normItems.length > 0) {
             EDL.pushEvent('add_to_cart', {
               currency: currencyCode,
-              value: EDL.calculateCartValue(normItems),
+              value: EDL.calculateCartValue(normItems, prec),
               items: normItems
             });
             return;
@@ -189,11 +190,12 @@
             resolvedItem = cartItem;
           }
           if (resolvedItem) {
-            var norm = EDL.normalizeItems([resolvedItem]);
+            var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+            var norm = EDL.normalizeItems([resolvedItem], prec);
             if (norm.length > 0) {
               EDL.pushEvent('add_to_cart', {
                 currency: currencyCode,
-                value: EDL.calculateCartValue(norm),
+                value: EDL.calculateCartValue(norm, prec),
                 items: norm
               });
             }

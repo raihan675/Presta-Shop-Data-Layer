@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.5.0] - 2026-10-21
+
+### Added
+- **Universal Architecture - PlatformAdapter (`classes/PlatformAdapter.php`)**:
+  - Dynamic platform version & capability detection (`isPrestaShop17()`, `isPrestaShop8()`, `isPrestaShop9OrHigher()`).
+  - Dynamic currency precision resolver (`getCurrencyPrecision()`) handling PrestaShop 1.7.6+, 8.x, and legacy configurations.
+  - Tax-inclusive vs. tax-exclusive customer group evaluator (`isTaxIncluded()`).
+  - Automated `ps_module` database version table synchronizer (`syncModuleDatabaseVersion()`) and multi-layer cache flusher (`clearAllCaches()`).
+- **Universal Architecture - PricingEngine (`classes/PricingEngine.php`)**:
+  - Full separation of pricing concerns: dynamic customer price resolution with 6-decimal internal precision before applying percentage, amount, or reduction rules.
+  - Universal commercial `ROUND_HALF_UP` arithmetic (`roundHalfUp()`) matching storefront retail display across all catalog rules, customer groups, and currencies.
+- **Universal Architecture - CanonicalDataModel (`classes/CanonicalDataModel.php`)**:
+  - Strict GA4 data schema validation and formatting for products, combinations, carts, and orders.
+  - Dynamic cart and item total value calculator (`calculateItemsValue()`).
+- **Universal Test Suite Expansion**: Added comprehensive automated tests for multi-currency precision (USD/EUR, JPY 0-decimal, BHD 3-decimal), complex multi-attribute apparel combinations (Size, Color, Material), brand-less fallbacks, and multi-store catalog pricing rules (18/18 passing).
+- **Native Upgrade Script**: Added `upgrade/upgrade-1.5.0.php` for seamless in-place updates.
+
+### Changed
+- Refactored `classes/PayloadBuilder.php` and `classes/ProductIdentityResolver.php` to delegate cleanly to `PricingEngine`, `CanonicalDataModel`, and `PlatformAdapter`.
+- Updated client-side `datalayer-core.js` and `prestashop-adapter.js` to dynamically consume store currency precision from backend configuration.
+- Zero store-specific logic: completely eliminated any store, product, or catalog assumptions across both backend and frontend layers.
+
+---
+
 ## [1.4.5] - 2026-10-21
 
 ### Fixed

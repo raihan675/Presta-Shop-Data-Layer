@@ -169,11 +169,16 @@ class UpdateManager
                 $this->module->runUpgradeModule();
             }
 
-            self::clearUpdateCache();
+            // Synchronize database registry and clear all cache layers
+            if (class_exists('PlatformAdapter')) {
+                PlatformAdapter::syncModuleDatabaseVersion($this->module->name, $this->module->version);
+                PlatformAdapter::clearAllCaches();
+            } else {
+                Tools::clearSmartyCache();
+                Tools::clearXMLCache();
+            }
 
-            // Clear Smarty & PrestaShop Class Cache
-            Tools::clearSmartyCache();
-            Tools::clearXMLCache();
+            self::clearUpdateCache();
 
             return ['success' => true, 'message' => 'Module successfully updated to the latest version.'];
         } else {

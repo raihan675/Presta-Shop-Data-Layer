@@ -8,6 +8,9 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once __DIR__ . '/PlatformAdapter.php';
+require_once __DIR__ . '/PricingEngine.php';
+require_once __DIR__ . '/CanonicalDataModel.php';
 require_once __DIR__ . '/ProductIdentityResolver.php';
 require_once __DIR__ . '/CustomerDataEngine.php';
 
@@ -336,8 +339,8 @@ class PayloadBuilder
     {
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $price = $overridePrice !== null 
-            ? ProductIdentityResolver::roundHalfUp($overridePrice, 2)
-            : ProductIdentityResolver::getCustomerPrice($product, $idAttribute, $quantity, $this->context);
+            ? PricingEngine::roundHalfUp($overridePrice)
+            : PricingEngine::getCustomerPrice($product, $idAttribute, $quantity, $this->context);
 
         $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
         $category = new Category((int)$product->id_category_default, $idLanguage);
@@ -350,7 +353,7 @@ class PayloadBuilder
             $brand = (string)Manufacturer::getNameById((int)$product->id_manufacturer);
         }
 
-        return [
+        return CanonicalDataModel::formatItem([
             'item_id' => (string)$product->id, // Canonical base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
@@ -360,6 +363,6 @@ class PayloadBuilder
             'item_variant' => $identifiers['item_variant'],
             'price' => (float)$price,
             'quantity' => (int)$quantity,
-        ];
+        ]);
     }
 }
