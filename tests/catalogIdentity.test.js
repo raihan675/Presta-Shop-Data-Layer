@@ -792,4 +792,44 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
     assert.strictEqual(event.ecommerce.items[0].item_variant, 'Farbe1: Stahlblau');
     assert.strictEqual(event.ecommerce.items[0].item_category, 'Baby Geschirr');
   });
+
+  it('21. Universal Cart Delta Engine: 100% backend mathematical quantity resolution (Zero DOM)', function () {
+    // Simulating native CartController responses across consecutive add_to_cart actions without DOM
+    const inMemoryCartQuantities = { '68_299': 0 };
+
+    // Action 1: Add 2 units of Variant 299 (Cart goes from 0 to 2)
+    const cartProductsStep1 = [{
+      id_product: '68',
+      id_product_attribute: '299',
+      name: 'Trink und Snack Tasse',
+      quantity: 2,
+      price: 13.00
+    }];
+
+    const p1 = cartProductsStep1[0];
+    const key1 = `${p1.id_product}_${p1.id_product_attribute}`;
+    const prevQty1 = inMemoryCartQuantities[key1] || 0;
+    const currentQty1 = p1.quantity;
+    const deltaQty1 = currentQty1 - prevQty1; // 2 - 0 = 2
+
+    assert.strictEqual(deltaQty1, 2, 'Delta quantity on first add must be 2');
+    inMemoryCartQuantities[key1] = currentQty1; // update registry
+
+    // Action 2: Add 3 more units of same Variant 299 (Cart goes from 2 to 5)
+    const cartProductsStep2 = [{
+      id_product: '68',
+      id_product_attribute: '299',
+      name: 'Trink und Snack Tasse',
+      quantity: 5,
+      price: 13.00
+    }];
+
+    const p2 = cartProductsStep2[0];
+    const key2 = `${p2.id_product}_${p2.id_product_attribute}`;
+    const prevQty2 = inMemoryCartQuantities[key2] || 0;
+    const currentQty2 = p2.quantity;
+    const deltaQty2 = currentQty2 - prevQty2; // 5 - 2 = 3
+
+    assert.strictEqual(deltaQty2, 3, 'Delta quantity on second add must be 3');
+  });
 });

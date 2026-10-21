@@ -4,7 +4,7 @@
   "release_date": "2026-10-21",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.5.0/ps_gtm_datalayer.zip",
-  "checksum": "411d7436649665f75c45d4413a7dac0434afbe6ca1d415cba53aa49b96d13042",
+  "checksum": "523f0b8b6dbe274311e26d05dd4d56392a5d9286b85280feb892f650f129e39e",
   "release_type": "minor",
   "release_notes": "Universal PrestaShop Module Architecture:\n1. Dedicated PlatformAdapter with dynamic version detection, currency precision resolution, tax mode evaluation, and multi-layer cache flushing.\n2. Modular PricingEngine enforcing exact ROUND_HALF_UP commercial arithmetic across arbitrary catalog rules, currencies, and tax regimes without store-specific hardcoding.\n3. Strict CanonicalDataModel validating canonical GA4 schemas for products, combinations, carts, and orders.\n4. Complete elimination of DOM dependencies and store-specific assumptions."
 }

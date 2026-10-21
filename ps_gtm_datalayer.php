@@ -453,6 +453,18 @@ class Ps_Gtm_DataLayer extends Module
         $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
+        // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
+        $cartProductsMap = [];
+        if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
+            $prods = $this->context->cart->getProducts();
+            if (is_array($prods)) {
+                foreach ($prods as $p) {
+                    $k = (int)$p['id_product'] . '_' . (int)$p['id_product_attribute'];
+                    $cartProductsMap[$k] = (int)$p['cart_quantity'];
+                }
+            }
+        }
+
         $this->context->smarty->assign([
             'gtm_id' => $gtmId,
             'sgtm_url' => $sgtmUrl,
@@ -462,6 +474,7 @@ class Ps_Gtm_DataLayer extends Module
             'ajax_url' => $ajaxUrl,
             'pending_events' => !empty($pendingEvents) ? json_encode($pendingEvents, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
             'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
         ]);
 

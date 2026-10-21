@@ -108,48 +108,23 @@
   }
 
   var lastAddToCartTime = 0;
-  var lastRequestedQuantity = 1;
+  // Authoritative in-memory cart quantity state (100% backend & cart object driven, ZERO DOM)
+  var cartQuantities = {};
 
-  function captureQuantityFromDom() {
-    var qtyInput = document.querySelector('form#add-to-cart-or-refresh input#quantity_wanted')
-      || document.querySelector('form#add-to-cart-or-refresh input[name="qty"]')
-      || document.querySelector('input#quantity_wanted')
-      || document.querySelector('input[name="qty"]')
-      || document.querySelector('input[name="quantity_wanted"]');
-    if (qtyInput) {
-      var v = parseInt(qtyInput.value, 10);
-      if (!isNaN(v) && v > 0) {
-        lastRequestedQuantity = v;
+  function initCartState() {
+    if (window.psGtmConfig && window.psGtmConfig.cartProducts && typeof window.psGtmConfig.cartProducts === 'object') {
+      for (var k in window.psGtmConfig.cartProducts) {
+        if (window.psGtmConfig.cartProducts.hasOwnProperty(k)) {
+          cartQuantities[String(k)] = parseInt(window.psGtmConfig.cartProducts[k], 10) || 0;
+        }
       }
     }
   }
 
-  // Listen to input changes, clicks, and form submits across the storefront
-  document.addEventListener('change', function (e) {
-    if (e.target && (e.target.id === 'quantity_wanted' || e.target.name === 'qty' || e.target.name === 'quantity_wanted')) {
-      var v = parseInt(e.target.value, 10);
-      if (!isNaN(v) && v > 0) {
-        lastRequestedQuantity = v;
-      }
-    }
-  }, true);
-
-  document.addEventListener('click', function (e) {
-    var btn = e.target ? e.target.closest('button[data-button-action="add-to-cart"], .add-to-cart, button[type="submit"]') : null;
-    if (btn) {
-      captureQuantityFromDom();
-    }
-  }, true);
-
-  document.addEventListener('submit', function (e) {
-    if (e.target && (e.target.id === 'add-to-cart-or-refresh' || (e.target.action && e.target.action.indexOf('cart') !== -1))) {
-      captureQuantityFromDom();
-    }
-  }, true);
-
   function onPrestashopReady() {
     if (!window.prestashop) return;
     syncConfig();
+    initCartState();
 
     // 1. Native cart actions (add_to_cart, remove_from_cart) via PrestaShop Core Event Bus
     window.prestashop.on('updateCart', function (event) {
@@ -175,22 +150,6 @@
           : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
         var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
 
-        // Authoritative Quantity Resolution
-        var qty = 1;
-        if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
-          qty = parseInt(reason.quantity, 10);
-        } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
-          qty = parseInt(reason.qty, 10);
-        } else if (reason.quantity_wanted !== undefined && parseInt(reason.quantity_wanted, 10) > 0) {
-          qty = parseInt(reason.quantity_wanted, 10);
-        } else if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
-          qty = parseInt(event.resp.quantity, 10);
-        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
-          qty = parseInt(event.resp.qty, 10);
-        } else if (lastRequestedQuantity > 0) {
-          qty = lastRequestedQuantity;
-        }
-
         // First attempt to match from server cart response (pure JSON from CartController)
         var matchedProduct = null;
         if (cart && Array.isArray(cart.products) && addedIdProduct) {
@@ -202,6 +161,38 @@
               break;
             }
           }
+        }
+
+        // Authoritative Quantity Resolution (100% Backend & Cart Object Driven - ZERO DOM)
+        var cartKey = String(addedIdProduct) + '_' + String(addedIdAttr || '0');
+        var previousQty = (cartQuantities[cartKey] !== undefined) ? cartQuantities[cartKey] : 0;
+        var currentCartQty = matchedProduct ? (parseInt(matchedProduct.quantity || matchedProduct.cart_quantity, 10) || 0) : 0;
+        var deltaQty = currentCartQty > previousQty ? (currentCartQty - previousQty) : 0;
+
+        var qty = 1;
+        if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
+          qty = parseInt(event.resp.quantity, 10);
+        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
+          qty = parseInt(event.resp.qty, 10);
+        } else if (deltaQty > 0) {
+          qty = deltaQty;
+        } else if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
+          qty = parseInt(reason.quantity, 10);
+        } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
+          qty = parseInt(reason.qty, 10);
+        } else if (currentCartQty > 0 && previousQty === 0) {
+          qty = currentCartQty;
+        }
+
+        // Synchronize in-memory cart registry from authoritative server cart response
+        if (cart && Array.isArray(cart.products)) {
+          var updatedState = {};
+          for (var c = 0; c < cart.products.length; c++) {
+            var itemInCart = cart.products[c];
+            var k = String(itemInCart.id_product) + '_' + String(itemInCart.id_product_attribute || '0');
+            updatedState[k] = parseInt(itemInCart.quantity || itemInCart.cart_quantity, 10) || 0;
+          }
+          cartQuantities = updatedState;
         }
 
         if (matchedProduct) {

@@ -21,6 +21,13 @@
     window.psGtmConfig.productCombinations = {};
   }
   {/if}
+  {if isset($cart_products)}
+  try {
+    window.psGtmConfig.cartProducts = {$cart_products nofilter};
+  } catch(e) {
+    window.psGtmConfig.cartProducts = {};
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){
