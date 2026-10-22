@@ -1,8 +1,27 @@
 # Changelog
 
-All notable changes to the **Enterprise GA4 & sGTM DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
+All notable changes to the **Enterprise GA4, Meta, TikTok & Google Ads DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.10.0] - 2026-10-22
+
+### Added
+- **Native Advertising Platform Namespaces (`meta`, `tiktok`, `google_ads`)**:
+  - Automatically attaches catalog-matching namespaces to every ecommerce Data Layer event alongside GA4.
+  - **Meta Pixel & CAPI**: `content_type` (`'product'` / `'product_group'`), `content_ids` (matching `retailer_id`), `contents[]` (`id`, `quantity`, `item_price`), `num_items`, `currency`, and `value`.
+  - **TikTok Pixel & Events API**: `content_type`, `content_id`, `contents[]` (`content_id`, `content_type`, `content_name`, `quantity`, `price`), `currency`, and `value`.
+  - **Google Ads Dynamic Remarketing (Retail Vertical)**: `ecomm_pagetype` (`'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`), `ecomm_prodid` (matching Google Merchant Center `<g:id>`), `ecomm_totalvalue`, `ecomm_category`, and `items[]`.
+- **PrestaShop Product Catalog Identifier Strategy**:
+  - Configurable in Back Office under **Modules > Module Manager > Enterprise GA4, Meta, TikTok & Google Ads DataLayer > Configure**.
+  - Supports `composite` (default: `{id_product}_{id_product_attribute}`), `id_product` (parent base ID), and `reference_sku` (physical supplier/catalog SKU).
+- **Checkout Funnel Expansion**:
+  - Added native observers for `add_shipping_info` (`shipping_tier`) and `add_payment_info` (`payment_type`).
+  - Total supported ecommerce events expanded to 11.
+- **In-Place Upgrade Migration**:
+  - Added `upgrade/upgrade-1.10.0.php` to initialize settings, synchronize DB version, and clear Smarty caches automatically.
 
 ---
 

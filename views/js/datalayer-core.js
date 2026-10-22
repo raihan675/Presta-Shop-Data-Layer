@@ -194,7 +194,154 @@
     return roundHalfUp(total, dec);
   }
 
-  function pushEcommerceEvent(canonicalEventName, ecommerceData, userData) {
+  /**
+   * Resolves the exact catalog identifier according to feed matching strategy.
+   * Default: composite convention {id_product}_{id_product_attribute} (e.g. 68_299)
+   */
+  function resolveCatalogItemId(item, strategy) {
+    if (!item || typeof item !== 'object') return '';
+    var strat = strategy || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.catalogIdStrategy) || 'composite';
+    if (strat === 'reference_sku' && item.sku_id) {
+      return String(item.sku_id).trim();
+    }
+    if (strat === 'id_product') {
+      return String(item.item_id).trim();
+    }
+
+    var baseId = String(item.item_id || '').trim();
+    var varId = String(item.variant_id || '').trim();
+
+    if (baseId.indexOf('_') !== -1) {
+      return baseId;
+    }
+
+    if (varId && varId !== '0' && parseInt(varId, 10) > 0) {
+      return baseId + '_' + varId;
+    }
+
+    return baseId;
+  }
+
+  /**
+   * Universal Advertising Platform Namespace Builder:
+   * Generates exact, catalog-matching payload parameters for Meta, TikTok, and Google Ads Dynamic Remarketing.
+   */
+  function buildPlatformNamespaces(canonicalEventName, items, currency, totalValue, options) {
+    options = options || {};
+    items = Array.isArray(items) ? items : [];
+    var curr = currency || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
+    var val = (totalValue !== undefined && totalValue !== null)
+      ? (typeof totalValue === 'number' ? totalValue : parseFloat(totalValue) || 0.0)
+      : calculateCartValue(items);
+    var strategy = options.catalogIdStrategy || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.catalogIdStrategy) || 'composite';
+
+    var isList = (canonicalEventName === 'view_item_list');
+    var isSingleProduct = (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'add_to_wishlist') && items.length === 1;
+
+    var pageType = 'other';
+    if (canonicalEventName === 'view_item_list') {
+      pageType = (options.listId && String(options.listId).indexOf('search') !== -1) ? 'searchresults' : 'category';
+    } else if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'add_to_wishlist') {
+      pageType = 'product';
+    } else if (
+      canonicalEventName === 'view_cart' ||
+      canonicalEventName === 'add_to_cart' ||
+      canonicalEventName === 'remove_from_cart' ||
+      canonicalEventName === 'begin_checkout' ||
+      canonicalEventName === 'add_shipping_info' ||
+      canonicalEventName === 'add_payment_info'
+    ) {
+      pageType = 'cart';
+    } else if (canonicalEventName === 'purchase') {
+      pageType = 'purchase';
+    }
+
+    var metaContentIds = [];
+    var metaContents = [];
+    var tiktokContents = [];
+    var googleProdIds = [];
+    var googleItems = [];
+    var totalNumItems = 0;
+
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (!it) continue;
+      var catId = resolveCatalogItemId(it, strategy);
+      var itemQty = typeof it.quantity === 'number' ? it.quantity : parseInt(it.quantity, 10) || 1;
+      if (itemQty <= 0) itemQty = 1;
+      var itemPrice = typeof it.price === 'number' ? it.price : parseFloat(it.price) || 0.0;
+      totalNumItems += itemQty;
+
+      // Meta: on category listing, pass parent base ID with product_group; on individual actions, pass catalog ID
+      var metaId = isList ? String(it.item_id) : catId;
+      if (metaContentIds.indexOf(metaId) === -1) {
+        metaContentIds.push(metaId);
+      }
+      metaContents.push({
+        id: metaId,
+        quantity: itemQty,
+        item_price: itemPrice
+      });
+
+      var ttId = isList ? String(it.item_id) : catId;
+      tiktokContents.push({
+        content_id: ttId,
+        content_type: 'product',
+        content_name: String(it.item_name || ''),
+        quantity: itemQty,
+        price: itemPrice
+      });
+
+      if (googleProdIds.indexOf(catId) === -1) {
+        googleProdIds.push(catId);
+      }
+      googleItems.push({
+        id: catId,
+        google_business_vertical: 'retail',
+        price: itemPrice,
+        quantity: itemQty
+      });
+    }
+
+    var metaNamespace = {
+      content_type: isList ? 'product_group' : 'product',
+      content_ids: metaContentIds,
+      contents: metaContents,
+      currency: curr,
+      value: val
+    };
+    if (totalNumItems > 0 && (canonicalEventName === 'begin_checkout' || canonicalEventName === 'purchase')) {
+      metaNamespace.num_items = totalNumItems;
+    }
+
+    var tiktokNamespace = {
+      content_type: isList ? 'product_group' : 'product',
+      contents: tiktokContents,
+      currency: curr,
+      value: val
+    };
+    if (metaContentIds.length > 0) {
+      tiktokNamespace.content_id = metaContentIds[0];
+    }
+
+    var googleAdsNamespace = {
+      ecomm_pagetype: pageType,
+      ecomm_prodid: isSingleProduct ? (googleProdIds[0] || '') : googleProdIds,
+      ecomm_totalvalue: val,
+      items: googleItems
+    };
+    if (options.categoryName) {
+      googleAdsNamespace.ecomm_category = String(options.categoryName);
+    }
+
+    return {
+      meta: metaNamespace,
+      tiktok: tiktokNamespace,
+      google_ads: googleAdsNamespace
+    };
+  }
+
+  function pushEcommerceEvent(canonicalEventName, ecommerceData, userData, additionalNamespaces) {
     if (!canonicalEventName || typeof canonicalEventName !== 'string') {
       log('error', 'Push aborted: Invalid event name');
       return false;
@@ -205,12 +352,33 @@
     }
 
     var finalEventName = formatEventName(canonicalEventName);
+    ecommerceData = ecommerceData || {};
+
+    var items = ecommerceData.items || [];
+    var currency = ecommerceData.currency || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
+    var totalValue = ecommerceData.value !== undefined ? ecommerceData.value : calculateCartValue(items);
+
+    var platformNamespaces = buildPlatformNamespaces(canonicalEventName, items, currency, totalValue, {
+      listId: ecommerceData.item_list_id || '',
+      listName: ecommerceData.item_list_name || '',
+      categoryName: (items[0] && items[0].item_category) ? items[0].item_category : ''
+    });
 
     var canonicalPayload = {
       event: finalEventName,
       original_event: canonicalEventName,
-      ecommerce: ecommerceData || {}
+      ecommerce: ecommerceData,
+      meta: platformNamespaces.meta,
+      tiktok: platformNamespaces.tiktok,
+      google_ads: platformNamespaces.google_ads
     };
+
+    if (additionalNamespaces && typeof additionalNamespaces === 'object') {
+      if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta, additionalNamespaces.meta);
+      if (additionalNamespaces.tiktok) canonicalPayload.tiktok = Object.assign({}, canonicalPayload.tiktok, additionalNamespaces.tiktok);
+      if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads, additionalNamespaces.google_ads);
+      if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
+    }
 
     if (userData && typeof userData === 'object') {
       canonicalPayload.user_data = userData;
@@ -371,6 +539,8 @@
     calculateCartValue: calculateCartValue,
     roundHalfUp: roundHalfUp,
     formatVariant: formatVariant,
-    processCartDelta: processCartDelta
+    processCartDelta: processCartDelta,
+    resolveCatalogItemId: resolveCatalogItemId,
+    buildPlatformNamespaces: buildPlatformNamespaces
   };
 });

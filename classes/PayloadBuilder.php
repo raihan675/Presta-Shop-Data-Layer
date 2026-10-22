@@ -31,6 +31,162 @@ class PayloadBuilder
         return Ps_Gtm_DataLayer::formatEventName($canonicalName, $this->prefix);
     }
 
+    /**
+     * Resolves the exact catalog item identifier according to catalog matching strategy.
+     * Default: composite convention {id_product}_{id_product_attribute} (e.g. 68_299)
+     *
+     * @param array $item
+     * @param string|null $strategy
+     * @return string
+     */
+    public function resolveCatalogItemId(array $item, $strategy = null)
+    {
+        if (!$strategy) {
+            $strategy = (class_exists('Configuration') && Configuration::get('PS_GTM_CATALOG_ID_STRATEGY')) 
+                ? (string)Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') 
+                : 'composite';
+        }
+
+        if ($strategy === 'reference_sku' && !empty($item['sku_id'])) {
+            return trim((string)$item['sku_id']);
+        }
+        if ($strategy === 'id_product') {
+            return trim((string)$item['item_id']);
+        }
+
+        $itemId = isset($item['item_id']) ? trim((string)$item['item_id']) : '';
+        $variantId = isset($item['variant_id']) ? trim((string)$item['variant_id']) : '';
+
+        // If item_id already contains composite separator, preserve it
+        if (strpos($itemId, '_') !== false) {
+            return $itemId;
+        }
+
+        if ($variantId !== '' && $variantId !== '0' && (int)$variantId > 0) {
+            return $itemId . '_' . $variantId;
+        }
+
+        return $itemId;
+    }
+
+    /**
+     * Universal Advertising Platform Namespace Builder:
+     * Generates exact, catalog-matching payload parameters for Meta, TikTok, and Google Ads Dynamic Remarketing.
+     *
+     * @param string $canonicalEvent
+     * @param array $items
+     * @param string $currency
+     * @param float $totalValue
+     * @param array $options
+     * @return array
+     */
+    public function buildPlatformNamespaces($canonicalEvent, array $items, $currency, $totalValue, array $options = [])
+    {
+        $currencyCode = !empty($currency) ? (string)$currency : 'EUR';
+        $val = (float)$totalValue;
+        $strategy = (class_exists('Configuration') && Configuration::get('PS_GTM_CATALOG_ID_STRATEGY')) 
+            ? (string)Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') 
+            : 'composite';
+
+        $isList = ($canonicalEvent === 'view_item_list');
+        $isSingleProduct = in_array($canonicalEvent, ['view_item', 'select_item', 'add_to_wishlist']) && count($items) === 1;
+
+        $pageType = 'other';
+        if ($canonicalEvent === 'view_item_list') {
+            $pageType = (!empty($options['list_id']) && strpos((string)$options['list_id'], 'search') !== false) ? 'searchresults' : 'category';
+        } elseif ($canonicalEvent === 'view_item' || $canonicalEvent === 'select_item') {
+            $pageType = 'product';
+        } elseif (in_array($canonicalEvent, ['view_cart', 'add_to_cart', 'remove_from_cart', 'begin_checkout', 'add_shipping_info', 'add_payment_info'])) {
+            $pageType = 'cart';
+        } elseif ($canonicalEvent === 'purchase') {
+            $pageType = 'purchase';
+        }
+
+        $metaContentIds = [];
+        $metaContents = [];
+        $tiktokContents = [];
+        $googleProdIds = [];
+        $googleItems = [];
+        $totalQuantity = 0;
+
+        foreach ($items as $it) {
+            $catId = $this->resolveCatalogItemId($it, $strategy);
+            $qty = isset($it['quantity']) ? (int)$it['quantity'] : 1;
+            if ($qty <= 0) {
+                $qty = 1;
+            }
+            $price = isset($it['price']) ? (float)$it['price'] : 0.0;
+            $totalQuantity += $qty;
+
+            // In view_item_list, Meta & TikTok prefer parent base ID with product_group
+            $metaId = $isList ? (string)$it['item_id'] : $catId;
+            if (!in_array($metaId, $metaContentIds)) {
+                $metaContentIds[] = $metaId;
+            }
+            $metaContents[] = [
+                'id' => $metaId,
+                'quantity' => $qty,
+                'item_price' => $price,
+            ];
+
+            $ttId = $isList ? (string)$it['item_id'] : $catId;
+            $tiktokContents[] = [
+                'content_id' => $ttId,
+                'content_type' => 'product',
+                'content_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'quantity' => $qty,
+                'price' => $price,
+            ];
+
+            if (!in_array($catId, $googleProdIds)) {
+                $googleProdIds[] = $catId;
+            }
+            $googleItems[] = [
+                'id' => $catId,
+                'google_business_vertical' => 'retail',
+                'price' => $price,
+                'quantity' => $qty,
+            ];
+        }
+
+        $meta = [
+            'content_type' => $isList ? 'product_group' : 'product',
+            'content_ids' => $metaContentIds,
+            'contents' => $metaContents,
+            'currency' => $currencyCode,
+            'value' => $val,
+        ];
+        if ($totalQuantity > 0 && in_array($canonicalEvent, ['begin_checkout', 'purchase'])) {
+            $meta['num_items'] = $totalQuantity;
+        }
+
+        $tiktok = [
+            'content_type' => $isList ? 'product_group' : 'product',
+            'contents' => $tiktokContents,
+            'currency' => $currencyCode,
+            'value' => $val,
+        ];
+        if (!empty($metaContentIds)) {
+            $tiktok['content_id'] = $metaContentIds[0];
+        }
+
+        $googleAds = [
+            'ecomm_pagetype' => $pageType,
+            'ecomm_prodid' => $isSingleProduct ? (isset($googleProdIds[0]) ? $googleProdIds[0] : '') : $googleProdIds,
+            'ecomm_totalvalue' => $val,
+            'items' => $googleItems,
+        ];
+        if (!empty($options['category_name'])) {
+            $googleAds['ecomm_category'] = (string)$options['category_name'];
+        }
+
+        return [
+            'meta' => $meta,
+            'tiktok' => $tiktok,
+            'google_ads' => $googleAds,
+        ];
+    }
+
     public function buildPagePayload($controller, $params)
     {
         switch ($controller) {
@@ -72,16 +228,21 @@ class PayloadBuilder
 
         $item = $this->formatItem($product, $idProductAttribute, 1);
         $price = (float)$item['price'];
+        $currency = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
-        return [
+        $platformNamespaces = $this->buildPlatformNamespaces('view_item', [$item], $currency, $price, [
+            'category_name' => !empty($item['item_category']) ? $item['item_category'] : '',
+        ]);
+
+        return array_merge([
             'event' => $this->getEventName('view_item'),
             'original_event' => 'view_item',
             'ecommerce' => [
-                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
+                'currency' => $currency,
                 'value' => (float)$price,
                 'items' => [$item],
             ],
-        ];
+        ], $platformNamespaces);
     }
 
     public function buildAddToWishlistPayload($idProduct, $idProductAttribute = 0, $quantity = 1)
@@ -186,7 +347,13 @@ class PayloadBuilder
         }
         $totalListValue = PricingEngine::roundHalfUp($totalListValue, $currencyPrecision);
 
-        return [
+        $platformNamespaces = $this->buildPlatformNamespaces('view_item_list', $items, $currencyCode, $totalListValue, [
+            'list_id' => $listId,
+            'list_name' => $listName,
+            'category_name' => ($controller === 'category') ? $listName : '',
+        ]);
+
+        return array_merge([
             'event' => $this->getEventName('view_item_list'),
             'original_event' => 'view_item_list',
             'ecommerce' => [
@@ -196,7 +363,7 @@ class PayloadBuilder
                 'item_list_name' => $listName,
                 'items' => $items,
             ],
-        ];
+        ], $platformNamespaces);
     }
 
     public function buildViewCartPayload()
@@ -224,16 +391,19 @@ class PayloadBuilder
             $itemsSum += (float)$it['price'] * (int)$it['quantity'];
         }
         $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
-        return [
+        $platformNamespaces = $this->buildPlatformNamespaces('view_cart', $items, $currencyCode, $totalValue);
+
+        return array_merge([
             'event' => $this->getEventName('view_cart'),
             'original_event' => 'view_cart',
             'ecommerce' => [
-                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
+                'currency' => $currencyCode,
                 'value' => $totalValue,
                 'items' => $items,
             ],
-        ];
+        ], $platformNamespaces);
     }
 
     public function buildBeginCheckoutPayload()
@@ -261,16 +431,19 @@ class PayloadBuilder
             $itemsSum += (float)$it['price'] * (int)$it['quantity'];
         }
         $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
-        return [
+        $platformNamespaces = $this->buildPlatformNamespaces('begin_checkout', $items, $currencyCode, $totalValue);
+
+        return array_merge([
             'event' => $this->getEventName('begin_checkout'),
             'original_event' => 'begin_checkout',
             'ecommerce' => [
-                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
+                'currency' => $currencyCode,
                 'value' => $totalValue,
                 'items' => $items,
             ],
-        ];
+        ], $platformNamespaces);
     }
 
     public function buildPurchasePayload(Order $order)
@@ -352,6 +525,8 @@ class PayloadBuilder
             $coupon = (string)$cartRules[0]['name'];
         }
 
+        $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value);
+
         $purchasePayload = [
             'event' => $this->getEventName('purchase'),
             'original_event' => 'purchase',
@@ -364,6 +539,9 @@ class PayloadBuilder
                 'coupon' => $coupon,
                 'items' => $items,
             ],
+            'meta' => $platformNamespaces['meta'],
+            'tiktok' => $platformNamespaces['tiktok'],
+            'google_ads' => $platformNamespaces['google_ads'],
             // Custom PrestaShop financial breakdown preserving exact order totals
             'order_totals' => [
                 'order_id' => (int)$order->id,

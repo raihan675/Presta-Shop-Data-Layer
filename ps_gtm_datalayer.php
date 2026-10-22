@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.9.2';
+        $this->version = '1.10.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -33,8 +33,8 @@ class Ps_Gtm_DataLayer extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('Enterprise GA4 & sGTM DataLayer');
-        $this->description = $this->l('Universal backend-driven DataLayer with zero DOM dependency, authoritative database product identifiers, and sGTM support.');
+        $this->displayName = $this->l('Enterprise GA4, Meta, TikTok & Google Ads DataLayer');
+        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, TikTok, and Google Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
         // Keep ps_module database version table synchronized with active version
@@ -67,7 +67,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
-            && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '');
+            && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
+            && Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', 'composite');
     }
 
     public function uninstall()
@@ -77,7 +78,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
-            && Configuration::deleteByName('PS_GTM_EVENT_PREFIX');
+            && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
+            && Configuration::deleteByName('PS_GTM_CATALOG_ID_STRATEGY');
     }
 
     public function getContent()
@@ -118,6 +120,10 @@ class Ps_Gtm_DataLayer extends Module
             $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
             $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
             $prefix = self::normalizePrefix($rawPrefix);
+            $catalogStrategy = trim((string)Tools::getValue('PS_GTM_CATALOG_ID_STRATEGY'));
+            if (!in_array($catalogStrategy, ['composite', 'id_product', 'reference_sku'])) {
+                $catalogStrategy = 'composite';
+            }
 
             if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
                 $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).'));
@@ -126,6 +132,7 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
                 Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
                 Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
+                Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
                 $output .= $this->displayConfirmation($this->l('Settings successfully saved.'));
             }
         }
@@ -309,6 +316,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
+                'PS_GTM_CATALOG_ID_STRATEGY' => Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite',
             ],
             'languages' => $this->context->controller->getLanguages(),
             'id_language' => $this->context->language->id,
@@ -341,6 +349,30 @@ class Ps_Gtm_DataLayer extends Module
                         'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for standard GA4 event names.'),
                         'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
                         'size' => 30,
+                    ],
+                    [
+                        'type' => 'select',
+                        'name' => 'PS_GTM_CATALOG_ID_STRATEGY',
+                        'label' => $this->l('Product Catalog Identifier Strategy'),
+                        'desc' => $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog). Default: Composite ID ({id_product}_{id_product_attribute} for variants, {id_product} for simple products).'),
+                        'options' => [
+                            'query' => [
+                                [
+                                    'id' => 'composite',
+                                    'name' => $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended / PrestaShop Standard)'),
+                                ],
+                                [
+                                    'id' => 'id_product',
+                                    'name' => $this->l('Base Product ID: {id_product} (Always parent database ID)'),
+                                ],
+                                [
+                                    'id' => 'reference_sku',
+                                    'name' => $this->l('Reference / SKU: {sku} (Matches physical barcode or catalog SKU)'),
+                                ],
+                            ],
+                            'id' => 'id',
+                            'name' => 'name',
+                        ],
                     ],
                     [
                         'type' => 'text',
@@ -403,15 +435,20 @@ class Ps_Gtm_DataLayer extends Module
         $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
         $precision = PlatformAdapter::getCurrencyPrecision($this->context);
         $totalVal = CanonicalDataModel::calculateItemsValue([$item], $precision);
-        $events[] = [
+        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
+
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+        $platformNamespaces = $payloadBuilder->buildPlatformNamespaces($canonicalEvent, [$item], $currencyCode, $totalVal);
+
+        $events[] = array_merge([
             'event' => self::formatEventName($canonicalEvent, $eventPrefix),
             'original_event' => $canonicalEvent,
             'ecommerce' => [
-                'currency' => $this->context->currency ? $this->context->currency->iso_code : 'EUR',
+                'currency' => $currencyCode,
                 'value' => $totalVal,
                 'items' => [$item],
             ],
-        ];
+        ], $platformNamespaces);
 
         $this->context->cookie->ps_gtm_pending_events = json_encode($events);
     }
@@ -498,6 +535,7 @@ class Ps_Gtm_DataLayer extends Module
                 'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
                 'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
                 'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
+                'catalog_id_strategy' => (Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite'),
                 'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);
 
@@ -556,7 +594,12 @@ class Ps_Gtm_DataLayer extends Module
 
             return '<script type="text/javascript">
                 window.dataLayer = window.dataLayer || [];
-                window.dataLayer.push({ ecommerce: null });
+                window.dataLayer.push({
+                    ecommerce: null,
+                    meta: null,
+                    tiktok: null,
+                    google_ads: null
+                });
                 window.dataLayer.push(' . json_encode($purchasePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ');
             </script>';
         } catch (\Throwable $e) {

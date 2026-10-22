@@ -42,6 +42,9 @@
     window.psGtmConfig.wishlist = {};
   }
   {/if}
+  {if isset($catalog_id_strategy)}
+  window.psGtmConfig.catalogIdStrategy = '{$catalog_id_strategy|escape:'javascript':'UTF-8'}';
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){
@@ -59,7 +62,12 @@
           };
           window.psGtmConfig.currency = payload.ecommerce.currency || 'EUR';
         }
-        window.dataLayer.push({ ecommerce: null });
+        window.dataLayer.push({
+          ecommerce: null,
+          meta: null,
+          tiktok: null,
+          google_ads: null
+        });
         window.dataLayer.push(payload);
       }
     } catch(e) {
@@ -74,7 +82,12 @@
       var pending = {$pending_events nofilter};
       if (Array.isArray(pending)) {
         for (var i = 0; i < pending.length; i++) {
-          window.dataLayer.push({ ecommerce: null });
+          window.dataLayer.push({
+            ecommerce: null,
+            meta: null,
+            tiktok: null,
+            google_ads: null
+          });
           window.dataLayer.push(pending[i]);
         }
       }

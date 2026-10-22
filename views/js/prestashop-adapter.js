@@ -777,6 +777,105 @@
         handleSelectItem(idProduct);
       }
     }, true);
+
+    // 6. Checkout Step Observers: add_shipping_info & add_payment_info (Universal PrestaShop Core & Custom Themes)
+    var shippingInfoTracked = false;
+    var paymentInfoTracked = false;
+
+    function getCheckoutItems() {
+      if (window.psGtmConfig && window.psGtmConfig.initialServerPayload && window.psGtmConfig.initialServerPayload.ecommerce && Array.isArray(window.psGtmConfig.initialServerPayload.ecommerce.items)) {
+        return window.psGtmConfig.initialServerPayload.ecommerce.items;
+      }
+      if (window.psGtmConfig && window.psGtmConfig.cartProductsData) {
+        var items = [];
+        for (var k in window.psGtmConfig.cartProductsData) {
+          if (window.psGtmConfig.cartProductsData.hasOwnProperty(k)) {
+            items.push(window.psGtmConfig.cartProductsData[k]);
+          }
+        }
+        if (items.length > 0) return items;
+      }
+      return [];
+    }
+
+    // Capture Carrier / Delivery Step Selection (add_shipping_info)
+    function dispatchShippingInfo(carrierName) {
+      if (shippingInfoTracked) return;
+      var rawItems = getCheckoutItems();
+      var normItems = EDL.normalizeItems(rawItems);
+      if (normItems.length === 0) return;
+
+      var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
+      var val = EDL.calculateCartValue(normItems);
+
+      shippingInfoTracked = true;
+      EDL.pushEvent('add_shipping_info', {
+        currency: currency,
+        value: val,
+        shipping_tier: String(carrierName || 'Standard Delivery').trim(),
+        items: normItems
+      });
+    }
+
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (form && (form.id === 'js-delivery' || (form.action && form.action.indexOf('delivery') !== -1))) {
+        var checkedCarrier = form.querySelector('input[name^="delivery_option"]:checked');
+        var carrierLabel = '';
+        if (checkedCarrier) {
+          var row = checkedCarrier.closest('.delivery-option') || checkedCarrier.closest('tr') || checkedCarrier.closest('.row') || checkedCarrier.parentElement;
+          if (row) {
+            var labelEl = row.querySelector('.carrier-name, .delivery-option-name, label');
+            if (labelEl) carrierLabel = labelEl.textContent.trim();
+          }
+        }
+        dispatchShippingInfo(carrierLabel);
+      }
+    }, true);
+
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('button[name="confirmDeliveryOption"], .continue[name="confirm-addresses"]') : null;
+      if (btn && btn.name === 'confirmDeliveryOption') {
+        var checkedCarrier = document.querySelector('input[name^="delivery_option"]:checked');
+        var carrierLabel = '';
+        if (checkedCarrier) {
+          var row = checkedCarrier.closest('.delivery-option') || checkedCarrier.closest('tr') || checkedCarrier.closest('.row') || checkedCarrier.parentElement;
+          if (row) {
+            var labelEl = row.querySelector('.carrier-name, .delivery-option-name, label');
+            if (labelEl) carrierLabel = labelEl.textContent.trim();
+          }
+        }
+        dispatchShippingInfo(carrierLabel);
+      }
+    }, true);
+
+    // Capture Payment Step Selection (add_payment_info)
+    function dispatchPaymentInfo(paymentMethod) {
+      if (paymentInfoTracked) return;
+      var rawItems = getCheckoutItems();
+      var normItems = EDL.normalizeItems(rawItems);
+      if (normItems.length === 0) return;
+
+      var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
+      var val = EDL.calculateCartValue(normItems);
+
+      paymentInfoTracked = true;
+      EDL.pushEvent('add_payment_info', {
+        currency: currency,
+        value: val,
+        payment_type: String(paymentMethod || 'Online Payment').trim(),
+        items: normItems
+      });
+    }
+
+    document.addEventListener('change', function (e) {
+      var target = e.target;
+      if (target && target.name === 'payment-option' && target.checked) {
+        var labelEl = document.querySelector('label[for="' + target.id + '"]') || target.closest('label');
+        var method = labelEl ? labelEl.textContent.trim() : (target.dataset && target.dataset.moduleName ? target.dataset.moduleName : '');
+        dispatchPaymentInfo(method);
+      }
+    }, true);
   }
 
   if (document.readyState === 'loading') {
