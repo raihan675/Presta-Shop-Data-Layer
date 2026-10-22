@@ -110,7 +110,7 @@ class Ps_Gtm_DataLayer extends Module
                 $downloadUrl = Tools::getValue('update_download_url');
                 $checksum = Tools::getValue('update_checksum');
                 $versionTarget = Tools::getValue('update_version', 'latest');
-                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum, $versionTarget);
 
                 if (!empty($updateResult['success'])) {
                     if ($versionTarget !== 'latest') {
@@ -206,7 +206,7 @@ class Ps_Gtm_DataLayer extends Module
                 $versionTarget = Tools::getValue('update_version', 'latest');
 
                 $updateManager = new UpdateManager($this);
-                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
+                $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum, $versionTarget);
 
                 if (!empty($updateResult['success'])) {
                     if ($versionTarget !== 'latest') {

@@ -106,7 +106,7 @@ class UpdateManager
     /**
      * Execute atomic 1-click update
      */
-    public function executeUpdate($downloadUrl, $expectedChecksum = '')
+    public function executeUpdate($downloadUrl, $expectedChecksum = '', $targetVersion = '')
     {
         try {
             if (empty($downloadUrl)) {
@@ -170,6 +170,26 @@ class UpdateManager
                 $zip->close();
                 @unlink($tempZip);
 
+                // If files were extracted with backslashes on Linux, normalize them into proper folders
+                $scannedFiles = @scandir($extractPath);
+                if ($scannedFiles) {
+                    foreach ($scannedFiles as $sf) {
+                        if ($sf === '.' || $sf === '..') continue;
+                        if (strpos($sf, '\\') !== false) {
+                            $parts = explode('\\', $sf);
+                            $currentSub = $extractPath;
+                            for ($pi = 0; $pi < count($parts) - 1; $pi++) {
+                                $currentSub .= '/' . $parts[$pi];
+                                if (!is_dir($currentSub)) {
+                                    @mkdir($currentSub, 0755, true);
+                                }
+                            }
+                            $finalDest = $currentSub . '/' . end($parts);
+                            @rename($extractPath . '/' . $sf, $finalDest);
+                        }
+                    }
+                }
+
                 $sourceContentDir = $extractPath;
                 if (is_dir($extractPath . '/' . $this->module->name)) {
                     $sourceContentDir = $extractPath . '/' . $this->module->name;
@@ -179,6 +199,19 @@ class UpdateManager
                 $this->recursiveDelete($extractPath);
 
                 // 5. Trigger Native PrestaShop Module Upgrade Routines
+                $installedVersion = $this->module->version;
+                $mainPhpFile = $moduleDir . '/ps_gtm_datalayer.php';
+                if (file_exists($mainPhpFile)) {
+                    $mainPhpCode = @file_get_contents($mainPhpFile);
+                    if ($mainPhpCode && preg_match('/\$this->version\s*=\s*[\'"]([^\'"]+)[\'"]/', $mainPhpCode, $vm)) {
+                        $installedVersion = $vm[1];
+                    }
+                }
+                if (!empty($targetVersion)) {
+                    $installedVersion = $targetVersion;
+                }
+                $this->module->version = $installedVersion;
+
                 if (method_exists($this->module, 'runUpgradeModule')) {
                     try {
                         $this->module->runUpgradeModule();
@@ -187,7 +220,7 @@ class UpdateManager
 
                 // Synchronize database registry and clear all cache layers
                 if (class_exists('PlatformAdapter')) {
-                    PlatformAdapter::syncModuleDatabaseVersion($this->module->name, $this->module->version);
+                    PlatformAdapter::syncModuleDatabaseVersion($this->module->name, $installedVersion);
                     PlatformAdapter::clearAllCaches();
                 } else {
                     if (class_exists('Tools')) {
