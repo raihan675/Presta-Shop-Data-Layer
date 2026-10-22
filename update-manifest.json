@@ -4,7 +4,7 @@
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.11.0/ps_gtm_datalayer.zip",
-    "checksum":  "d3dd3d621bf1756985a8f6c106d70f8d928ee1abdec3d854d053636cfc0f037f",
+    "checksum":  "91be118f832ef9fc143e875d604715eddc49100a91abf609564865f1e5dd892b",
     "release_type":  "minor",
     "release_notes":  "1. Resolved Spurious view_item: Fixed race condition where updatedProduct was triggered after add_to_cart, adding 2500ms cart cooldown and combination attribute verification.\n2. Fixed Empty view_item_list: Prevents empty dataLayer emissions on category listings without products.\n3. Advertising Platform Settings: Added Back Office settings panel with Master toggle, platform switches (Meta, TikTok, Google Ads), interactive 11-event routing matrix with Select/Deselect All convenience controls, and spec tooltips."
 }

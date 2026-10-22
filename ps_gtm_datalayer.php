@@ -28,7 +28,7 @@ class Ps_Gtm_DataLayer extends Module
         $this->version = '1.11.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
-        $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
+        $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
         $this->bootstrap = true;
 
         parent::__construct();
@@ -1095,6 +1095,32 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_events' => is_array($gadsEvents) ? $gadsEvents : array_keys(self::getSupportedEvents()),
             ];
 
+            // Pre-hydrate authoritative carrier names directly from database model (Zero DOM)
+            $carriersMap = [];
+            if (class_exists('Carrier')) {
+                $idLang = $this->context->language ? (int)$this->context->language->id : 1;
+                $carriers = Carrier::getCarriers($idLang, true, false, false, null, Carrier::ALL_CARRIERS);
+                if (is_array($carriers)) {
+                    foreach ($carriers as $c) {
+                        $carriersMap[(int)$c['id_carrier']] = (string)$c['name'];
+                    }
+                }
+            }
+
+            // Pre-hydrate installed payment method names directly from module instances (Zero DOM)
+            $paymentMethodsMap = [];
+            if (class_exists('PaymentModule')) {
+                $installedPaymentModules = PaymentModule::getInstalledPaymentModules();
+                if (is_array($installedPaymentModules)) {
+                    foreach ($installedPaymentModules as $pm) {
+                        $modInstance = Module::getInstanceByName($pm['name']);
+                        if ($modInstance && Validate::isLoadedObject($modInstance)) {
+                            $paymentMethodsMap[$pm['name']] = (string)$modInstance->displayName;
+                        }
+                    }
+                }
+            }
+
             $this->context->smarty->assign([
                 'gtm_id' => $gtmId,
                 'sgtm_url' => $sgtmUrl,
@@ -1109,6 +1135,8 @@ class Ps_Gtm_DataLayer extends Module
                 'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
                 'catalog_id_strategy' => (Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite'),
                 'advertising_settings' => json_encode($advSettings, JSON_UNESCAPED_SLASHES),
+                'carriers_map' => json_encode($carriersMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'payment_methods_map' => json_encode($paymentMethodsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);
 

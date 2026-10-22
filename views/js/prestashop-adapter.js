@@ -836,39 +836,67 @@
       });
     }
 
+    function resolveCarrierFromInput(inputEl) {
+      if (!inputEl) return 'Standard Delivery';
+      var val = inputEl.value || (inputEl.dataset && inputEl.dataset.carrierId) || '';
+      var m = String(val).match(/(\d+)/);
+      var idCarrier = m ? parseInt(m[1], 10) : 0;
+      if (idCarrier && window.psGtmConfig && window.psGtmConfig.carriers && window.psGtmConfig.carriers[idCarrier]) {
+        return window.psGtmConfig.carriers[idCarrier];
+      }
+      return idCarrier ? ('Carrier #' + idCarrier) : 'Standard Delivery';
+    }
+
     document.addEventListener('submit', function (e) {
       var form = e.target;
       if (form && (form.id === 'js-delivery' || (form.action && form.action.indexOf('delivery') !== -1))) {
-        var checkedCarrier = form.querySelector('input[name^="delivery_option"]:checked');
-        var carrierLabel = '';
-        if (checkedCarrier) {
-          var row = checkedCarrier.closest('.delivery-option') || checkedCarrier.closest('tr') || checkedCarrier.closest('.row') || checkedCarrier.parentElement;
-          if (row) {
-            var labelEl = row.querySelector('.carrier-name, .delivery-option-name, label');
-            if (labelEl) carrierLabel = labelEl.textContent.trim();
+        var carrierInput = null;
+        if (form.elements) {
+          for (var i = 0; i < form.elements.length; i++) {
+            var el = form.elements[i];
+            if (el.name && el.name.indexOf('delivery_option') !== -1 && el.checked) {
+              carrierInput = el;
+              break;
+            }
           }
         }
-        dispatchShippingInfo(carrierLabel);
+        dispatchShippingInfo(resolveCarrierFromInput(carrierInput));
       }
     }, true);
 
     document.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest ? e.target.closest('button[name="confirmDeliveryOption"], .continue[name="confirm-addresses"]') : null;
       if (btn && btn.name === 'confirmDeliveryOption') {
-        var checkedCarrier = document.querySelector('input[name^="delivery_option"]:checked');
-        var carrierLabel = '';
-        if (checkedCarrier) {
-          var row = checkedCarrier.closest('.delivery-option') || checkedCarrier.closest('tr') || checkedCarrier.closest('.row') || checkedCarrier.parentElement;
-          if (row) {
-            var labelEl = row.querySelector('.carrier-name, .delivery-option-name, label');
-            if (labelEl) carrierLabel = labelEl.textContent.trim();
+        var form = btn.form || (document.forms && document.forms['js-delivery']);
+        var carrierInput = null;
+        if (form && form.elements) {
+          for (var i = 0; i < form.elements.length; i++) {
+            var el = form.elements[i];
+            if (el.name && el.name.indexOf('delivery_option') !== -1 && el.checked) {
+              carrierInput = el;
+              break;
+            }
           }
         }
-        dispatchShippingInfo(carrierLabel);
+        dispatchShippingInfo(resolveCarrierFromInput(carrierInput));
       }
     }, true);
 
     // Capture Payment Step Selection (add_payment_info)
+    function resolvePaymentMethod(targetInput) {
+      if (!targetInput) return 'Online Payment';
+      var modName = (targetInput.dataset && (targetInput.dataset.moduleName || targetInput.dataset.module))
+        ? (targetInput.dataset.moduleName || targetInput.dataset.module)
+        : '';
+      if (!modName && targetInput.value) {
+        modName = String(targetInput.value);
+      }
+      if (modName && window.psGtmConfig && window.psGtmConfig.paymentMethods && window.psGtmConfig.paymentMethods[modName]) {
+        return window.psGtmConfig.paymentMethods[modName];
+      }
+      return modName ? modName : 'Online Payment';
+    }
+
     function dispatchPaymentInfo(paymentMethod) {
       if (paymentInfoTracked) return;
       var rawItems = getCheckoutItems();
@@ -890,9 +918,7 @@
     document.addEventListener('change', function (e) {
       var target = e.target;
       if (target && target.name === 'payment-option' && target.checked) {
-        var labelEl = document.querySelector('label[for="' + target.id + '"]') || target.closest('label');
-        var method = labelEl ? labelEl.textContent.trim() : (target.dataset && target.dataset.moduleName ? target.dataset.moduleName : '');
-        dispatchPaymentInfo(method);
+        dispatchPaymentInfo(resolvePaymentMethod(target));
       }
     }, true);
 

@@ -52,6 +52,20 @@
     window.psGtmConfig.advertisingSettings = null;
   }
   {/if}
+  {if isset($carriers_map)}
+  try {
+    window.psGtmConfig.carriers = {$carriers_map nofilter};
+  } catch(e) {
+    window.psGtmConfig.carriers = {};
+  }
+  {/if}
+  {if isset($payment_methods_map)}
+  try {
+    window.psGtmConfig.paymentMethods = {$payment_methods_map nofilter};
+  } catch(e) {
+    window.psGtmConfig.paymentMethods = {};
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){
