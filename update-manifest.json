@@ -1,10 +1,10 @@
 {
   "module": "ps_gtm_datalayer",
-  "latest_version": "1.9.2",
-  "release_date": "2026-10-21",
+  "latest_version": "1.10.0",
+  "release_date": "2026-10-22",
   "min_ps_version": "1.7.8.0",
-  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.9.2/ps_gtm_datalayer.zip",
-  "checksum": "bdca1a99c3feaf8c519798d2faa8304812195a4e5d1d73c19cf643770665fb62",
-  "release_type": "patch",
-  "release_notes": "1. Defensive Architecture: Zero-crash guarantee with complete exception encapsulation across front hooks.\n2. Complete AST Syntax Verification: 100% verified syntax across all 26 PHP files, 2 JS files, and templates.\n3. Native In-Place Upgrade: Seamless 1-click update via upgrade-1.9.2.php."
+  "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.0/ps_gtm_datalayer.zip",
+  "checksum": "f32248f1d4d09b9f991c58a73a619b86c7787d738d5f4bab48b5521c73d2dfce",
+  "release_type": "minor",
+  "release_notes": "1. Native Advertising Platform Namespaces: Direct dataLayer output for meta, tiktok, and google_ads alongside GA4 ecommerce across all 11 funnel events.\n2. 100% Catalog Matching Parity: Automatic composite identity convention ({id_product}_{id_product_attribute} for variants, {id_product} for simple products) matching Google Merchant Center, Meta Commerce Manager, and TikTok Catalog Ads.\n3. Configurable ID Strategies: Toggle between Composite Database ID, Base Product ID, and Reference/SKU in Back Office configuration.\n4. Full Checkout Funnel Support: Native observers for add_shipping_info (shipping_tier) and add_payment_info (payment_type).\n5. In-Place Upgrade: Seamless 1-click update via upgrade-1.10.0.php."
 }
