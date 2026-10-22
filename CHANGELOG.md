@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.10.2] - 2026-10-22
+
+### Added
+- **Dynamic Hover Tooltips for Setting Options**:
+  - Replaced static text with an interactive info pill that dynamically adapts to whichever Catalog Identifier Strategy is selected.
+  - Hovering on the info pill smoothly displays an in-depth guidance card explaining when and why to use the selected strategy.
+- **Native Tooltips Across All Module Settings**:
+  - Added native Back Office hover hints to GTM Container ID, Event Prefix, Server-Side GTM URL, and Google Consent Mode v2.
+
+---
+
 ## [1.10.1] - 2026-10-22
 
 ### Added

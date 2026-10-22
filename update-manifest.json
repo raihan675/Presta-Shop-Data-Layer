@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.10.1",
+    "latest_version":  "1.10.2",
     "release_date":  "2026-10-22",
     "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.1/ps_gtm_datalayer.zip",
-    "checksum":  "f9e78309d4bd31660f6fe5499e77f9b09fbb49b1ddbaaa609454d28ccd117573",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.2/ps_gtm_datalayer.zip",
+    "checksum":  "b870b0fc6dd843e0f34710361fa1a2210d29de8a2e24dc73f6a1e37fbf886228",
     "release_type":  "patch",
-    "release_notes":  "1. Product Catalog Strategy In-Context Guidelines: Added detailed descriptions under the Back Office setting explaining exactly when to use Composite ID, Base Product ID, or Reference/SKU.\n2. Enhanced Back Office UX: Visual tip badges and use-case recommendations for Google Merchant Center, Meta Catalog, and TikTok Ads.\n3. Automatic Fallbacks: Seamless fallback to database composite ID if an SKU is missing on a product."
+    "release_notes":  "1. Dynamic Hover Tooltip Cards: When choosing a Product Catalog Identifier Strategy, an interactive info pill appears; hovering displays a detailed popover card explaining when and why to use that option.\n2. Setting Tooltips Across All Inputs: Added native hover tooltips to all Back Office settings (GTM Container ID, Event Prefix, Server-Side GTM, Consent Mode v2).\n3. In-Place Upgrade: Seamless 1-click update via upgrade-1.10.2.php."
 }

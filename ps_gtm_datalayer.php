@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.10.1';
+        $this->version = '1.10.2';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -362,6 +362,7 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'text',
                         'name' => 'PS_GTM_CONTAINER_ID',
                         'label' => $this->l('GTM Container ID'),
+                        'hint' => $this->l('Enter your primary web container ID from Google Tag Manager (e.g. GTM-XXXXXXX).'),
                         'desc' => $this->l('Your primary web container ID (e.g., GTM-XXXXXXX).'),
                         'size' => 20,
                         'required' => true,
@@ -370,6 +371,7 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'text',
                         'name' => 'PS_GTM_EVENT_PREFIX',
                         'label' => $this->l('Data Layer Event Prefix'),
+                        'hint' => $this->l('Custom prefix prepended to all dataLayer event names (e.g. raihan_view_item). Leave empty for standard GA4 event names.'),
                         'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for standard GA4 event names.'),
                         'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
                         'size' => 30,
@@ -378,19 +380,8 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'select',
                         'name' => 'PS_GTM_CATALOG_ID_STRATEGY',
                         'label' => $this->l('Product Catalog Identifier Strategy'),
-                        'desc' => $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog).') . '<br><br>' .
-                            '<strong>' . $this->l('Which option should you choose?') . '</strong>' .
-                            '<ul style="list-style:disc; margin-left: 20px; margin-top: 6px; margin-bottom: 8px; line-height: 1.5;">' .
-                            '<li><strong>' . $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended / PrestaShop Standard):') . '</strong><br>' .
-                            $this->l('Use for 90% of stores. Select this if your feed module (Google Merchant Center Pro, Meta/Facebook, TikTok) exports variants as individual items (e.g. 68_299) and simple products as 1033. Enables exact variant-level dynamic retargeting.') . '</li>' .
-                            '<li style="margin-top:6px;"><strong>' . $this->l('Base Product ID: {id_product} (Parent Level):') . '</strong><br>' .
-                            $this->l('Use if your feed exports only parent products (1 row per product, ignoring variants). Guarantees 100% catalog match rate if your catalog only contains parent IDs (e.g. 68).') . '</li>' .
-                            '<li style="margin-top:6px;"><strong>' . $this->l('Reference / SKU: {sku} (ERP / Barcode):') . '</strong><br>' .
-                            $this->l('Use if your store is synced with an ERP/PIM (like SAP, NetSuite, Odoo) and your catalog feeds index items by physical SKU/Reference (e.g. FIT09-BLUE-M). Automatically falls back to database ID if SKU is missing.') . '</li>' .
-                            '</ul>' .
-                            '<span class="badge badge-info" style="font-size: 11px; padding: 5px 10px; background-color: #25b9d7; color: #fff; border-radius: 3px; display: inline-block;">' .
-                            '<i class="icon-info-circle"></i> ' . $this->l('Tip: If unsure, leave this on Composite Database ID (the universal PrestaShop standard).') .
-                            '</span>',
+                        'hint' => $this->l('Choose which product ID format is sent to advertising feeds (Meta, TikTok, Google Ads).'),
+                        'desc' => $this->renderCatalogStrategyHelp(),
                         'options' => [
                             'query' => [
                                 [
@@ -414,6 +405,7 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'text',
                         'name' => 'PS_SGTM_TRANSPORT_URL',
                         'label' => $this->l('Server-Side GTM Transport URL (Optional)'),
+                        'hint' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint).'),
                         'desc' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint).'),
                         'size' => 50,
                     ],
@@ -421,6 +413,7 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'switch',
                         'label' => $this->l('Enable Google Consent Mode v2'),
                         'name' => 'PS_GTM_CONSENT_MODE',
+                        'hint' => $this->l('Initializes default denied consent states prior to tag loading for GDPR and DMA compliance.'),
                         'is_bool' => true,
                         'desc' => $this->l('Initialize default denied consent states prior to tag loading for GDPR/DMA compliance.'),
                         'values' => [
@@ -435,6 +428,92 @@ class Ps_Gtm_DataLayer extends Module
                 ],
             ],
         ];
+    }
+
+    private function renderCatalogStrategyHelp()
+    {
+        $info = [
+            'composite' => [
+                'title' => $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended)'),
+                'badge' => $this->l('Recommended for 90% of stores'),
+                'badge_class' => 'label-success',
+                'desc' => $this->l('Use for 90% of stores. Select this if your feed module (Google Merchant Center Pro, Meta/Facebook, TikTok, Channable) exports variants as individual items (e.g. 68_299) and simple products as 1033. Enables exact variant-level dynamic retargeting.')
+            ],
+            'id_product' => [
+                'title' => $this->l('Base Product ID: {id_product} (Parent Level)'),
+                'badge' => $this->l('Parent-only catalogs'),
+                'badge_class' => 'label-warning',
+                'desc' => $this->l('Use if your feed exports only parent products (1 row per product, ignoring variants). Guarantees 100% catalog match rate if your catalog only contains parent IDs (e.g. 68).')
+            ],
+            'reference_sku' => [
+                'title' => $this->l('Reference / SKU: {sku} (ERP / Barcode)'),
+                'badge' => $this->l('External ERP / PIM feeds'),
+                'badge_class' => 'label-info',
+                'desc' => $this->l('Use if your store is synced with an ERP/PIM (like SAP, NetSuite, Odoo) and your catalog feeds index items by physical SKU/Reference (e.g. FIT09-BLUE-M). Automatically falls back to database ID if SKU is missing.')
+            ],
+        ];
+
+        $jsonStrategies = json_encode($info, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+        $html = '<div id="ps-gtm-strategy-wrapper" style="margin-top: 10px;">';
+        $html .= '<p class="text-muted" style="margin-bottom: 8px;">' . $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog).') . '</p>';
+        $html .= '<div id="ps-gtm-strategy-icon-box" style="position: relative; display: inline-block;">';
+        $html .= '<div id="ps-gtm-info-pill" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 7px 14px; background: #ebf5fb; border: 1px solid #aed6f1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">';
+        $html .= '<i class="icon-info-sign" style="font-size: 18px; color: #2980b9;"></i>';
+        $html .= '<strong id="ps-gtm-pill-title" style="color: #1f618d; font-size: 13px;">Composite Database ID</strong>';
+        $html .= '<span id="ps-gtm-pill-badge" class="label label-success" style="font-size: 11px; margin-left: 4px; padding: 3px 8px;">Recommended</span>';
+        $html .= '<span style="font-size: 11px; color: #7f8c8d; margin-left: 6px;"><i class="icon-hand-up"></i> ' . $this->l('Hover for details') . '</span>';
+        $html .= '</div>';
+        $html .= '<div id="ps-gtm-strategy-tooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 8px; width: 480px; max-width: 90vw; background: #ffffff; border: 1px solid #2980b9; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 14px 16px; z-index: 99999;">';
+        $html .= '<h4 id="ps-gtm-tooltip-heading" style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #1f618d; border-bottom: 1px solid #eaecee; padding-bottom: 6px;"></h4>';
+        $html .= '<p id="ps-gtm-tooltip-body" style="margin: 0; font-size: 12px; color: #4a5568; line-height: 1.6;"></p>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        $html .= '<script type="text/javascript">
+            (function() {
+                var strategyData = ' . $jsonStrategies . ';
+                function updateStrategyCard() {
+                    var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
+                    if (!select) return;
+                    var val = select.value || "composite";
+                    var data = strategyData[val] || strategyData["composite"];
+                    var titleEl = document.getElementById("ps-gtm-pill-title");
+                    var badgeEl = document.getElementById("ps-gtm-pill-badge");
+                    var headEl = document.getElementById("ps-gtm-tooltip-heading");
+                    var bodyEl = document.getElementById("ps-gtm-tooltip-body");
+                    if (titleEl) titleEl.textContent = data.title;
+                    if (badgeEl) {
+                        badgeEl.textContent = data.badge;
+                        badgeEl.className = "label " + data.badge_class;
+                    }
+                    if (headEl) headEl.textContent = data.title;
+                    if (bodyEl) bodyEl.innerHTML = data.desc;
+                }
+
+                function bindHover() {
+                    var box = document.getElementById("ps-gtm-strategy-icon-box");
+                    var tip = document.getElementById("ps-gtm-strategy-tooltip");
+                    if (!box || !tip) return;
+                    box.addEventListener("mouseenter", function() { tip.style.display = "block"; });
+                    box.addEventListener("mouseleave", function() { tip.style.display = "none"; });
+                    var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
+                    if (select) {
+                        select.addEventListener("change", updateStrategyCard);
+                    }
+                    updateStrategyCard();
+                }
+
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", bindHover);
+                } else {
+                    bindHover();
+                }
+            })();
+        </script>';
+
+        return $html;
     }
 
     public function hookActionCartUpdateQuantityBefore($params)
