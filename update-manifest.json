@@ -4,7 +4,7 @@
   "release_date": "2026-10-22",
   "min_ps_version": "1.7.8.0",
   "download_url": "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.0/ps_gtm_datalayer.zip",
-  "checksum": "f32248f1d4d09b9f991c58a73a619b86c7787d738d5f4bab48b5521c73d2dfce",
+  "checksum": "90bcb356cbb848efdd0da19130616c36a353fc1a3b241989026979b465160964",
   "release_type": "minor",
   "release_notes": "1. Native Advertising Platform Namespaces: Direct dataLayer output for meta, tiktok, and google_ads alongside GA4 ecommerce across all 11 funnel events.\n2. 100% Catalog Matching Parity: Automatic composite identity convention ({id_product}_{id_product_attribute} for variants, {id_product} for simple products) matching Google Merchant Center, Meta Commerce Manager, and TikTok Catalog Ads.\n3. Configurable ID Strategies: Toggle between Composite Database ID, Base Product ID, and Reference/SKU in Back Office configuration.\n4. Full Checkout Funnel Support: Native observers for add_shipping_info (shipping_tier) and add_payment_info (payment_type).\n5. In-Place Upgrade: Seamless 1-click update via upgrade-1.10.0.php."
 }

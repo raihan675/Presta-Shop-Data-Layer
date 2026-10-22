@@ -95,15 +95,34 @@ class Ps_Gtm_DataLayer extends Module
         $output = '';
         $updateManager = new UpdateManager($this);
 
+        // Display post-update confirmation if redirected
+        if (Tools::getValue('module_updated')) {
+            $updatedVer = Tools::getValue('new_version', $this->version);
+            $output .= $this->displayConfirmation(sprintf(
+                $this->l('Enterprise GA4, Meta, TikTok & Google Ads DataLayer successfully updated to version %s! All your settings were preserved.'),
+                htmlspecialchars($updatedVer)
+            ));
+        }
+
         // Handle 1-Click Update Execution
         if (Tools::isSubmit('submitRunModuleUpdate')) {
             try {
                 $downloadUrl = Tools::getValue('update_download_url');
                 $checksum = Tools::getValue('update_checksum');
+                $versionTarget = Tools::getValue('update_version', 'latest');
                 $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
 
                 if (!empty($updateResult['success'])) {
-                    $output .= $this->displayConfirmation($this->l($updateResult['message']));
+                    if ($versionTarget !== 'latest') {
+                        $this->version = $versionTarget;
+                    }
+                    UpdateManager::clearUpdateCache();
+                    PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
+                    PlatformAdapter::clearAllCaches();
+
+                    $cleanUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name . '&module_updated=1&new_version=' . urlencode($this->version);
+                    Tools::redirectAdmin($cleanUrl);
+                    return '';
                 } else {
                     $errMsg = !empty($updateResult['message']) ? $updateResult['message'] : 'Update failed.';
                     $output .= $this->displayError($this->l($errMsg));
@@ -145,31 +164,30 @@ class Ps_Gtm_DataLayer extends Module
 
     private function renderUpdateBanner($updateInfo)
     {
-        $html = '<div class="panel">';
-        $html .= '<h3><i class="icon-refresh"></i> ' . $this->l('Module Version & Update Status') . '</h3>';
-
-        if (isset($updateInfo['has_update']) && $updateInfo['has_update']) {
-            $html .= '<div class="alert alert-warning">';
-            $html .= '<h4><strong>' . sprintf($this->l('New version %s is available!'), htmlspecialchars($updateInfo['latest_version'])) . '</strong></h4>';
-            $html .= '<p>' . nl2br(htmlspecialchars($updateInfo['release_notes'])) . '</p>';
-            $html .= '<hr>';
-            $updateActionUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name;
-            $html .= '<form action="' . Tools::safeOutput($updateActionUrl) . '" method="post" style="display:inline-block;">';
-            $html .= '<input type="hidden" name="update_download_url" value="' . htmlspecialchars($updateInfo['download_url']) . '">';
-            $html .= '<input type="hidden" name="update_checksum" value="' . htmlspecialchars($updateInfo['checksum']) . '">';
-            $html .= '<input type="hidden" name="update_version" value="' . htmlspecialchars($updateInfo['latest_version']) . '">';
-            $html .= '<button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm(\'' . $this->l('Are you sure you want to upgrade the module now? All your settings will be preserved.') . '\');">';
-            $html .= '<i class="icon-download"></i> ' . $this->l('1-Click Update to Version ') . htmlspecialchars($updateInfo['latest_version']);
-            $html .= '</button>';
-            $html .= '</form>';
-            $html .= '</div>';
-        } else {
-            $html .= '<div class="alert alert-success" style="margin-bottom:0;">';
-            $html .= '<i class="icon-check-circle"></i> ' . sprintf($this->l('Module is up-to-date (Version %s). No manual re-upload required.'), $this->version);
-            $html .= '</div>';
+        // When there is no update available, do not render any notification bar or panel.
+        // It remains completely hidden until a new version is published.
+        if (empty($updateInfo['has_update'])) {
+            return '';
         }
 
+        $html = '<div class="panel">';
+        $html .= '<h3><i class="icon-refresh"></i> ' . $this->l('Module Version & Update Status') . '</h3>';
+        $html .= '<div class="alert alert-warning">';
+        $html .= '<h4><strong>' . sprintf($this->l('New version %s is available!'), htmlspecialchars($updateInfo['latest_version'])) . '</strong></h4>';
+        $html .= '<p>' . nl2br(htmlspecialchars($updateInfo['release_notes'])) . '</p>';
+        $html .= '<hr>';
+        $updateActionUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name;
+        $html .= '<form action="' . Tools::safeOutput($updateActionUrl) . '" method="post" style="display:inline-block;">';
+        $html .= '<input type="hidden" name="update_download_url" value="' . htmlspecialchars($updateInfo['download_url']) . '">';
+        $html .= '<input type="hidden" name="update_checksum" value="' . htmlspecialchars($updateInfo['checksum']) . '">';
+        $html .= '<input type="hidden" name="update_version" value="' . htmlspecialchars($updateInfo['latest_version']) . '">';
+        $html .= '<button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm(\'' . $this->l('Are you sure you want to upgrade the module now? All your settings will be preserved.') . '\');">';
+        $html .= '<i class="icon-download"></i> ' . $this->l('1-Click Update to Version ') . htmlspecialchars($updateInfo['latest_version']);
+        $html .= '</button>';
+        $html .= '</form>';
         $html .= '</div>';
+        $html .= '</div>';
+
         return $html;
     }
 
@@ -191,10 +209,16 @@ class Ps_Gtm_DataLayer extends Module
                 $updateResult = $updateManager->executeUpdate($downloadUrl, $checksum);
 
                 if (!empty($updateResult['success'])) {
-                    $msg = sprintf($this->l('Enterprise GA4 & sGTM DataLayer successfully updated to version %s! All your settings were preserved.'), htmlspecialchars($versionTarget));
-                    if (isset($this->context->controller->confirmations) && is_array($this->context->controller->confirmations)) {
-                        $this->context->controller->confirmations[] = $msg;
+                    if ($versionTarget !== 'latest') {
+                        $this->version = $versionTarget;
                     }
+                    UpdateManager::clearUpdateCache();
+                    PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
+                    PlatformAdapter::clearAllCaches();
+
+                    $cleanUrl = $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name . '&module_updated=1&new_version=' . urlencode($this->version);
+                    Tools::redirectAdmin($cleanUrl);
+                    return '';
                 } else {
                     $errMsg = !empty($updateResult['message']) ? $updateResult['message'] : 'Update failed.';
                     if (isset($this->context->controller->errors) && is_array($this->context->controller->errors)) {
