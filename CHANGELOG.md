@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.10.1] - 2026-10-22
+
+### Added
+- **Product Catalog Strategy In-Context Guidelines**:
+  - Embedded rich instructional helper documentation directly under the `Product Catalog Identifier Strategy` dropdown in Back Office.
+  - Explains exact use cases:
+    - `Composite Database ID`: Recommended for 90% of stores using standard GMC, Meta, or TikTok feeds.
+    - `Base Product ID`: For stores exporting only parent products without variant rows.
+    - `Reference / SKU`: For stores integrated with ERP/PIM systems indexing products by barcode/SKU.
+  - Added visual helper badge to guide merchants to the best practice default.
+
+---
+
 ## [1.10.0] - 2026-10-22
 
 ### Added

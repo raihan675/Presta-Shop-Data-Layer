@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.10.0",
+    "latest_version":  "1.10.1",
     "release_date":  "2026-10-22",
     "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.0/ps_gtm_datalayer.zip",
-    "checksum":  "94cc438c6c9ca54362b58a5f188b33d0053ebccf95413d4dfe30a4c58343c7f1",
-    "release_type":  "minor",
-    "release_notes":  "1. Native Advertising Platform Namespaces: Direct dataLayer output for meta, tiktok, and google_ads alongside GA4 ecommerce across all 11 funnel events.\n2. 100% Catalog Matching Parity: Automatic composite identity convention ({id_product}_{id_product_attribute} for variants, {id_product} for simple products) matching Google Merchant Center, Meta Commerce Manager, and TikTok Catalog Ads.\n3. Configurable ID Strategies: Toggle between Composite Database ID, Base Product ID, and Reference/SKU in Back Office configuration.\n4. Full Checkout Funnel Support: Native observers for add_shipping_info (shipping_tier) and add_payment_info (payment_type).\n5. In-Place Upgrade: Seamless 1-click update via upgrade-1.10.0.php."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.1/ps_gtm_datalayer.zip",
+    "checksum":  "f9e78309d4bd31660f6fe5499e77f9b09fbb49b1ddbaaa609454d28ccd117573",
+    "release_type":  "patch",
+    "release_notes":  "1. Product Catalog Strategy In-Context Guidelines: Added detailed descriptions under the Back Office setting explaining exactly when to use Composite ID, Base Product ID, or Reference/SKU.\n2. Enhanced Back Office UX: Visual tip badges and use-case recommendations for Google Merchant Center, Meta Catalog, and TikTok Ads.\n3. Automatic Fallbacks: Seamless fallback to database composite ID if an SKU is missing on a product."
 }

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.10.0';
+        $this->version = '1.10.1';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -378,7 +378,19 @@ class Ps_Gtm_DataLayer extends Module
                         'type' => 'select',
                         'name' => 'PS_GTM_CATALOG_ID_STRATEGY',
                         'label' => $this->l('Product Catalog Identifier Strategy'),
-                        'desc' => $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog). Default: Composite ID ({id_product}_{id_product_attribute} for variants, {id_product} for simple products).'),
+                        'desc' => $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog).') . '<br><br>' .
+                            '<strong>' . $this->l('Which option should you choose?') . '</strong>' .
+                            '<ul style="list-style:disc; margin-left: 20px; margin-top: 6px; margin-bottom: 8px; line-height: 1.5;">' .
+                            '<li><strong>' . $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended / PrestaShop Standard):') . '</strong><br>' .
+                            $this->l('Use for 90% of stores. Select this if your feed module (Google Merchant Center Pro, Meta/Facebook, TikTok) exports variants as individual items (e.g. 68_299) and simple products as 1033. Enables exact variant-level dynamic retargeting.') . '</li>' .
+                            '<li style="margin-top:6px;"><strong>' . $this->l('Base Product ID: {id_product} (Parent Level):') . '</strong><br>' .
+                            $this->l('Use if your feed exports only parent products (1 row per product, ignoring variants). Guarantees 100% catalog match rate if your catalog only contains parent IDs (e.g. 68).') . '</li>' .
+                            '<li style="margin-top:6px;"><strong>' . $this->l('Reference / SKU: {sku} (ERP / Barcode):') . '</strong><br>' .
+                            $this->l('Use if your store is synced with an ERP/PIM (like SAP, NetSuite, Odoo) and your catalog feeds index items by physical SKU/Reference (e.g. FIT09-BLUE-M). Automatically falls back to database ID if SKU is missing.') . '</li>' .
+                            '</ul>' .
+                            '<span class="badge badge-info" style="font-size: 11px; padding: 5px 10px; background-color: #25b9d7; color: #fff; border-radius: 3px; display: inline-block;">' .
+                            '<i class="icon-info-circle"></i> ' . $this->l('Tip: If unsure, leave this on Composite Database ID (the universal PrestaShop standard).') .
+                            '</span>',
                         'options' => [
                             'query' => [
                                 [
