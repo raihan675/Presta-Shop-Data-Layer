@@ -105,18 +105,18 @@
               var resp = JSON.parse(xhr.responseText);
               if (resp && resp.success && resp.item) {
                 resolvedProductCache[cacheKey] = resp.item;
-                callback(resp.item);
+                callback(resp.item, resp);
                 return;
               }
             } catch (e) {}
           }
           // In case of network failure, fallback safely
-          callback(null);
+          callback(null, null);
         }
       };
       xhr.send();
     } else {
-      callback(null);
+      callback(null, null);
     }
   }
 
@@ -632,6 +632,7 @@
       }
 
       var list = window.psGtmConfig && window.psGtmConfig.currentList;
+      var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
       var matchedItem = null;
 
       if (list && Array.isArray(list.items)) {
@@ -643,47 +644,74 @@
         }
       }
 
+      // Tier 1: Current hydrated list
       var listId = (list && list.item_list_id) || (matchedItem && matchedItem.item_list_id) || '';
       var listName = (list && list.item_list_name) || (matchedItem && matchedItem.item_list_name) || '';
 
-      if (matchedItem) {
+      // Tier 2: Page Context
+      if (!listId && pageCtx && pageCtx.list_id) {
+        listId = pageCtx.list_id;
+        listName = pageCtx.list_name || pageCtx.list_id;
+      }
+
+      var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+
+      function dispatchSelected(itemToTrack, explicitListId, explicitListName) {
+        var finalItem = Object.assign({}, itemToTrack);
+        var finalId = explicitListId || finalItem.item_list_id || listId;
+        var finalName = explicitListName || finalItem.item_list_name || listName;
+
+        // Tier 3 & 4 Fallbacks if still empty
+        if (!finalId) {
+          if (finalItem.item_category) {
+            finalId = 'category_' + String(finalItem.item_category).toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+            finalName = finalItem.item_category;
+          } else {
+            finalId = 'product_listing';
+            finalName = 'Product Listing';
+          }
+        }
+        if (!finalName) {
+          finalName = finalId;
+        }
+
+        finalItem.item_list_id = finalId;
+        finalItem.item_list_name = finalName;
+
         lastSelectedItemId = String(idProduct);
         lastSelectedItemTime = now;
 
-        var selectedItem = Object.assign({}, matchedItem);
-        selectedItem.item_list_id = listId;
-        selectedItem.item_list_name = listName;
-
-        var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
-        var normItems = EDL.normalizeItems([selectedItem], prec);
-
+        var normItems = EDL.normalizeItems([finalItem], prec);
         if (normItems.length > 0) {
           EDL.pushEvent('select_item', {
-            item_list_id: listId,
-            item_list_name: listName,
+            item_list_id: finalId,
+            item_list_name: finalName,
             items: normItems
           });
         }
+      }
+
+      if (matchedItem) {
+        dispatchSelected(matchedItem, listId, listName);
       } else {
         // Fallback resolution for non-hydrated or custom listings
-        resolveBackendProduct(idProduct, 0, 1, function (resolvedItem) {
+        resolveBackendProduct(idProduct, 0, 1, function (resolvedItem, fullResp) {
           if (resolvedItem) {
-            lastSelectedItemId = String(idProduct);
-            lastSelectedItemTime = now;
+            var resolvedListId = listId;
+            var resolvedListName = listName;
 
-            resolvedItem.item_list_id = listId;
-            resolvedItem.item_list_name = listName;
-
-            var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
-            var normItems = EDL.normalizeItems([resolvedItem], prec);
-
-            if (normItems.length > 0) {
-              EDL.pushEvent('select_item', {
-                item_list_id: listId,
-                item_list_name: listName,
-                items: normItems
-              });
+            // Tier 3: Use authoritative backend category if listId is not set
+            if (!resolvedListId) {
+              if (fullResp && fullResp.default_category_id) {
+                resolvedListId = 'category_' + fullResp.default_category_id;
+                resolvedListName = fullResp.default_category_name || ('Category #' + fullResp.default_category_id);
+              } else if (resolvedItem.item_list_id) {
+                resolvedListId = resolvedItem.item_list_id;
+                resolvedListName = resolvedItem.item_list_name || resolvedListId;
+              }
             }
+
+            dispatchSelected(resolvedItem, resolvedListId, resolvedListName);
           }
         });
       }
@@ -792,7 +820,7 @@
         }
       }
 
-      if (idProduct && window.psGtmConfig && window.psGtmConfig.currentList) {
+      if (idProduct && window.psGtmConfig) {
         handleSelectItem(idProduct);
       }
     }, true);

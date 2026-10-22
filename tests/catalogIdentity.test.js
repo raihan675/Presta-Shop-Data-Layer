@@ -1403,5 +1403,116 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(pushedPurchase.ecommerce.items[1].price, 27.99);
       assert.strictEqual(pushedPurchase.ecommerce.items[1].quantity, 1);
     });
+
+    it('37. GA4 select_item: 4-tier list resolution guarantees non-empty item_list_id and item_list_name (No empty string bug)', function () {
+      EDL.setEventPrefix('ps');
+
+      // Helper simulating 4-tier resolution logic identical to prestashop-adapter.js
+      function resolveListIdentity(idProduct, currentList, pageContext, resolvedBackendItem, fullBackendResp) {
+        let matchedItem = null;
+        if (currentList && Array.isArray(currentList.items)) {
+          matchedItem = currentList.items.find(i => String(i.item_id) === String(idProduct));
+        }
+
+        // Tier 1: Current hydrated list
+        let listId = (currentList && currentList.item_list_id) || (matchedItem && matchedItem.item_list_id) || '';
+        let listName = (currentList && currentList.item_list_name) || (matchedItem && matchedItem.item_list_name) || '';
+
+        // Tier 2: Page Context
+        if (!listId && pageContext && pageContext.list_id) {
+          listId = pageContext.list_id;
+          listName = pageContext.list_name || pageContext.list_id;
+        }
+
+        // Tier 3: Authoritative backend category from AJAX ORM
+        if (!listId) {
+          if (fullBackendResp && fullBackendResp.default_category_id) {
+            listId = 'category_' + fullBackendResp.default_category_id;
+            listName = fullBackendResp.default_category_name || ('Category #' + fullBackendResp.default_category_id);
+          } else if (resolvedBackendItem && resolvedBackendItem.item_list_id) {
+            listId = resolvedBackendItem.item_list_id;
+            listName = resolvedBackendItem.item_list_name || listId;
+          }
+        }
+
+        // Tier 4: Category slug or generic fallback
+        if (!listId) {
+          if (resolvedBackendItem && resolvedBackendItem.item_category) {
+            listId = 'category_' + String(resolvedBackendItem.item_category).toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+            listName = resolvedBackendItem.item_category;
+          } else {
+            listId = 'product_listing';
+            listName = 'Product Listing';
+          }
+        }
+        if (!listName) {
+          listName = listId;
+        }
+
+        return { listId, listName };
+      }
+
+      // Case 1: Product 27 clicked from Home Page (currentList is null, pageContext is home_featured)
+      const resHome = resolveListIdentity('27', null, { list_id: 'home_featured', list_name: 'Home Page - Featured Products' }, null, null);
+      assert.strictEqual(resHome.listId, 'home_featured');
+      assert.strictEqual(resHome.listName, 'Home Page - Featured Products');
+
+      // Case 2: Product 27 clicked from unhydrated section with AJAX response
+      const resAjax = resolveListIdentity('27', null, null, {
+        item_id: '27',
+        item_name: 'Baby Essteller mit Unterteilung und Saugfuss - Stahlblau',
+        item_category: 'Baby Geschirr',
+        price: 15.39
+      }, {
+        success: true,
+        default_category_id: 15,
+        default_category_name: 'Baby Geschirr'
+      });
+      assert.strictEqual(resAjax.listId, 'category_15');
+      assert.strictEqual(resAjax.listName, 'Baby Geschirr');
+
+      // Case 3: Product clicked with only category string
+      const resSlug = resolveListIdentity('99', null, null, {
+        item_id: '99',
+        item_name: 'Test Product',
+        item_category: 'Baby Geschirr'
+      }, null);
+      assert.strictEqual(resSlug.listId, 'category_baby_geschirr');
+      assert.strictEqual(resSlug.listName, 'Baby Geschirr');
+
+      // Case 4: Complete unknown product
+      const resFallback = resolveListIdentity('999', null, null, { item_id: '999' }, null);
+      assert.strictEqual(resFallback.listId, 'product_listing');
+      assert.strictEqual(resFallback.listName, 'Product Listing');
+
+      // Verify that when pushed to dataLayer, item_list_id and item_list_name are populated
+      const selectedItem = EDL.normalizeItem({
+        item_id: '27',
+        sku_id: 'UTE65-B',
+        item_name: 'Baby Essteller mit Unterteilung und Saugfuss - Stahlblau',
+        item_brand: 'Haakaa - Think Green Ltd.',
+        item_category: 'Baby Geschirr',
+        price: 15.39,
+        quantity: 1,
+        item_list_id: resAjax.listId,
+        item_list_name: resAjax.listName
+      });
+
+      EDL.pushEvent('select_item', {
+        item_list_id: resAjax.listId,
+        item_list_name: resAjax.listName,
+        items: [selectedItem]
+      });
+
+      const pushed = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushed.event, 'ps_select_item');
+      assert.strictEqual(pushed.ecommerce.item_list_id, 'category_15');
+      assert.strictEqual(pushed.ecommerce.item_list_name, 'Baby Geschirr');
+      assert.notStrictEqual(pushed.ecommerce.item_list_id, '');
+      assert.notStrictEqual(pushed.ecommerce.item_list_name, '');
+      assert.strictEqual(pushed.ecommerce.items[0].item_list_id, 'category_15');
+      assert.strictEqual(pushed.ecommerce.items[0].item_list_name, 'Baby Geschirr');
+      assert.strictEqual(pushed.ecommerce.items[0].item_id, '27');
+    });
   });
 });

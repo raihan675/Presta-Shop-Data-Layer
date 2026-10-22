@@ -54,12 +54,23 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
         $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $item = $payloadBuilder->formatItem($product, $idProductAttribute, $quantity);
 
+        $idCategoryDefault = (int)$product->id_category_default;
+        $category = new Category($idCategoryDefault, $idLanguage);
+        $categoryName = Validate::isLoadedObject($category) ? (string)$category->name : '';
+
+        if ($idCategoryDefault > 0) {
+            $item['item_list_id'] = 'category_' . $idCategoryDefault;
+            $item['item_list_name'] = $categoryName;
+        }
+
         $currency = $this->context->currency ? $this->context->currency->iso_code : 'EUR';
 
         die(json_encode([
             'success' => true,
             'currency' => $currency,
             'item' => $item,
+            'default_category_id' => $idCategoryDefault,
+            'default_category_name' => $categoryName,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 }

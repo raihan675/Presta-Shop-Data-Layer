@@ -221,6 +221,10 @@ class PayloadBuilder
             case 'category':
             case 'manufacturer':
             case 'search':
+            case 'index':
+            case 'prices-drop':
+            case 'new-products':
+            case 'best-sales':
                 return $this->buildViewItemListPayload($controller);
             case 'cart':
                 return $this->buildViewCartPayload();
@@ -286,9 +290,15 @@ class PayloadBuilder
         $items = [];
 
         if ($controller === 'category') {
-            $idCategory = (int)Tools::getValue('id_category');
+            $category = (isset($this->context->controller->category) && Validate::isLoadedObject($this->context->controller->category))
+                ? $this->context->controller->category
+                : (method_exists($this->context->controller, 'getCategory') ? $this->context->controller->getCategory() : null);
+
+            $idCategory = ($category && Validate::isLoadedObject($category)) ? (int)$category->id : (int)Tools::getValue('id_category');
             if ($idCategory) {
-                $category = new Category($idCategory, $idLanguage);
+                if (!$category || !Validate::isLoadedObject($category)) {
+                    $category = new Category($idCategory, $idLanguage);
+                }
                 if (Validate::isLoadedObject($category)) {
                     $listId = 'category_' . $idCategory;
                     $listName = (string)$category->name;
@@ -309,6 +319,101 @@ class PayloadBuilder
                             $item['item_list_name'] = $listName;
                             $items[] = $item;
                         }
+                    }
+                }
+            }
+        } elseif ($controller === 'index') {
+            $listId = 'home_featured';
+            $listName = 'Home Page - Featured Products';
+            $idHomeCategory = (int)Configuration::get('PS_HOME_CATEGORY') ?: (int)$this->context->shop->getCategory();
+            if ($idHomeCategory) {
+                $category = new Category($idHomeCategory, $idLanguage);
+                if (Validate::isLoadedObject($category)) {
+                    $n = (int)Configuration::get('HOME_FEATURED_NBR') > 0 ? (int)Configuration::get('HOME_FEATURED_NBR') : 16;
+                    $prods = $category->getProducts($idLanguage, 1, $n, 'position', 'asc', false, true);
+                    if (!empty($prods) && is_array($prods)) {
+                        $idx = 1;
+                        foreach ($prods as $pItem) {
+                            $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                            if (!empty($pItem['manufacturer_name'])) {
+                                $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                            }
+                            $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $item = $this->formatItem($productObj, 0, 1, $price);
+                            $item['index'] = $idx++;
+                            $item['item_list_id'] = $listId;
+                            $item['item_list_name'] = $listName;
+                            $items[] = $item;
+                        }
+                    }
+                }
+            }
+        } elseif ($controller === 'prices-drop') {
+            $listId = 'on_sale';
+            $listName = 'On Sale Products';
+            $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+            $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+            if (class_exists('Product') && method_exists('Product', 'getPricesDrop')) {
+                $prods = Product::getPricesDrop($idLanguage, $p, $n);
+                if (!empty($prods) && is_array($prods)) {
+                    $idx = 1;
+                    foreach ($prods as $pItem) {
+                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                        if (!empty($pItem['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                        }
+                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $item = $this->formatItem($productObj, 0, 1, $price);
+                        $item['index'] = $idx++;
+                        $item['item_list_id'] = $listId;
+                        $item['item_list_name'] = $listName;
+                        $items[] = $item;
+                    }
+                }
+            }
+        } elseif ($controller === 'new-products') {
+            $listId = 'new_products';
+            $listName = 'New Products';
+            $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+            $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+            if (class_exists('Product') && method_exists('Product', 'getNewProducts')) {
+                $prods = Product::getNewProducts($idLanguage, $p, $n);
+                if (!empty($prods) && is_array($prods)) {
+                    $idx = 1;
+                    foreach ($prods as $pItem) {
+                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                        if (!empty($pItem['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                        }
+                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $item = $this->formatItem($productObj, 0, 1, $price);
+                        $item['index'] = $idx++;
+                        $item['item_list_id'] = $listId;
+                        $item['item_list_name'] = $listName;
+                        $items[] = $item;
+                    }
+                }
+            }
+        } elseif ($controller === 'best-sales') {
+            $listId = 'best_sellers';
+            $listName = 'Best Sellers';
+            $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+            $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+            if (class_exists('ProductSale') && method_exists('ProductSale', 'getBestSales')) {
+                $prods = ProductSale::getBestSales($idLanguage, $p, $n);
+                if (!empty($prods) && is_array($prods)) {
+                    $idx = 1;
+                    foreach ($prods as $pItem) {
+                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                        if (!empty($pItem['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                        }
+                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $item = $this->formatItem($productObj, 0, 1, $price);
+                        $item['index'] = $idx++;
+                        $item['item_list_id'] = $listId;
+                        $item['item_list_name'] = $listName;
+                        $items[] = $item;
                     }
                 }
             }

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.11.0';
+        $this->version = '1.11.1';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1041,6 +1041,59 @@ class Ps_Gtm_DataLayer extends Module
             $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
             $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
+            // Pre-hydrate Page Context for listing tracking & select_item fallback
+            $pageContext = [
+                'controller' => $controller,
+                'list_id' => '',
+                'list_name' => '',
+            ];
+            if ($controller === 'index') {
+                $pageContext['list_id'] = 'home_featured';
+                $pageContext['list_name'] = 'Home Page - Featured Products';
+            } elseif ($controller === 'category') {
+                $category = (isset($this->context->controller->category) && Validate::isLoadedObject($this->context->controller->category))
+                    ? $this->context->controller->category
+                    : (method_exists($this->context->controller, 'getCategory') ? $this->context->controller->getCategory() : null);
+                $idCategory = ($category && Validate::isLoadedObject($category)) ? (int)$category->id : (int)Tools::getValue('id_category');
+                if ($idCategory) {
+                    if (!$category || !Validate::isLoadedObject($category)) {
+                        $category = new Category($idCategory, $this->context->language ? (int)$this->context->language->id : 1);
+                    }
+                    if (Validate::isLoadedObject($category)) {
+                        $pageContext['list_id'] = 'category_' . $idCategory;
+                        $pageContext['list_name'] = (string)$category->name;
+                    }
+                }
+            } elseif ($controller === 'product') {
+                $pageContext['list_id'] = 'related_products';
+                $pageContext['list_name'] = 'Related Products';
+            } elseif ($controller === 'cart') {
+                $pageContext['list_id'] = 'cross_sell';
+                $pageContext['list_name'] = 'Cart Cross-Sell';
+            } elseif ($controller === 'search') {
+                $searchQuery = (string)Tools::getValue('s', Tools::getValue('search_query', ''));
+                $pageContext['list_id'] = 'search_results';
+                $pageContext['list_name'] = $searchQuery ? 'Search: ' . $searchQuery : 'Search Results';
+            } elseif ($controller === 'prices-drop') {
+                $pageContext['list_id'] = 'on_sale';
+                $pageContext['list_name'] = 'On Sale Products';
+            } elseif ($controller === 'new-products') {
+                $pageContext['list_id'] = 'new_products';
+                $pageContext['list_name'] = 'New Products';
+            } elseif ($controller === 'best-sales') {
+                $pageContext['list_id'] = 'best_sellers';
+                $pageContext['list_name'] = 'Best Sellers';
+            } elseif ($controller === 'manufacturer') {
+                $idManufacturer = (int)Tools::getValue('id_manufacturer');
+                if ($idManufacturer) {
+                    $manufacturer = new Manufacturer($idManufacturer, $this->context->language ? (int)$this->context->language->id : 1);
+                    if (Validate::isLoadedObject($manufacturer)) {
+                        $pageContext['list_id'] = 'brand_' . $idManufacturer;
+                        $pageContext['list_name'] = (string)$manufacturer->name;
+                    }
+                }
+            }
+
             // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
             $cartProductsMap = [];
             $cartProductsData = [];
@@ -1137,6 +1190,7 @@ class Ps_Gtm_DataLayer extends Module
                 'advertising_settings' => json_encode($advSettings, JSON_UNESCAPED_SLASHES),
                 'carriers_map' => json_encode($carriersMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'payment_methods_map' => json_encode($paymentMethodsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);
 

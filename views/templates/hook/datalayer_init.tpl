@@ -66,6 +66,13 @@
     window.psGtmConfig.paymentMethods = {};
   }
   {/if}
+  {if isset($page_context)}
+  try {
+    window.psGtmConfig.pageContext = {$page_context nofilter};
+  } catch(e) {
+    window.psGtmConfig.pageContext = null;
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){
