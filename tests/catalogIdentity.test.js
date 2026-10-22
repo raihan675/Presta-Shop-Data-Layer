@@ -1690,5 +1690,196 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(resolvePayment('ps_wirepayment'), 'Bank transfer');
       assert.strictEqual(resolvePayment('unknown_gateway'), 'Online Payment');
     });
+
+    it('39. Cart Removal: Trash bin click on checkout / cart overview must NOT trigger select_item and must emit remove_from_cart', function () {
+      global.window.dataLayer = [];
+      EDL.setEventPrefix('ps');
+
+      // Pre-hydrate in-memory cart config matching the Tag Assistant debug session on /de/Bestellung
+      const mockCartProductsData = {
+        '1010_0': {
+          item_id: '1010',
+          variant_id: '',
+          sku_id: 'UTE15-G',
+          item_name: 'Shampoobürste - Erbsengrün',
+          item_brand: 'Haakaa - Think Green Ltd.',
+          item_category: 'Baby Pflege',
+          item_variant: '',
+          price: 12.29,
+          quantity: 1
+        }
+      };
+      const mockCartQuantities = {
+        '1010_0': 1
+      };
+
+      global.window.psGtmConfig = {
+        eventPrefix: 'ps',
+        currency: 'EUR',
+        currencyPrecision: 2,
+        cartProducts: { '1010_0': 1 },
+        cartProductsData: mockCartProductsData
+      };
+
+      // 1. Simulate the DOM Trash Bin element from ets_onepagecheckout
+      const mockAnchor = {
+        tagName: 'A',
+        href: 'https://familys-world.de/de/warenkorb?delete=1&id_product=1010&id_product_attribute=0&token=8662970fa3ceb2f567087e5b2ae95d10',
+        getAttribute: function (attr) { return null; },
+        closest: function (sel) {
+          if (sel.includes('a')) return mockAnchor;
+          if (sel.includes('.remove-from-cart') || sel.includes('.ets_remove_cart') || sel.includes('a[href*="delete=1"]') || sel.includes('#form_ets_onepagecheckout')) {
+            return mockAnchor;
+          }
+          return null;
+        }
+      };
+
+      const mockSvgPath = {
+        tagName: 'PATH',
+        closest: function (sel) {
+          if (sel.includes('a')) return mockAnchor;
+          if (sel.includes('.remove-from-cart') || sel.includes('.ets_remove_cart') || sel.includes('a[href*="delete=1"]') || sel.includes('#form_ets_onepagecheckout') || sel.includes('.cart-line-product-actions')) {
+            return mockAnchor;
+          }
+          return null;
+        }
+      };
+
+      // 2. Test select_item exclusion filter:
+      // Clicking on trash bin / cart actions MUST be ignored by select_item listener
+      function simulateSelectItemClick(targetEl) {
+        var isCartOrActionElement = targetEl.closest && targetEl.closest(
+          '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
+          '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, .cart-line-product-actions, ' +
+          'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"], ' +
+          '.js-increase-product-quantity, .js-decrease-product-quantity, [data-link-action="update-qty"], ' +
+          '.cart-line-product-quantity, .bootstrap-touchspin-up, .bootstrap-touchspin-down, ' +
+          '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
+          '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
+          '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
+          '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], .quick-view'
+        );
+        if (isCartOrActionElement) {
+          return false; // Correctly excluded
+        }
+
+        var anchor = targetEl.closest ? targetEl.closest('a') : null;
+        if (anchor && anchor.href) {
+          var hrefLower = anchor.href.toLowerCase();
+          if (hrefLower.indexOf('delete=1') !== -1 ||
+              hrefLower.indexOf('action=delete') !== -1 ||
+              hrefLower.indexOf('deleteproduct') !== -1 ||
+              hrefLower.indexOf('opc_delete_cart') !== -1) {
+            return false; // Correctly excluded
+          }
+        }
+
+        return true; // Would have triggered select_item
+      }
+
+      assert.strictEqual(simulateSelectItemClick(mockSvgPath), false, 'Click on trash bin SVG path must be rejected by select_item');
+      assert.strictEqual(simulateSelectItemClick(mockAnchor), false, 'Click on trash bin link must be rejected by select_item');
+
+      // 3. Test universal cart removal click handler
+      let lastRemoveSignature = '';
+      let lastRemoveTime = 0;
+
+      function simulateDirectCartRemoval(targetEl) {
+        var removeTrigger = targetEl.closest && targetEl.closest(
+          '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
+          '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, ' +
+          'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"]'
+        );
+        if (!removeTrigger) return false;
+
+        var anchor = (removeTrigger.tagName === 'A') ? removeTrigger : (removeTrigger.querySelector ? removeTrigger.querySelector('a') : null);
+        if (!anchor && removeTrigger.closest) {
+          anchor = removeTrigger.closest('a');
+        }
+
+        var idProd = '';
+        var idAttr = '';
+        var qty = 1;
+
+        if (anchor && anchor.href) {
+          var pMatch = anchor.href.match(/(?:[\?&]id_product=|[\?&]idProduct=|[\?&]productId=)(\d+)/i);
+          var aMatch = anchor.href.match(/(?:[\?&]id_product_attribute=|[\?&]idProductAttribute=|[\?&]productAttributeId=)(\d+)/i);
+          if (pMatch && pMatch[1]) idProd = pMatch[1];
+          if (aMatch && aMatch[1]) idAttr = aMatch[1];
+        }
+
+        if (!idProd) return false;
+
+        var normAttr = (idAttr && String(idAttr) !== '0' && parseInt(idAttr, 10) > 0) ? String(idAttr).trim() : '';
+        var key = String(idProd).trim() + '_' + (normAttr || '0');
+        var now = new Date().getTime();
+
+        if (lastRemoveSignature === key && (now - lastRemoveTime < 1500)) {
+          return false; // Debounced
+        }
+        lastRemoveSignature = key;
+        lastRemoveTime = now;
+
+        var removeQty = (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : (mockCartQuantities[key] || 1);
+        var currencyCode = 'EUR';
+        var prec = 2;
+
+        var item = mockCartProductsData[key] || {
+          item_id: String(idProd),
+          variant_id: normAttr,
+          item_name: 'Product #' + idProd,
+          price: 0.0,
+          quantity: removeQty
+        };
+        item.quantity = removeQty;
+
+        var normItems = EDL.normalizeItems([item], prec);
+        if (normItems.length > 0) {
+          EDL.pushEvent('remove_from_cart', {
+            currency: currencyCode,
+            value: EDL.calculateCartValue(normItems, prec),
+            items: normItems
+          });
+        }
+
+        delete mockCartQuantities[key];
+        delete mockCartProductsData[key];
+        return true;
+      }
+
+      // Execute removal click on the trash bin icon
+      const removed = simulateDirectCartRemoval(mockSvgPath);
+      assert.strictEqual(removed, true, 'Removal click must successfully dispatch remove_from_cart');
+
+      // Verify dataLayer payload
+      assert.strictEqual(global.window.dataLayer.length, 2);
+      assert.strictEqual(global.window.dataLayer[0].ecommerce, null, 'GTM requires ecommerce: null reset before event push');
+      const pushEvent = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushEvent.event, 'ps_remove_from_cart');
+      assert.strictEqual(pushEvent.original_event, 'remove_from_cart');
+      assert.strictEqual(pushEvent.ecommerce.currency, 'EUR');
+      assert.strictEqual(pushEvent.ecommerce.value, 12.29);
+      assert.strictEqual(pushEvent.ecommerce.items.length, 1);
+
+      const removedItem = pushEvent.ecommerce.items[0];
+      assert.strictEqual(removedItem.item_id, '1010');
+      assert.strictEqual(removedItem.item_name, 'Shampoobürste - Erbsengrün');
+      assert.strictEqual(removedItem.item_brand, 'Haakaa - Think Green Ltd.');
+      assert.strictEqual(removedItem.item_category, 'Baby Pflege');
+      assert.strictEqual(removedItem.price, 12.29);
+      assert.strictEqual(removedItem.quantity, 1);
+      assert.strictEqual(removedItem.sku_id, 'UTE15-G');
+
+      // Verify advertising namespaces populated
+      assert.ok(pushEvent.meta, 'Meta namespace present for remove_from_cart');
+      assert.ok(pushEvent.tiktok, 'TikTok namespace present for remove_from_cart');
+      assert.ok(pushEvent.google_ads, 'Google Ads namespace present for remove_from_cart');
+
+      // 4. Test Deduplication: Immediate subsequent removal attempt for same product is suppressed
+      const duplicateRemoved = simulateDirectCartRemoval(mockSvgPath);
+      assert.strictEqual(duplicateRemoved, false, 'Rapid duplicate click must be debounced');
+      assert.strictEqual(global.window.dataLayer.length, 2, 'No duplicate event pushed');
+    });
   });
 });

@@ -18,6 +18,31 @@
   // Cache of backend-resolved products to avoid redundant network requests
   var resolvedProductCache = {};
 
+  // Authoritative in-memory cart quantity state (100% backend & cart object driven, ZERO DOM)
+  var cartQuantities = {};
+  var cartProductsData = {};
+  var lastCartEventSignature = '';
+  var lastRemoveSignature = '';
+  var lastRemoveTime = 0;
+
+  function initCartState() {
+    if (window.psGtmConfig && window.psGtmConfig.cartProducts && typeof window.psGtmConfig.cartProducts === 'object') {
+      for (var k in window.psGtmConfig.cartProducts) {
+        if (window.psGtmConfig.cartProducts.hasOwnProperty(k)) {
+          cartQuantities[String(k)] = parseInt(window.psGtmConfig.cartProducts[k], 10) || 0;
+        }
+      }
+    }
+    if (window.psGtmConfig && window.psGtmConfig.cartProductsData && typeof window.psGtmConfig.cartProductsData === 'object') {
+      for (var kd in window.psGtmConfig.cartProductsData) {
+        if (window.psGtmConfig.cartProductsData.hasOwnProperty(kd)) {
+          cartProductsData[String(kd)] = window.psGtmConfig.cartProductsData[kd];
+        }
+      }
+    }
+  }
+  initCartState();
+
   /**
    * Resolves authoritative product data directly from backend memory or AJAX controller.
    * Completely independent of DOM structure.
@@ -27,6 +52,17 @@
     var idAttrStr = (idProductAttribute && parseInt(idProductAttribute, 10) > 0) ? String(idProductAttribute).trim() : '';
     var qty = parseInt(quantity, 10) || 1;
     var cacheKey = idProdStr + '_' + idAttrStr;
+    var zeroKey = idProdStr + '_0';
+
+    // 0. Check in-memory cart products data
+    var cartItem = (cartProductsData && (cartProductsData[cacheKey] || cartProductsData[zeroKey])) ||
+                   (window.psGtmConfig && window.psGtmConfig.cartProductsData && (window.psGtmConfig.cartProductsData[cacheKey] || window.psGtmConfig.cartProductsData[zeroKey]));
+    if (cartItem) {
+      var itemCopy = Object.assign({}, cartItem);
+      itemCopy.quantity = qty;
+      callback(itemCopy);
+      return;
+    }
 
     // 1. Check current PDP product if on product page
     var currProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
@@ -124,6 +160,146 @@
   var isCartUpdating = false;
   var lastInterceptedCartQty = 0;
 
+  function isCartEndpoint(url) {
+    if (!url || typeof url !== 'string') return false;
+    var lower = url.toLowerCase();
+    return lower.indexOf('controller=cart') !== -1 ||
+           lower.indexOf('/cart') !== -1 ||
+           lower.indexOf('/warenkorb') !== -1 ||
+           lower.indexOf('/panier') !== -1 ||
+           lower.indexOf('/carrinho') !== -1 ||
+           lower.indexOf('/carrello') !== -1 ||
+           lower.indexOf('/carrito') !== -1 ||
+           lower.indexOf('onepagecheckout') !== -1 ||
+           lower.indexOf('opc') !== -1;
+  }
+
+  function isCartDeleteRequest(url, data) {
+    var str = String(url || '').toLowerCase();
+    if (str.indexOf('delete=1') !== -1 ||
+        str.indexOf('action=delete') !== -1 ||
+        str.indexOf('deleteproduct') !== -1 ||
+        str.indexOf('opc_delete_cart') !== -1 ||
+        str.indexOf('delete-from-cart') !== -1) {
+      return true;
+    }
+    if (typeof data === 'string') {
+      var dLower = data.toLowerCase();
+      if (dLower.indexOf('delete=1') !== -1 ||
+          dLower.indexOf('action=delete') !== -1 ||
+          dLower.indexOf('deleteproduct') !== -1 ||
+          dLower.indexOf('opc_delete_cart') !== -1 ||
+          dLower.indexOf('delete-from-cart') !== -1) {
+        return true;
+      }
+    }
+    if (typeof FormData !== 'undefined' && data instanceof FormData) {
+      if (data.get('delete') === '1' || data.get('action') === 'delete' || data.get('action') === 'delete-from-cart') {
+        return true;
+      }
+    }
+    if (typeof data === 'object' && data !== null) {
+      if (data.delete === 1 || data.delete === '1' || data.action === 'delete' || data.action === 'delete-from-cart') {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function extractCartDeleteData(url, data) {
+    var prodId = '';
+    var attrId = '';
+    var qty = 1;
+
+    function inspect(input) {
+      if (!input) return;
+      if (typeof input === 'string') {
+        try {
+          var decoded = decodeURIComponent(input);
+          var pMatch = decoded.match(/(?:id_product|idProduct|productId)\s*[:=]\s*["']?(\d+)/i) ||
+                      decoded.match(/(?:id_product|idProduct|productId)\D*(\d+)/i);
+          var aMatch = decoded.match(/(?:id_product_attribute|idProductAttribute|productAttributeId)\s*[:=]\s*["']?(\d+)/i) ||
+                      decoded.match(/(?:id_product_attribute|idProductAttribute|productAttributeId)\D*(\d+)/i);
+          var qMatch = decoded.match(/(?:qty|quantity)\s*[:=]\s*["']?(\d+)/i);
+          if (pMatch && pMatch[1]) prodId = prodId || pMatch[1];
+          if (aMatch && aMatch[1]) attrId = attrId || aMatch[1];
+          if (qMatch && qMatch[1]) qty = parseInt(qMatch[1], 10);
+        } catch (e) {
+          var pMatch2 = input.match(/(?:id_product|idProduct|productId)\D*(\d+)/i);
+          var aMatch2 = input.match(/(?:id_product_attribute|idProductAttribute|productAttributeId)\D*(\d+)/i);
+          if (pMatch2 && pMatch2[1]) prodId = prodId || pMatch2[1];
+          if (aMatch2 && aMatch2[1]) attrId = attrId || aMatch2[1];
+        }
+      } else if (typeof FormData !== 'undefined' && input instanceof FormData) {
+        prodId = input.get('id_product') || input.get('idProduct') || input.get('productId') || prodId;
+        attrId = input.get('id_product_attribute') || input.get('idProductAttribute') || input.get('productAttributeId') || attrId;
+        var fQty = input.get('qty') || input.get('quantity');
+        if (fQty) qty = parseInt(fQty, 10);
+      } else if (typeof input === 'object' && input !== null) {
+        prodId = input.id_product || input.idProduct || input.productId || prodId;
+        attrId = input.id_product_attribute || input.idProductAttribute || input.productAttributeId || attrId;
+        if (input.qty || input.quantity) qty = parseInt(input.qty || input.quantity, 10);
+      }
+    }
+
+    inspect(url);
+    if (!prodId) inspect(data);
+
+    return {
+      productId: String(prodId || '').trim(),
+      productAttributeId: (attrId && String(attrId) !== '0' && parseInt(attrId, 10) > 0) ? String(attrId).trim() : '',
+      quantity: qty > 0 ? qty : 1
+    };
+  }
+
+  function dispatchDirectRemoveFromCart(idProduct, idProductAttribute, quantity) {
+    if (!idProduct) return;
+    var normAttr = (idProductAttribute && String(idProductAttribute) !== '0' && parseInt(idProductAttribute, 10) > 0)
+      ? String(idProductAttribute).trim()
+      : '';
+    var key = String(idProduct).trim() + '_' + (normAttr || '0');
+    var now = new Date().getTime();
+
+    // Debounce rapid triggers / duplicate callbacks within 1500ms
+    if (lastRemoveSignature === key && (now - lastRemoveTime < 1500)) {
+      return;
+    }
+    lastRemoveSignature = key;
+    lastRemoveTime = now;
+
+    var removeQty = (quantity && parseInt(quantity, 10) > 0) ? parseInt(quantity, 10) : (cartQuantities[key] || 1);
+    var currencyCode = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
+    var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined)
+      ? parseInt(window.psGtmConfig.currencyPrecision, 10)
+      : 2;
+
+    resolveBackendProduct(idProduct, normAttr, removeQty, function (resolvedItem) {
+      var item = resolvedItem ? resolvedItem : (cartProductsData[key] || {
+        item_id: String(idProduct),
+        variant_id: normAttr,
+        item_name: 'Product #' + idProduct,
+        price: 0.0,
+        quantity: removeQty
+      });
+      item.quantity = removeQty;
+
+      var normItems = EDL.normalizeItems([item], prec);
+      if (normItems.length > 0) {
+        EDL.pushEvent('remove_from_cart', {
+          currency: currencyCode,
+          value: EDL.calculateCartValue(normItems, prec),
+          items: normItems
+        });
+      }
+
+      delete cartQuantities[key];
+      delete cartProductsData[key];
+      if (window.psGtmConfig && window.psGtmConfig.cartProductsData) {
+        delete window.psGtmConfig.cartProductsData[key];
+      }
+    });
+  }
+
   // Intercept native HTTP POST requests to PrestaShop CartController (Network/Controller level, ZERO DOM)
   (function () {
     if (typeof window === 'undefined' || !window.XMLHttpRequest) return;
@@ -138,10 +314,7 @@
 
     XMLHttpRequest.prototype.send = function (data) {
       try {
-        var isCartUrl = this._psGtmUrl && (
-          this._psGtmUrl.indexOf('controller=cart') !== -1 ||
-          this._psGtmUrl.indexOf('/cart') !== -1
-        );
+        var isCartUrl = this._psGtmUrl && isCartEndpoint(this._psGtmUrl);
 
         if (this._psGtmMethod === 'POST' && isCartUrl && data) {
           var parsedQty = 0;
@@ -160,6 +333,18 @@
 
           if (parsedQty > 0) {
             lastInterceptedCartQty = parsedQty;
+          }
+        }
+
+        // Intercept native PrestaShop Cart Deletion requests (Network/Controller level, ZERO DOM)
+        if (isCartUrl && isCartDeleteRequest(this._psGtmUrl, data)) {
+          var extractedDeleteXhr = extractCartDeleteData(this._psGtmUrl, data);
+          if (extractedDeleteXhr.productId) {
+            this.addEventListener('load', function () {
+              if (this.status >= 200 && this.status < 300) {
+                dispatchDirectRemoveFromCart(extractedDeleteXhr.productId, extractedDeleteXhr.productAttributeId, extractedDeleteXhr.quantity);
+              }
+            });
           }
         }
 
@@ -205,6 +390,18 @@
     var origFetch = window.fetch;
     window.fetch = function (input, init) {
       var url = (typeof input === 'string') ? input : (input && input.url ? input.url : '');
+
+      if (isCartEndpoint(url) && isCartDeleteRequest(url, init && init.body)) {
+        var extractedDeleteFetch = extractCartDeleteData(url, init && init.body);
+        if (extractedDeleteFetch.productId) {
+          return origFetch.apply(this, arguments).then(function (res) {
+            if (res.ok) {
+              dispatchDirectRemoveFromCart(extractedDeleteFetch.productId, extractedDeleteFetch.productAttributeId, extractedDeleteFetch.quantity);
+            }
+            return res;
+          });
+        }
+      }
 
       if (isWishlistEndpoint(url)) {
         var currProdFetch = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
@@ -418,207 +615,202 @@
   }
   hookWishlistEventBus();
 
-  // Authoritative in-memory cart quantity state (100% backend & cart object driven, ZERO DOM)
-  var cartQuantities = {};
-  var cartProductsData = {};
-  var lastCartEventSignature = '';
-
-  function initCartState() {
-    if (window.psGtmConfig && window.psGtmConfig.cartProducts && typeof window.psGtmConfig.cartProducts === 'object') {
-      for (var k in window.psGtmConfig.cartProducts) {
-        if (window.psGtmConfig.cartProducts.hasOwnProperty(k)) {
-          cartQuantities[String(k)] = parseInt(window.psGtmConfig.cartProducts[k], 10) || 0;
-        }
-      }
-    }
-    if (window.psGtmConfig && window.psGtmConfig.cartProductsData && typeof window.psGtmConfig.cartProductsData === 'object') {
-      for (var kd in window.psGtmConfig.cartProductsData) {
-        if (window.psGtmConfig.cartProductsData.hasOwnProperty(kd)) {
-          cartProductsData[String(kd)] = window.psGtmConfig.cartProductsData[kd];
-        }
-      }
-    }
-  }
-
   function onPrestashopReady() {
-    if (!window.prestashop) return;
     syncConfig();
     initCartState();
 
     // 1. Native cart actions (add_to_cart, remove_from_cart) via PrestaShop Core Event Bus
-    window.prestashop.on('updateCart', function (event) {
-      if (!event) return;
+    if (window.prestashop && typeof window.prestashop.on === 'function') {
+      window.prestashop.on('updateCart', function (event) {
+        if (!event) return;
 
-      // Failure Guard: If server reported an error (out of stock, invalid qty), suppress event
-      if (event.resp && (event.resp.hasError || (event.resp.errors && event.resp.errors.length > 0))) {
-        return;
-      }
+        // Failure Guard: If server reported an error (out of stock, invalid qty), suppress event
+        if (event.resp && (event.resp.hasError || (event.resp.errors && event.resp.errors.length > 0))) {
+          return;
+        }
 
-      var reason = event.reason || {};
-      var action = reason.action || reason.linkAction || (event.resp && event.resp.cartAction) || '';
-      var cart = event.resp ? event.resp.cart : null;
-      var currencyCode = (cart && cart.currency) ? cart.currency.iso_code : ((window.psGtmConfig && window.psGtmConfig.currency) || 'EUR');
-      var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+        var reason = event.reason || {};
+        var action = reason.action || reason.linkAction || (event.resp && event.resp.cartAction) || '';
+        var cart = event.resp ? event.resp.cart : null;
+        var currencyCode = (cart && cart.currency) ? cart.currency.iso_code : ((window.psGtmConfig && window.psGtmConfig.currency) || 'EUR');
+        var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
 
-      // Primary Path: Authoritative Universal Cart Delta Engine (Zero DOM)
-      if (cart && Array.isArray(cart.products) && EDL.processCartDelta) {
-        var deltaResult = EDL.processCartDelta(cartQuantities, cartProductsData, cart.products, {
-          precision: prec,
-          currentProduct: (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null,
-          productCombinations: (window.psGtmConfig && window.psGtmConfig.productCombinations) ? window.psGtmConfig.productCombinations : null
-        });
-
-        // Update in-memory state
-        cartQuantities = deltaResult.updatedQuantities;
-        cartProductsData = deltaResult.updatedProductsData;
-
-        // Emit add_to_cart for positive quantity changes (new additions or quantity increments)
-        if (deltaResult.itemsAdded && deltaResult.itemsAdded.length > 0) {
-          lastAddToCartTime = new Date().getTime();
-          isCartUpdating = true;
-          setTimeout(function () { isCartUpdating = false; }, 2500);
-
-          EDL.pushEvent('add_to_cart', {
-            currency: currencyCode,
-            value: EDL.calculateCartValue(deltaResult.itemsAdded, prec),
-            items: deltaResult.itemsAdded
+        // Primary Path: Authoritative Universal Cart Delta Engine (Zero DOM)
+        if (cart && Array.isArray(cart.products) && EDL.processCartDelta) {
+          var deltaResult = EDL.processCartDelta(cartQuantities, cartProductsData, cart.products, {
+            precision: prec,
+            currentProduct: (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null,
+            productCombinations: (window.psGtmConfig && window.psGtmConfig.productCombinations) ? window.psGtmConfig.productCombinations : null
           });
-        }
 
-        // Emit remove_from_cart for negative quantity changes (decrements or complete removals)
-        if (deltaResult.itemsRemoved && deltaResult.itemsRemoved.length > 0) {
-          EDL.pushEvent('remove_from_cart', {
-            currency: currencyCode,
-            value: EDL.calculateCartValue(deltaResult.itemsRemoved, prec),
-            items: deltaResult.itemsRemoved
-          });
-        }
+          // Update in-memory state
+          cartQuantities = deltaResult.updatedQuantities;
+          cartProductsData = deltaResult.updatedProductsData;
 
-        return;
-      }
+          // Emit add_to_cart for positive quantity changes (new additions or quantity increments)
+          if (deltaResult.itemsAdded && deltaResult.itemsAdded.length > 0) {
+            lastAddToCartTime = new Date().getTime();
+            isCartUpdating = true;
+            setTimeout(function () { isCartUpdating = false; }, 2500);
 
-      // Secondary Fallback Path: For non-standard themes omitting cart.products in updateCart event
-      if (action === 'add-to-cart' || action === 'up') {
-        var now = new Date().getTime();
-        if (now - lastAddToCartTime < 800) return;
-        lastAddToCartTime = now;
-        isCartUpdating = true;
-        setTimeout(function () { isCartUpdating = false; }, 2500);
+            EDL.pushEvent('add_to_cart', {
+              currency: currencyCode,
+              value: EDL.calculateCartValue(deltaResult.itemsAdded, prec),
+              items: deltaResult.itemsAdded
+            });
+          }
 
-        var addedIdProduct = reason.idProduct || reason.id_product || (event.resp && (event.resp.id_product || event.resp.idProduct)) || '';
-        if (!addedIdProduct && window.psGtmConfig && window.psGtmConfig.currentProduct) {
-          addedIdProduct = window.psGtmConfig.currentProduct.item_id;
-        }
-
-        var rawAttr = (reason.idProductAttribute !== undefined && reason.idProductAttribute !== null)
-          ? reason.idProductAttribute
-          : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
-        var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
-
-        var qty = 1;
-        if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
-          qty = parseInt(event.resp.quantity, 10);
-        } else if (lastInterceptedCartQty > 0) {
-          qty = lastInterceptedCartQty;
-          lastInterceptedCartQty = 0;
-        } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
-          qty = parseInt(event.resp.qty, 10);
-        } else if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
-          qty = parseInt(reason.quantity, 10);
-        } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
-          qty = parseInt(reason.qty, 10);
-        }
-
-        resolveBackendProduct(addedIdProduct, addedIdAttr, qty, function (resolvedItem) {
-          if (resolvedItem) {
-            var norm = EDL.normalizeItems([resolvedItem], prec);
-            if (norm.length > 0) {
-              EDL.pushEvent('add_to_cart', {
+          // Emit remove_from_cart for negative quantity changes (decrements or complete removals)
+          if (deltaResult.itemsRemoved && deltaResult.itemsRemoved.length > 0) {
+            var filteredRemoved = [];
+            for (var rIdx = 0; rIdx < deltaResult.itemsRemoved.length; rIdx++) {
+              var rItem = deltaResult.itemsRemoved[rIdx];
+              var rKey = String(rItem.item_id).trim() + '_' + (rItem.variant_id ? String(rItem.variant_id).trim() : '0');
+              if (lastRemoveSignature === rKey && (new Date().getTime() - lastRemoveTime < 1500)) {
+                continue; // Skip duplicate already tracked
+              }
+              filteredRemoved.push(rItem);
+            }
+            if (filteredRemoved.length > 0) {
+              EDL.pushEvent('remove_from_cart', {
                 currency: currencyCode,
-                value: EDL.calculateCartValue(norm, prec),
-                items: norm
+                value: EDL.calculateCartValue(filteredRemoved, prec),
+                items: filteredRemoved
               });
             }
           }
-        });
 
-      } else if (action === 'delete-from-cart' || action === 'remove-from-cart' || action === 'down') {
-        var removedIdProduct = reason.idProduct || reason.id_product || '';
-        var rawRemovedAttr = reason.idProductAttribute || reason.id_product_attribute || '';
-        var normRemovedAttr = (rawRemovedAttr && parseInt(rawRemovedAttr, 10) > 0) ? String(rawRemovedAttr) : '';
-        var removeQty = (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) ? parseInt(reason.quantity, 10) : 1;
-
-        var cachedKey = String(removedIdProduct) + '_' + (normRemovedAttr || '0');
-        if (cartQuantities[cachedKey] && action === 'delete-from-cart') {
-          removeQty = cartQuantities[cachedKey];
+          return;
         }
 
-        resolveBackendProduct(removedIdProduct, normRemovedAttr, removeQty, function (resolvedItem) {
-          var item = resolvedItem ? resolvedItem : (cartProductsData[cachedKey] || {
-            item_id: String(removedIdProduct),
-            variant_id: normRemovedAttr,
-            item_name: 'Product',
-            price: 0.0,
-            quantity: removeQty
-          });
-          item.quantity = removeQty;
+        // Secondary Fallback Path: For non-standard themes omitting cart.products in updateCart event
+        if (action === 'add-to-cart' || action === 'up') {
+          var now = new Date().getTime();
+          if (now - lastAddToCartTime < 800) return;
+          lastAddToCartTime = now;
+          isCartUpdating = true;
+          setTimeout(function () { isCartUpdating = false; }, 2500);
 
-          var normItems = EDL.normalizeItems([item], prec);
-          if (normItems.length > 0) {
-            EDL.pushEvent('remove_from_cart', {
-              currency: currencyCode,
-              value: EDL.calculateCartValue(normItems, prec),
-              items: normItems
-            });
+          var addedIdProduct = reason.idProduct || reason.id_product || (event.resp && (event.resp.id_product || event.resp.idProduct)) || '';
+          if (!addedIdProduct && window.psGtmConfig && window.psGtmConfig.currentProduct) {
+            addedIdProduct = window.psGtmConfig.currentProduct.item_id;
           }
-        });
-      }
-    });
+
+          var rawAttr = (reason.idProductAttribute !== undefined && reason.idProductAttribute !== null)
+            ? reason.idProductAttribute
+            : (reason.id_product_attribute !== undefined ? reason.id_product_attribute : (event.resp && (event.resp.id_product_attribute !== undefined ? event.resp.id_product_attribute : event.resp.idProductAttribute)));
+          var addedIdAttr = (rawAttr && parseInt(rawAttr, 10) > 0) ? String(rawAttr) : '';
+
+          var qty = 1;
+          if (event.resp && event.resp.quantity !== undefined && parseInt(event.resp.quantity, 10) > 0) {
+            qty = parseInt(event.resp.quantity, 10);
+          } else if (lastInterceptedCartQty > 0) {
+            qty = lastInterceptedCartQty;
+            lastInterceptedCartQty = 0;
+          } else if (event.resp && event.resp.qty !== undefined && parseInt(event.resp.qty, 10) > 0) {
+            qty = parseInt(event.resp.qty, 10);
+          } else if (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) {
+            qty = parseInt(reason.quantity, 10);
+          } else if (reason.qty !== undefined && parseInt(reason.qty, 10) > 0) {
+            qty = parseInt(reason.qty, 10);
+          }
+
+          resolveBackendProduct(addedIdProduct, addedIdAttr, qty, function (resolvedItem) {
+            if (resolvedItem) {
+              var norm = EDL.normalizeItems([resolvedItem], prec);
+              if (norm.length > 0) {
+                EDL.pushEvent('add_to_cart', {
+                  currency: currencyCode,
+                  value: EDL.calculateCartValue(norm, prec),
+                  items: norm
+                });
+              }
+            }
+          });
+
+        } else if (action === 'delete-from-cart' || action === 'remove-from-cart' || action === 'down') {
+          var removedIdProduct = reason.idProduct || reason.id_product || '';
+          var rawRemovedAttr = reason.idProductAttribute || reason.id_product_attribute || '';
+          var normRemovedAttr = (rawRemovedAttr && parseInt(rawRemovedAttr, 10) > 0) ? String(rawRemovedAttr) : '';
+          var removeQty = (reason.quantity !== undefined && parseInt(reason.quantity, 10) > 0) ? parseInt(reason.quantity, 10) : 1;
+
+          var cachedKey = String(removedIdProduct) + '_' + (normRemovedAttr || '0');
+          if (lastRemoveSignature === cachedKey && (new Date().getTime() - lastRemoveTime < 1500)) {
+            return; // Skip duplicate already tracked
+          }
+          if (cartQuantities[cachedKey] && action === 'delete-from-cart') {
+            removeQty = cartQuantities[cachedKey];
+          }
+
+          resolveBackendProduct(removedIdProduct, normRemovedAttr, removeQty, function (resolvedItem) {
+            var item = resolvedItem ? resolvedItem : (cartProductsData[cachedKey] || {
+              item_id: String(removedIdProduct),
+              variant_id: normRemovedAttr,
+              item_name: 'Product',
+              price: 0.0,
+              quantity: removeQty
+            });
+            item.quantity = removeQty;
+
+            var normItems = EDL.normalizeItems([item], prec);
+            if (normItems.length > 0) {
+              EDL.pushEvent('remove_from_cart', {
+                currency: currencyCode,
+                value: EDL.calculateCartValue(normItems, prec),
+                items: normItems
+              });
+            }
+          });
+        }
+      });
+    }
 
     // 2. Native Combination Switch on PDP via PrestaShop Core Event Bus
     var lastViewedProductAttributeId = (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.variant_id)
       ? String(window.psGtmConfig.currentProduct.variant_id)
       : '';
 
-    window.prestashop.on('updatedProduct', function (event) {
-      if (!event || !event.id_product_attribute || event.id_product_attribute === '0') {
-        return;
-      }
-
-      var now = new Date().getTime();
-      // Guard 1: Suppress combination event if cart action is in progress or occurred within 2500ms
-      if (isCartUpdating || (now - lastAddToCartTime < 2500)) {
-        return;
-      }
-
-      var idAttr = String(event.id_product_attribute);
-
-      // Guard 2: Suppress duplicate view_item if the combination attribute did NOT actually change
-      if (lastViewedProductAttributeId && idAttr === lastViewedProductAttributeId) {
-        return;
-      }
-      lastViewedProductAttributeId = idAttr;
-
-      var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
-      var idProduct = currentProd ? currentProd.item_id : (event.id_product || '');
-
-      resolveBackendProduct(idProduct, idAttr, 1, function (variantItem) {
-        if (variantItem) {
-          if (window.psGtmConfig) {
-            window.psGtmConfig.currentProduct = variantItem;
-          }
-
-          var items = EDL.normalizeItems([variantItem]);
-          if (items.length > 0) {
-            EDL.pushEvent('view_item', {
-              currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
-              value: items[0].price,
-              items: items
-            });
-          }
+    if (window.prestashop && typeof window.prestashop.on === 'function') {
+      window.prestashop.on('updatedProduct', function (event) {
+        if (!event || !event.id_product_attribute || event.id_product_attribute === '0') {
+          return;
         }
+
+        var now = new Date().getTime();
+        // Guard 1: Suppress combination event if cart action is in progress or occurred within 2500ms
+        if (isCartUpdating || (now - lastAddToCartTime < 2500)) {
+          return;
+        }
+
+        var idAttr = String(event.id_product_attribute);
+
+        // Guard 2: Suppress duplicate view_item if the combination attribute did NOT actually change
+        if (lastViewedProductAttributeId && idAttr === lastViewedProductAttributeId) {
+          return;
+        }
+        lastViewedProductAttributeId = idAttr;
+
+        var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
+        var idProduct = currentProd ? currentProd.item_id : (event.id_product || '');
+
+        resolveBackendProduct(idProduct, idAttr, 1, function (variantItem) {
+          if (variantItem) {
+            if (window.psGtmConfig) {
+              window.psGtmConfig.currentProduct = variantItem;
+            }
+
+            var items = EDL.normalizeItems([variantItem]);
+            if (items.length > 0) {
+              EDL.pushEvent('view_item', {
+                currency: (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR',
+                value: items[0].price,
+                items: items
+              });
+            }
+          }
+        });
       });
-    });
+    }
 
     // 3. Native select_item (GA4) Tracking for Category & Search Listings
     var lastSelectedItemId = '';
@@ -797,17 +989,102 @@
       }
     }, true);
 
+    // Universal Cart Removal Click Listener (Cart page, checkout page, mini-cart, OPC modules)
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+
+      var removeTrigger = e.target.closest(
+        '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
+        '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, ' +
+        'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"]'
+      );
+      if (!removeTrigger) return;
+
+      var anchor = (removeTrigger.tagName === 'A') ? removeTrigger : (removeTrigger.querySelector ? removeTrigger.querySelector('a') : null);
+      if (!anchor && removeTrigger.closest) {
+        anchor = removeTrigger.closest('a');
+      }
+
+      var idProd = '';
+      var idAttr = '';
+      var qty = 1;
+
+      // 1. Extract from anchor href
+      if (anchor && anchor.href) {
+        var pMatch = anchor.href.match(/(?:[\?&]id_product=|[\?&]idProduct=|[\?&]productId=)(\d+)/i);
+        var aMatch = anchor.href.match(/(?:[\?&]id_product_attribute=|[\?&]idProductAttribute=|[\?&]productAttributeId=)(\d+)/i);
+        if (pMatch && pMatch[1]) idProd = pMatch[1];
+        if (aMatch && aMatch[1]) idAttr = aMatch[1];
+      }
+
+      // 2. Extract from trigger or parent data attributes
+      if (!idProd) {
+        idProd = removeTrigger.getAttribute('data-id-product') ||
+                 removeTrigger.getAttribute('data-product-id') ||
+                 removeTrigger.getAttribute('data-id_product') ||
+                 (removeTrigger.dataset && (removeTrigger.dataset.idProduct || removeTrigger.dataset.productId));
+      }
+      if (!idAttr) {
+        idAttr = removeTrigger.getAttribute('data-id-product-attribute') ||
+                 removeTrigger.getAttribute('data-product-attribute-id') ||
+                 removeTrigger.getAttribute('data-id_product_attribute') ||
+                 (removeTrigger.dataset && (removeTrigger.dataset.idProductAttribute || removeTrigger.dataset.productAttributeId));
+      }
+
+      // 3. Inspect parent cart item / row container
+      if (!idProd) {
+        var parentRow = removeTrigger.closest('.cart-item, .cart-line-product, [data-id-product], [data-product-id], tr, li');
+        if (parentRow) {
+          idProd = parentRow.getAttribute('data-id-product') ||
+                   parentRow.getAttribute('data-product-id') ||
+                   parentRow.getAttribute('data-id_product') ||
+                   (parentRow.dataset && (parentRow.dataset.idProduct || parentRow.dataset.productId));
+          if (!idAttr) {
+            idAttr = parentRow.getAttribute('data-id-product-attribute') ||
+                     parentRow.getAttribute('data-product-attribute-id') ||
+                     parentRow.getAttribute('data-id_product_attribute') ||
+                     (parentRow.dataset && (parentRow.dataset.idProductAttribute || parentRow.dataset.productAttributeId));
+          }
+        }
+      }
+
+      if (idProd) {
+        dispatchDirectRemoveFromCart(idProd, idAttr, qty);
+      }
+    }, true);
+
     // Capture Product Link Selection from Listings (Capture phase for instant pre-unload execution)
     document.addEventListener('click', function (e) {
       if (!e.target) return;
 
       var targetEl = e.target;
-      // Exclude add-to-cart buttons inside listing cards
-      if (targetEl.closest && targetEl.closest('.add-to-cart, [data-button-action="add-to-cart"], .quick-view')) {
+      // Exclude cart actions, removal buttons, quantity adjustments, wishlist toggles, and cart/checkout overview containers
+      var isCartOrActionElement = targetEl.closest && targetEl.closest(
+        '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
+        '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, .cart-line-product-actions, ' +
+        'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"], ' +
+        '.js-increase-product-quantity, .js-decrease-product-quantity, [data-link-action="update-qty"], ' +
+        '.cart-line-product-quantity, .bootstrap-touchspin-up, .bootstrap-touchspin-down, ' +
+        '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
+        '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
+        '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
+        '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], .quick-view'
+      );
+      if (isCartOrActionElement) {
         return;
       }
 
       var anchor = targetEl.closest ? targetEl.closest('a') : null;
+      if (anchor && anchor.href) {
+        var hrefLower = anchor.href.toLowerCase();
+        if (hrefLower.indexOf('delete=1') !== -1 ||
+            hrefLower.indexOf('action=delete') !== -1 ||
+            hrefLower.indexOf('deleteproduct') !== -1 ||
+            hrefLower.indexOf('opc_delete_cart') !== -1) {
+          return;
+        }
+      }
+
       var productCard = targetEl.closest ? targetEl.closest('[data-id-product], .js-product-miniature, article.product-miniature') : null;
 
       var idProduct = '';
@@ -1069,10 +1346,12 @@
     }, true);
 
     // 7. Native Faceted Navigation & AJAX Catalog Pagination (ps_facetedsearch / core listing)
-    window.prestashop.on('updateProductList', function (eventData) {
-      // PrestaShop updates product listings dynamically via AJAX.
-      // Delegated document click listeners automatically cover re-rendered miniatures.
-    });
+    if (window.prestashop && typeof window.prestashop.on === 'function') {
+      window.prestashop.on('updateProductList', function (eventData) {
+        // PrestaShop updates product listings dynamically via AJAX.
+        // Delegated document click listeners automatically cover re-rendered miniatures.
+      });
+    }
   }
 
   if (document.readyState === 'loading') {

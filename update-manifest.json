@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.12.0",
+    "latest_version":  "1.12.1",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.12.0/ps_gtm_datalayer.zip",
-    "checksum":  "42a74fa1cf33b5e4a0aae97f7ac78cfc7cd817b6520b1fbbfdb76aa78daf13fd",
-    "release_type":  "minor",
-    "release_notes":  "1. Implemented GA4 add_shipping_info \u0026 add_payment_info: Dual server-side (actionCarrierProcess hook \u0026 checkout queue) and client-side lifecycle observers for carrier and payment method selection.\n2. Complete GA4 schema compliance: currency, value, shipping_tier, payment_type, coupon, and items array.\n3. Dynamic deduplication and method switching: Allows customers to change carriers or payment options without duplicate event firing while accurately updating the data layer."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.12.1/ps_gtm_datalayer.zip",
+    "checksum":  "8982b6726f645525f4ffe5732c3b96e026269a0823e02c8dc40f6d61b83eb6ee",
+    "release_type":  "patch",
+    "release_notes":  "1. Fixed false select_item trigger when removing products on Checkout / Cart (excluded cart action triggers and deletion URLs from select_item).\n2. Universal remove_from_cart tracking across all checkout types (including ETS One Page Checkout, standard PrestaShop, slide-out mini-carts, and cart pages).\n3. Zero DOM data resolution: product data resolved strictly from backend memory or AJAX controller.\n4. Network-level XHR and Fetch interceptors with deduplication guards to ensure accurate, single remove_from_cart event emission."
 }
