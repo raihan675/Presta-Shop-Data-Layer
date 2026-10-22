@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.11.1';
+        $this->version = '1.12.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -40,6 +40,11 @@ class Ps_Gtm_DataLayer extends Module
         // Keep ps_module database version table synchronized with active version
         if (class_exists('Db')) {
             PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
+        }
+
+        // Auto-register core hooks seamlessly without requiring module reinstall
+        if (!$this->isRegisteredInHook('actionCarrierProcess')) {
+            $this->registerHook('actionCarrierProcess');
         }
 
         // Auto-register back-office hooks seamlessly when admin visits Back Office
@@ -62,6 +67,7 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('displayAfterBodyOpeningTag')
             && $this->registerHook('displayOrderConfirmation')
             && $this->registerHook('actionCartUpdateQuantityBefore')
+            && $this->registerHook('actionCarrierProcess')
             && $this->registerHook('displayBackOfficeTop')
             && $this->registerHook('displayBackOfficeHeader')
             && DeduplicationManager::createDatabaseTable()
@@ -1002,6 +1008,77 @@ class Ps_Gtm_DataLayer extends Module
         $this->context->cookie->ps_gtm_pending_events = json_encode($events);
     }
 
+    public function hookActionCarrierProcess($params)
+    {
+        try {
+            $cart = isset($params['cart']) ? $params['cart'] : $this->context->cart;
+            if (!Validate::isLoadedObject($cart) || $cart->nbProducts() === 0) {
+                return;
+            }
+
+            $idCarrier = (int)$cart->id_carrier;
+            $carrierName = '';
+            if ($idCarrier > 0) {
+                $carrier = new Carrier($idCarrier, $this->context->language ? (int)$this->context->language->id : 1);
+                if (Validate::isLoadedObject($carrier)) {
+                    $carrierName = (string)$carrier->name;
+                }
+            }
+            if (empty($carrierName)) {
+                $carrierName = 'Standard Delivery';
+            }
+
+            $this->queueCheckoutEvent('add_shipping_info', $cart, ['shipping_tier' => $carrierName]);
+        } catch (\Throwable $e) {}
+    }
+
+    public function queueCheckoutEvent($canonicalEvent, Cart $cart, $extraEcommerceParams = [])
+    {
+        if (!Validate::isLoadedObject($cart) || $cart->nbProducts() === 0) {
+            return;
+        }
+
+        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+
+        if ($canonicalEvent === 'add_shipping_info') {
+            $shippingTier = isset($extraEcommerceParams['shipping_tier']) ? $extraEcommerceParams['shipping_tier'] : '';
+            $payload = $payloadBuilder->buildAddShippingInfoPayload($shippingTier);
+        } elseif ($canonicalEvent === 'add_payment_info') {
+            $paymentType = isset($extraEcommerceParams['payment_type']) ? $extraEcommerceParams['payment_type'] : '';
+            $payload = $payloadBuilder->buildAddPaymentInfoPayload($paymentType);
+        } else {
+            return;
+        }
+
+        if (!$payload) {
+            return;
+        }
+
+        $events = [];
+        if (!empty($this->context->cookie->ps_gtm_pending_events)) {
+            $decoded = json_decode($this->context->cookie->ps_gtm_pending_events, true);
+            if (is_array($decoded)) {
+                $events = $decoded;
+            }
+        }
+
+        // Deduplication in cookie: avoid duplicate checkout step events
+        foreach ($events as $existing) {
+            if (isset($existing['original_event']) && $existing['original_event'] === $canonicalEvent) {
+                if ($canonicalEvent === 'add_shipping_info' && isset($existing['ecommerce']['shipping_tier']) && isset($payload['ecommerce']['shipping_tier']) && $existing['ecommerce']['shipping_tier'] === $payload['ecommerce']['shipping_tier']) {
+                    return;
+                }
+                if ($canonicalEvent === 'add_payment_info' && isset($existing['ecommerce']['payment_type']) && isset($payload['ecommerce']['payment_type']) && $existing['ecommerce']['payment_type'] === $payload['ecommerce']['payment_type']) {
+                    return;
+                }
+            }
+        }
+
+        $events[] = $payload;
+        $this->context->cookie->ps_gtm_pending_events = json_encode($events);
+    }
+
     public function getAndClearPendingEvents()
     {
         if (empty($this->context->cookie->ps_gtm_pending_events)) {
@@ -1174,6 +1251,60 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
+            // Pre-hydrate authoritative Payment Options Map for checkout step 4
+            $paymentOptionsMap = [];
+            if ($controller === 'order' && class_exists('PaymentOptionsFinder')) {
+                try {
+                    $finder = new PaymentOptionsFinder();
+                    $presentOptions = $finder->present();
+                    if (is_array($presentOptions)) {
+                        foreach ($presentOptions as $moduleOptions) {
+                            if (is_array($moduleOptions)) {
+                                foreach ($moduleOptions as $opt) {
+                                    $optId = isset($opt['id']) ? (string)$opt['id'] : '';
+                                    $optName = isset($opt['call_to_action_text']) ? (string)$opt['call_to_action_text'] : '';
+                                    $modName = isset($opt['module_name']) ? (string)$opt['module_name'] : '';
+                                    if ($optId && $optName) {
+                                        $paymentOptionsMap[$optId] = $optName;
+                                    }
+                                    if ($modName && $optName) {
+                                        $paymentOptionsMap[$modName] = $optName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (\Throwable $e) {}
+            }
+            if (is_array($paymentMethodsMap)) {
+                foreach ($paymentMethodsMap as $pmKey => $pmName) {
+                    if (!isset($paymentOptionsMap[$pmKey])) {
+                        $paymentOptionsMap[$pmKey] = $pmName;
+                    }
+                }
+            }
+
+            // Pre-hydrate selected carrier name from cart if active
+            $selectedCarrierName = '';
+            if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
+                $idCarrier = (int)$this->context->cart->id_carrier;
+                if ($idCarrier > 0 && isset($carriersMap[$idCarrier])) {
+                    $selectedCarrierName = $carriersMap[$idCarrier];
+                }
+            }
+
+            // Pre-hydrate active cart voucher / coupon code (GA4 coupon parameter)
+            $cartCoupon = '';
+            if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
+                $cartRules = $this->context->cart->getCartRules();
+                if (!empty($cartRules)) {
+                    $codes = array_filter(array_map(function($r) { return !empty($r['code']) ? trim($r['code']) : ''; }, $cartRules));
+                    if (!empty($codes)) {
+                        $cartCoupon = implode(', ', $codes);
+                    }
+                }
+            }
+
             $this->context->smarty->assign([
                 'gtm_id' => $gtmId,
                 'sgtm_url' => $sgtmUrl,
@@ -1190,6 +1321,9 @@ class Ps_Gtm_DataLayer extends Module
                 'advertising_settings' => json_encode($advSettings, JSON_UNESCAPED_SLASHES),
                 'carriers_map' => json_encode($carriersMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'payment_methods_map' => json_encode($paymentMethodsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'payment_options_map' => json_encode($paymentOptionsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+                'selected_carrier' => $selectedCarrierName,
+                'cart_coupon' => $cartCoupon,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);

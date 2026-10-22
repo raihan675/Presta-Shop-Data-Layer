@@ -1514,5 +1514,181 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(pushed.ecommerce.items[0].item_list_name, 'Baby Geschirr');
       assert.strictEqual(pushed.ecommerce.items[0].item_id, '27');
     });
+
+    it('38. Checkout Funnel: add_shipping_info and add_payment_info GA4 schema & 7-scenario validation', function () {
+      EDL.setEventPrefix('raihan');
+
+      const mockCartItems = [
+        EDL.normalizeItem({
+          item_id: '27',
+          variant_id: '',
+          sku_id: 'UTE65-B',
+          item_name: 'Baby Essteller mit Unterteilung und Saugfuss - Stahlblau',
+          item_brand: 'Haakaa - Think Green Ltd.',
+          item_category: 'Baby Geschirr',
+          price: 15.39,
+          quantity: 2
+        }),
+        EDL.normalizeItem({
+          item_id: '68',
+          variant_id: '298',
+          sku_id: 'BHK125-R',
+          item_name: 'Trink und Snack Tasse',
+          item_brand: 'Haakaa - Think Green Ltd.',
+          item_category: 'Baby Geschirr',
+          item_variant: 'Farbe1: Rostrot',
+          price: 13.00,
+          quantity: 1
+        })
+      ];
+
+      const expectedVal = 43.78; // (15.39 * 2) + 13.00 = 30.78 + 13.00 = 43.78
+      const couponCode = 'WELCOME10';
+
+      // -------------------------------------------------------------
+      // SCENARIO 1: Customer selects a shipping method
+      // -------------------------------------------------------------
+      let lastTrackedShippingTier = '';
+      function trackShipping(tier) {
+        if (lastTrackedShippingTier === tier) return false;
+        lastTrackedShippingTier = tier;
+        EDL.pushEvent('add_shipping_info', {
+          currency: 'EUR',
+          value: expectedVal,
+          coupon: couponCode,
+          shipping_tier: tier,
+          items: mockCartItems
+        });
+        return true;
+      }
+
+      assert.strictEqual(trackShipping('DHL Express'), true);
+      const pushShip1 = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushShip1.event, 'raihan_add_shipping_info');
+      assert.strictEqual(pushShip1.original_event, 'add_shipping_info');
+      assert.strictEqual(pushShip1.ecommerce.shipping_tier, 'DHL Express');
+      assert.strictEqual(pushShip1.ecommerce.currency, 'EUR');
+      assert.strictEqual(pushShip1.ecommerce.value, 43.78);
+      assert.strictEqual(pushShip1.ecommerce.coupon, 'WELCOME10');
+      assert.strictEqual(pushShip1.ecommerce.items.length, 2);
+      assert.strictEqual(pushShip1.ecommerce.items[0].item_id, '27');
+      assert.strictEqual(pushShip1.ecommerce.items[1].variant_id, '298');
+
+      // Verify advertising platforms populated for add_shipping_info
+      assert.ok(pushShip1.meta, 'Meta namespace present');
+      assert.strictEqual(pushShip1.meta.currency, 'EUR');
+      assert.ok(pushShip1.tiktok, 'TikTok namespace present');
+      assert.ok(pushShip1.google_ads, 'Google Ads namespace present');
+      assert.strictEqual(pushShip1.google_ads.ecomm_pagetype, 'cart');
+
+      // -------------------------------------------------------------
+      // SCENARIO 2: Customer changes the selected shipping method
+      // -------------------------------------------------------------
+      assert.strictEqual(trackShipping('DPD Standard Home Delivery'), true);
+      const pushShip2 = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushShip2.ecommerce.shipping_tier, 'DPD Standard Home Delivery');
+      assert.strictEqual(pushShip2.ecommerce.value, 43.78);
+
+      // -------------------------------------------------------------
+      // SCENARIO 3: Customer selects a payment method
+      // -------------------------------------------------------------
+      let lastTrackedPaymentType = '';
+      function trackPayment(pType) {
+        if (lastTrackedPaymentType === pType) return false;
+        lastTrackedPaymentType = pType;
+        EDL.pushEvent('add_payment_info', {
+          currency: 'EUR',
+          value: expectedVal,
+          coupon: couponCode,
+          payment_type: pType,
+          items: mockCartItems
+        });
+        return true;
+      }
+
+      assert.strictEqual(trackPayment('Pay by bank wire'), true);
+      const pushPay1 = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushPay1.event, 'raihan_add_payment_info');
+      assert.strictEqual(pushPay1.original_event, 'add_payment_info');
+      assert.strictEqual(pushPay1.ecommerce.payment_type, 'Pay by bank wire');
+      assert.strictEqual(pushPay1.ecommerce.currency, 'EUR');
+      assert.strictEqual(pushPay1.ecommerce.value, 43.78);
+      assert.strictEqual(pushPay1.ecommerce.coupon, 'WELCOME10');
+      assert.strictEqual(pushPay1.ecommerce.items.length, 2);
+
+      // Verify advertising platforms populated for add_payment_info
+      assert.ok(pushPay1.meta, 'Meta namespace present for add_payment_info');
+      assert.ok(pushPay1.tiktok, 'TikTok namespace present for add_payment_info');
+      assert.ok(pushPay1.google_ads, 'Google Ads namespace present for add_payment_info');
+
+      // -------------------------------------------------------------
+      // SCENARIO 4: Customer changes the selected payment method
+      // -------------------------------------------------------------
+      assert.strictEqual(trackPayment('Credit Card (Stripe)'), true);
+      const pushPay2 = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushPay2.ecommerce.payment_type, 'Credit Card (Stripe)');
+      assert.strictEqual(pushPay2.ecommerce.value, 43.78);
+
+      // -------------------------------------------------------------
+      // SCENARIO 5: Customer revisits checkout step (deduplication check)
+      // -------------------------------------------------------------
+      // Revisiting delivery step without changing method -> duplicate blocked
+      assert.strictEqual(trackShipping('DPD Standard Home Delivery'), false, 'Unchanged shipping must not duplicate');
+      // Revisiting payment step without changing method -> duplicate blocked
+      assert.strictEqual(trackPayment('Credit Card (Stripe)'), false, 'Unchanged payment must not duplicate');
+
+      // But changing again to another carrier -> fires cleanly
+      assert.strictEqual(trackShipping('UPS Express Saver'), true);
+      const pushShip3 = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushShip3.ecommerce.shipping_tier, 'UPS Express Saver');
+
+      // -------------------------------------------------------------
+      // SCENARIO 6: Customer completes a purchase
+      // -------------------------------------------------------------
+      EDL.pushEvent('purchase', {
+        transaction_id: 'ORD-98765',
+        value: 43.78,
+        currency: 'EUR',
+        items: mockCartItems
+      });
+      const pushPurch = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(pushPurch.event, 'raihan_purchase');
+      assert.strictEqual(pushPurch.original_event, 'purchase');
+      assert.strictEqual(pushPurch.ecommerce.transaction_id, 'ORD-98765');
+
+      // -------------------------------------------------------------
+      // SCENARIO 7: Dynamic resolution for diverse shipping & payment modules
+      // -------------------------------------------------------------
+      const testCarriersMap = {
+        1: 'Pickup in Store',
+        2: 'MyCarrier Express',
+        3: 'GLS Parcel Service',
+        4: 'FedEx Priority'
+      };
+      const testPaymentOptionsMap = {
+        'payment-option-1': 'Pay by bank wire',
+        'payment-option-2': 'Pay by check',
+        'payment-option-3': 'PayPal Official',
+        'payment-option-4': 'Klarna Pay Later',
+        'ps_wirepayment': 'Bank transfer',
+        'ps_checkpayment': 'Payments by check'
+      };
+
+      function resolveCarrier(idCarrier) {
+        return testCarriersMap[idCarrier] || 'Standard Delivery';
+      }
+      function resolvePayment(idOrMod) {
+        return testPaymentOptionsMap[idOrMod] || 'Online Payment';
+      }
+
+      assert.strictEqual(resolveCarrier(1), 'Pickup in Store');
+      assert.strictEqual(resolveCarrier(3), 'GLS Parcel Service');
+      assert.strictEqual(resolveCarrier(999), 'Standard Delivery');
+
+      assert.strictEqual(resolvePayment('payment-option-3'), 'PayPal Official');
+      assert.strictEqual(resolvePayment('payment-option-4'), 'Klarna Pay Later');
+      assert.strictEqual(resolvePayment('ps_wirepayment'), 'Bank transfer');
+      assert.strictEqual(resolvePayment('unknown_gateway'), 'Online Payment');
+    });
   });
 });

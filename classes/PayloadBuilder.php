@@ -570,14 +570,143 @@ class PayloadBuilder
 
         $platformNamespaces = $this->buildPlatformNamespaces('begin_checkout', $items, $currencyCode, $totalValue);
 
+        $ecommerce = [
+            'currency' => $currencyCode,
+            'value' => $totalValue,
+            'items' => $items,
+        ];
+
+        $cartRules = $cart->getCartRules();
+        if (!empty($cartRules)) {
+            $codes = array_filter(array_map(function($r) { return !empty($r['code']) ? trim($r['code']) : ''; }, $cartRules));
+            if (!empty($codes)) {
+                $ecommerce['coupon'] = implode(', ', $codes);
+            }
+        }
+
         return array_merge([
             'event' => $this->getEventName('begin_checkout'),
             'original_event' => 'begin_checkout',
-            'ecommerce' => [
-                'currency' => $currencyCode,
-                'value' => $totalValue,
-                'items' => $items,
-            ],
+            'ecommerce' => $ecommerce,
+        ], $platformNamespaces);
+    }
+
+    public function buildAddShippingInfoPayload($shippingTier = '')
+    {
+        $cart = $this->context->cart;
+        if (!Validate::isLoadedObject($cart) || $cart->nbProducts() === 0) {
+            return null;
+        }
+
+        $cartProducts = $cart->getProducts(true);
+        $items = [];
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+
+        foreach ($cartProducts as $p) {
+            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            if (!empty($p['manufacturer_name'])) {
+                $productObj->manufacturer_name = $p['manufacturer_name'];
+            }
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+        }
+
+        $itemsSum = 0.0;
+        foreach ($items as $it) {
+            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        }
+        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
+
+        if (empty($shippingTier)) {
+            $idCarrier = (int)$cart->id_carrier;
+            if ($idCarrier > 0) {
+                $carrier = new Carrier($idCarrier, $idLanguage);
+                if (Validate::isLoadedObject($carrier)) {
+                    $shippingTier = (string)$carrier->name;
+                }
+            }
+        }
+        if (empty($shippingTier)) {
+            $shippingTier = 'Standard Delivery';
+        }
+
+        $ecommerce = [
+            'currency' => $currencyCode,
+            'value' => $totalValue,
+            'shipping_tier' => $shippingTier,
+            'items' => $items,
+        ];
+
+        $cartRules = $cart->getCartRules();
+        if (!empty($cartRules)) {
+            $codes = array_filter(array_map(function($r) { return !empty($r['code']) ? trim($r['code']) : ''; }, $cartRules));
+            if (!empty($codes)) {
+                $ecommerce['coupon'] = implode(', ', $codes);
+            }
+        }
+
+        $platformNamespaces = $this->buildPlatformNamespaces('add_shipping_info', $items, $currencyCode, $totalValue);
+
+        return array_merge([
+            'event' => $this->getEventName('add_shipping_info'),
+            'original_event' => 'add_shipping_info',
+            'ecommerce' => $ecommerce,
+        ], $platformNamespaces);
+    }
+
+    public function buildAddPaymentInfoPayload($paymentType = '')
+    {
+        $cart = $this->context->cart;
+        if (!Validate::isLoadedObject($cart) || $cart->nbProducts() === 0) {
+            return null;
+        }
+
+        $cartProducts = $cart->getProducts(true);
+        $items = [];
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+
+        foreach ($cartProducts as $p) {
+            $productObj = new Product((int)$p['id_product'], false, $idLanguage);
+            if (!empty($p['manufacturer_name'])) {
+                $productObj->manufacturer_name = $p['manufacturer_name'];
+            }
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+        }
+
+        $itemsSum = 0.0;
+        foreach ($items as $it) {
+            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        }
+        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
+
+        if (empty($paymentType)) {
+            $paymentType = 'Online Payment';
+        }
+
+        $ecommerce = [
+            'currency' => $currencyCode,
+            'value' => $totalValue,
+            'payment_type' => $paymentType,
+            'items' => $items,
+        ];
+
+        $cartRules = $cart->getCartRules();
+        if (!empty($cartRules)) {
+            $codes = array_filter(array_map(function($r) { return !empty($r['code']) ? trim($r['code']) : ''; }, $cartRules));
+            if (!empty($codes)) {
+                $ecommerce['coupon'] = implode(', ', $codes);
+            }
+        }
+
+        $platformNamespaces = $this->buildPlatformNamespaces('add_payment_info', $items, $currencyCode, $totalValue);
+
+        return array_merge([
+            'event' => $this->getEventName('add_payment_info'),
+            'original_event' => 'add_payment_info',
+            'ecommerce' => $ecommerce,
         ], $platformNamespaces);
     }
 

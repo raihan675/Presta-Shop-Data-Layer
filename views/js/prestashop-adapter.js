@@ -826,11 +826,13 @@
     }, true);
 
     // 6. Checkout Step Observers: add_shipping_info & add_payment_info (Universal PrestaShop Core & Custom Themes)
-    var shippingInfoTracked = false;
-    var paymentInfoTracked = false;
+    var lastTrackedShippingTier = '';
+    var lastTrackedShippingTime = 0;
+    var lastTrackedPaymentType = '';
+    var lastTrackedPaymentTime = 0;
 
     function getCheckoutItems() {
-      if (window.psGtmConfig && window.psGtmConfig.initialServerPayload && window.psGtmConfig.initialServerPayload.ecommerce && Array.isArray(window.psGtmConfig.initialServerPayload.ecommerce.items)) {
+      if (window.psGtmConfig && window.psGtmConfig.initialServerPayload && window.psGtmConfig.initialServerPayload.ecommerce && Array.isArray(window.psGtmConfig.initialServerPayload.ecommerce.items) && window.psGtmConfig.initialServerPayload.ecommerce.items.length > 0) {
         return window.psGtmConfig.initialServerPayload.ecommerce.items;
       }
       if (window.psGtmConfig && window.psGtmConfig.cartProductsData) {
@@ -847,106 +849,222 @@
 
     // Capture Carrier / Delivery Step Selection (add_shipping_info)
     function dispatchShippingInfo(carrierName) {
-      if (shippingInfoTracked) return;
+      var tier = String(carrierName || 'Standard Delivery').trim();
+      if (!tier) tier = 'Standard Delivery';
+      var now = new Date().getTime();
+
+      // Deduplicate rapid identical triggers (preserve ability to switch between methods)
+      if (lastTrackedShippingTier === tier && (now - lastTrackedShippingTime < 2500)) {
+        return;
+      }
+
       var rawItems = getCheckoutItems();
       var normItems = EDL.normalizeItems(rawItems);
       if (normItems.length === 0) return;
 
       var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
-      var val = EDL.calculateCartValue(normItems);
+      var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+      var val = EDL.calculateCartValue(normItems, prec);
+      var coupon = (window.psGtmConfig && window.psGtmConfig.coupon) || '';
 
-      shippingInfoTracked = true;
-      EDL.pushEvent('add_shipping_info', {
+      lastTrackedShippingTier = tier;
+      lastTrackedShippingTime = now;
+
+      var payload = {
         currency: currency,
         value: val,
-        shipping_tier: String(carrierName || 'Standard Delivery').trim(),
+        shipping_tier: tier,
         items: normItems
-      });
+      };
+      if (coupon) {
+        payload.coupon = coupon;
+      }
+
+      EDL.pushEvent('add_shipping_info', payload);
     }
 
     function resolveCarrierFromInput(inputEl) {
-      if (!inputEl) return 'Standard Delivery';
+      if (!inputEl) {
+        if (window.psGtmConfig && window.psGtmConfig.selectedCarrier) {
+          return window.psGtmConfig.selectedCarrier;
+        }
+        return 'Standard Delivery';
+      }
       var val = inputEl.value || (inputEl.dataset && inputEl.dataset.carrierId) || '';
       var m = String(val).match(/(\d+)/);
       var idCarrier = m ? parseInt(m[1], 10) : 0;
-      if (idCarrier && window.psGtmConfig && window.psGtmConfig.carriers && window.psGtmConfig.carriers[idCarrier]) {
-        return window.psGtmConfig.carriers[idCarrier];
+      if (idCarrier && window.psGtmConfig && window.psGtmConfig.carriers) {
+        if (window.psGtmConfig.carriers[idCarrier]) {
+          return window.psGtmConfig.carriers[idCarrier];
+        }
+        if (window.psGtmConfig.carriers[String(idCarrier)]) {
+          return window.psGtmConfig.carriers[String(idCarrier)];
+        }
       }
       return idCarrier ? ('Carrier #' + idCarrier) : 'Standard Delivery';
     }
 
+    function findCheckedCarrierInput(formEl) {
+      var scope = formEl || document;
+      if (!scope.querySelectorAll) return null;
+      var inputs = scope.querySelectorAll('input[name^="delivery_option"], input[id^="delivery_option_"]');
+      for (var i = 0; i < inputs.length; i++) {
+        if (inputs[i].checked) {
+          return inputs[i];
+        }
+      }
+      return null;
+    }
+
+    // Trigger 1: Customer changes shipping method radio button
+    document.addEventListener('change', function (e) {
+      var target = e.target;
+      if (!target) return;
+      var isCarrier = (target.name && target.name.indexOf('delivery_option') === 0) ||
+                      (target.id && target.id.indexOf('delivery_option') === 0);
+      if (isCarrier && target.checked) {
+        dispatchShippingInfo(resolveCarrierFromInput(target));
+      }
+    }, true);
+
+    // Trigger 2: Delivery Step Form Submission (standard PrestaShop delivery form submit)
     document.addEventListener('submit', function (e) {
       var form = e.target;
       if (form && (form.id === 'js-delivery' || (form.action && form.action.indexOf('delivery') !== -1))) {
-        var carrierInput = null;
-        if (form.elements) {
-          for (var i = 0; i < form.elements.length; i++) {
-            var el = form.elements[i];
-            if (el.name && el.name.indexOf('delivery_option') !== -1 && el.checked) {
-              carrierInput = el;
-              break;
-            }
-          }
-        }
+        var carrierInput = findCheckedCarrierInput(form);
         dispatchShippingInfo(resolveCarrierFromInput(carrierInput));
       }
     }, true);
 
+    // Trigger 3: Continue / Confirm Delivery button clicked
     document.addEventListener('click', function (e) {
-      var btn = e.target && e.target.closest ? e.target.closest('button[name="confirmDeliveryOption"], .continue[name="confirm-addresses"]') : null;
-      if (btn && btn.name === 'confirmDeliveryOption') {
-        var form = btn.form || (document.forms && document.forms['js-delivery']);
-        var carrierInput = null;
-        if (form && form.elements) {
-          for (var i = 0; i < form.elements.length; i++) {
-            var el = form.elements[i];
-            if (el.name && el.name.indexOf('delivery_option') !== -1 && el.checked) {
-              carrierInput = el;
-              break;
-            }
-          }
-        }
+      var btn = e.target && e.target.closest ? e.target.closest('button[name="confirmDeliveryOption"], button[name="confirm-delivery-step"], .continue[name="confirm-addresses"]') : null;
+      if (btn && (btn.name === 'confirmDeliveryOption' || btn.name === 'confirm-delivery-step')) {
+        var form = btn.form || (document.forms && document.forms['js-delivery']) || (document.querySelector && document.querySelector('#js-delivery'));
+        var carrierInput = findCheckedCarrierInput(form);
         dispatchShippingInfo(resolveCarrierFromInput(carrierInput));
       }
     }, true);
+
+    // Trigger 4: PrestaShop Core JS Event Bus (changedCheckoutStep)
+    if (window.prestashop && typeof window.prestashop.on === 'function') {
+      window.prestashop.on('changedCheckoutStep', function () {
+        var carrierInput = findCheckedCarrierInput();
+        if (carrierInput) {
+          dispatchShippingInfo(resolveCarrierFromInput(carrierInput));
+        }
+      });
+    }
 
     // Capture Payment Step Selection (add_payment_info)
     function resolvePaymentMethod(targetInput) {
       if (!targetInput) return 'Online Payment';
-      var modName = (targetInput.dataset && (targetInput.dataset.moduleName || targetInput.dataset.module))
-        ? (targetInput.dataset.moduleName || targetInput.dataset.module)
-        : '';
-      if (!modName && targetInput.value) {
-        modName = String(targetInput.value);
+      var id = targetInput.id || '';
+      var val = targetInput.value || '';
+      var modName = (targetInput.dataset && (targetInput.dataset.moduleName || targetInput.dataset.module)) || '';
+
+      var pMap = (window.psGtmConfig && window.psGtmConfig.paymentOptionsMap) || {};
+      var pMethods = (window.psGtmConfig && window.psGtmConfig.paymentMethods) || {};
+
+      // 1. Check authoritative paymentOptionsMap by option ID (e.g. payment-option-1)
+      if (id && pMap[id]) return pMap[id];
+      // 2. Check by option value
+      if (val && pMap[val]) return pMap[val];
+      // 3. Check by module name
+      if (modName && pMap[modName]) return pMap[modName];
+      if (modName && pMethods[modName]) return pMethods[modName];
+      // 4. Check if module name can be inferred from input ID
+      if (id) {
+        for (var k in pMethods) {
+          if (pMethods.hasOwnProperty(k) && id.indexOf(k) !== -1) {
+            return pMethods[k];
+          }
+        }
       }
-      if (modName && window.psGtmConfig && window.psGtmConfig.paymentMethods && window.psGtmConfig.paymentMethods[modName]) {
-        return window.psGtmConfig.paymentMethods[modName];
+      // 5. Look for label text if available
+      if (id && typeof document !== 'undefined' && document.querySelector) {
+        var labelEl = document.querySelector('label[for="' + id + '"]');
+        if (labelEl && labelEl.textContent) {
+          var cleanLabel = labelEl.textContent.trim().replace(/\s+/g, ' ');
+          if (cleanLabel.length > 0 && cleanLabel.length < 80) {
+            return cleanLabel;
+          }
+        }
       }
-      return modName ? modName : 'Online Payment';
+      return modName ? modName : (val && val !== 'on' ? val : 'Online Payment');
     }
 
     function dispatchPaymentInfo(paymentMethod) {
-      if (paymentInfoTracked) return;
+      var pType = String(paymentMethod || 'Online Payment').trim();
+      if (!pType) pType = 'Online Payment';
+      var now = new Date().getTime();
+
+      // Deduplicate rapid identical triggers (preserve ability to switch between payment options)
+      if (lastTrackedPaymentType === pType && (now - lastTrackedPaymentTime < 2500)) {
+        return;
+      }
+
       var rawItems = getCheckoutItems();
       var normItems = EDL.normalizeItems(rawItems);
       if (normItems.length === 0) return;
 
       var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
-      var val = EDL.calculateCartValue(normItems);
+      var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
+      var val = EDL.calculateCartValue(normItems, prec);
+      var coupon = (window.psGtmConfig && window.psGtmConfig.coupon) || '';
 
-      paymentInfoTracked = true;
-      EDL.pushEvent('add_payment_info', {
+      lastTrackedPaymentType = pType;
+      lastTrackedPaymentTime = now;
+
+      var payload = {
         currency: currency,
         value: val,
-        payment_type: String(paymentMethod || 'Online Payment').trim(),
+        payment_type: pType,
         items: normItems
-      });
+      };
+      if (coupon) {
+        payload.coupon = coupon;
+      }
+
+      EDL.pushEvent('add_payment_info', payload);
     }
 
+    // Trigger 1: Payment Radio Button Changed
     document.addEventListener('change', function (e) {
       var target = e.target;
-      if (target && target.name === 'payment-option' && target.checked) {
+      if (target && (target.name === 'payment-option' || (target.id && target.id.indexOf('payment-option') === 0)) && target.checked) {
         dispatchPaymentInfo(resolvePaymentMethod(target));
+      }
+    }, true);
+
+    // Trigger 2: Click on Payment Option Container or Label (covers custom JS radio UI themes)
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var optContainer = e.target.closest('.payment-option, [data-module-name], .payment-options label');
+      if (optContainer) {
+        setTimeout(function () {
+          var radio = optContainer.querySelector ? (optContainer.querySelector('input[type="radio"]') || document.querySelector('input[name="payment-option"]:checked')) : null;
+          if (radio && radio.checked) {
+            dispatchPaymentInfo(resolvePaymentMethod(radio));
+          }
+        }, 60);
+      }
+    }, true);
+
+    // Trigger 3: Final Order Place / Payment Confirmation Button Clicked (ensures default pre-selected payment option is tracked)
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var confirmBtn = e.target.closest('#payment-confirmation button, .payment-confirmation button, button[id^="pay-with-"], [data-action="place-order"]');
+      if (confirmBtn) {
+        var activeRadio = (document.querySelector && document.querySelector('input[name="payment-option"]:checked')) || (document.querySelector && document.querySelector('.payment-option input[type="radio"]:checked'));
+        if (activeRadio) {
+          dispatchPaymentInfo(resolvePaymentMethod(activeRadio));
+        } else if (window.psGtmConfig && window.psGtmConfig.paymentOptionsMap) {
+          var keys = Object.keys(window.psGtmConfig.paymentOptionsMap);
+          if (keys.length > 0) {
+            dispatchPaymentInfo(window.psGtmConfig.paymentOptionsMap[keys[0]]);
+          }
+        }
       }
     }, true);
 

@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.11.1",
+    "latest_version":  "1.12.0",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.11.1/ps_gtm_datalayer.zip",
-    "checksum":  "b27e1833a5665cbfe9ce62662eac816d51cc6191df6604146dcba5abd16e5f2c",
-    "release_type":  "patch",
-    "release_notes":  "1. Fixed Empty item_list_id \u0026 item_list_name on select_item: Implemented universal 4-tier list resolution hierarchy across all storefront pages (Home Page featured, PDP related products, Cart cross-sell, and non-hydrated catalog fallback to backend category ORM).\n2. Expanded view_item_list builders to index, prices-drop, new-products, and best-sales controllers.\n3. Universal click delegation ensures select_item fires consistently across all themes and custom listings without DOM dependency."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.12.0/ps_gtm_datalayer.zip",
+    "checksum":  "42a74fa1cf33b5e4a0aae97f7ac78cfc7cd817b6520b1fbbfdb76aa78daf13fd",
+    "release_type":  "minor",
+    "release_notes":  "1. Implemented GA4 add_shipping_info \u0026 add_payment_info: Dual server-side (actionCarrierProcess hook \u0026 checkout queue) and client-side lifecycle observers for carrier and payment method selection.\n2. Complete GA4 schema compliance: currency, value, shipping_tier, payment_type, coupon, and items array.\n3. Dynamic deduplication and method switching: Allows customers to change carriers or payment options without duplicate event firing while accurately updating the data layer."
 }

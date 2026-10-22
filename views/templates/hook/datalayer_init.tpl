@@ -66,6 +66,19 @@
     window.psGtmConfig.paymentMethods = {};
   }
   {/if}
+  {if isset($payment_options_map)}
+  try {
+    window.psGtmConfig.paymentOptionsMap = {$payment_options_map nofilter};
+  } catch(e) {
+    window.psGtmConfig.paymentOptionsMap = {};
+  }
+  {/if}
+  {if isset($selected_carrier)}
+  window.psGtmConfig.selectedCarrier = '{$selected_carrier|escape:'javascript':'UTF-8'}';
+  {/if}
+  {if isset($cart_coupon)}
+  window.psGtmConfig.coupon = '{$cart_coupon|escape:'javascript':'UTF-8'}';
+  {/if}
   {if isset($page_context)}
   try {
     window.psGtmConfig.pageContext = {$page_context nofilter};
@@ -78,6 +91,7 @@
   (function(){
     try {
       var payload = {$initial_server_payload nofilter};
+      window.psGtmConfig.initialServerPayload = payload;
       if (payload && payload.event) {
         if (payload.original_event === 'view_item' && payload.ecommerce && payload.ecommerce.items && payload.ecommerce.items[0]) {
           window.psGtmConfig.currentProduct = payload.ecommerce.items[0];
