@@ -74,7 +74,8 @@ class UpdateManager
             return ['has_update' => false, 'error' => 'Unable to connect to the update repository.'];
         }
 
-        $manifest = json_decode($response, true);
+        $cleanResponse = preg_replace('/^\xEF\xBB\xBF/', '', trim($response));
+        $manifest = json_decode($cleanResponse, true);
         if (!$manifest || !isset($manifest['latest_version'])) {
             return ['has_update' => false, 'error' => 'Malformed release manifest.'];
         }

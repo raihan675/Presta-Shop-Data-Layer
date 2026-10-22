@@ -63,7 +63,9 @@ Write-Host "   STEP 3: UPDATING UPDATE-MANIFEST.JSON"
 Write-Host "=========================================================="
 $manifestContent = Get-Content $manifestPath -Raw | ConvertFrom-Json
 $manifestContent.checksum = $sha256
-$manifestContent | ConvertTo-Json -Depth 5 | Set-Content $manifestPath -Encoding UTF8
-Write-Host "Updated update-manifest.json with checksum $sha256"
+$jsonString = $manifestContent | ConvertTo-Json -Depth 5
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[System.IO.File]::WriteAllText($manifestPath, $jsonString, $utf8NoBom)
+Write-Host "Updated update-manifest.json with checksum $sha256 (UTF-8 No-BOM)"
 
 Write-Host "`nRelease packaging complete!"
