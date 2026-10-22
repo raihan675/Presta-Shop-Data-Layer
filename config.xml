@@ -2,7 +2,7 @@
 <module>
     <name>ps_gtm_datalayer</name>
     <displayName><![CDATA[Enterprise GA4, Meta, TikTok & Google Ads DataLayer]]></displayName>
-    <version><![CDATA[1.10.2]]></version>
+    <version><![CDATA[1.10.3]]></version>
     <description><![CDATA[Catalog-accurate ecommerce DataLayer with native Meta, TikTok & Google Ads Dynamic Remarketing matching, base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.]]></description>
     <author><![CDATA[Analytics Engineer]]></author>
     <tab><![CDATA[analytics_stats]]></tab>

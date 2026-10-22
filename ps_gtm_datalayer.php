@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.10.2';
+        $this->version = '1.10.3';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -432,83 +432,133 @@ class Ps_Gtm_DataLayer extends Module
 
     private function renderCatalogStrategyHelp()
     {
-        $info = [
+        $strategies = [
             'composite' => [
-                'title' => $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended)'),
+                'id' => 'composite',
+                'name' => 'Composite Database ID: {id_product}_{id_product_attribute}',
                 'badge' => $this->l('Recommended for 90% of stores'),
                 'badge_class' => 'label-success',
+                'icon_color' => '#2980b9',
                 'desc' => $this->l('Use for 90% of stores. Select this if your feed module (Google Merchant Center Pro, Meta/Facebook, TikTok, Channable) exports variants as individual items (e.g. 68_299) and simple products as 1033. Enables exact variant-level dynamic retargeting.')
             ],
             'id_product' => [
-                'title' => $this->l('Base Product ID: {id_product} (Parent Level)'),
+                'id' => 'id_product',
+                'name' => 'Base Product ID: {id_product}',
                 'badge' => $this->l('Parent-only catalogs'),
                 'badge_class' => 'label-warning',
+                'icon_color' => '#f39c12',
                 'desc' => $this->l('Use if your feed exports only parent products (1 row per product, ignoring variants). Guarantees 100% catalog match rate if your catalog only contains parent IDs (e.g. 68).')
             ],
             'reference_sku' => [
-                'title' => $this->l('Reference / SKU: {sku} (ERP / Barcode)'),
-                'badge' => $this->l('External ERP / PIM feeds'),
+                'id' => 'reference_sku',
+                'name' => 'Reference / SKU: {sku}',
+                'badge' => $this->l('ERP / Barcode feeds'),
                 'badge_class' => 'label-info',
+                'icon_color' => '#27ae60',
                 'desc' => $this->l('Use if your store is synced with an ERP/PIM (like SAP, NetSuite, Odoo) and your catalog feeds index items by physical SKU/Reference (e.g. FIT09-BLUE-M). Automatically falls back to database ID if SKU is missing.')
             ],
         ];
 
-        $jsonStrategies = json_encode($info, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        $html = '<div id="ps-gtm-strategies-container" style="margin-top: 10px; max-width: 800px;">';
+        $html .= '<p class="text-muted" style="margin-bottom: 8px; font-size: 12px;">' . $this->l('Select your catalog strategy below or in the dropdown above. Hover over any option to view feed compatibility details:') . '</p>';
+        $html .= '<div style="display: flex; flex-direction: column; gap: 8px;">';
 
-        $html = '<div id="ps-gtm-strategy-wrapper" style="margin-top: 10px;">';
-        $html .= '<p class="text-muted" style="margin-bottom: 8px;">' . $this->l('Select the product identifier convention matching your advertising product feeds (Google Merchant Center, Meta Commerce Manager, TikTok Catalog).') . '</p>';
-        $html .= '<div id="ps-gtm-strategy-icon-box" style="position: relative; display: inline-block;">';
-        $html .= '<div id="ps-gtm-info-pill" style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; padding: 7px 14px; background: #ebf5fb; border: 1px solid #aed6f1; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">';
-        $html .= '<i class="icon-info-sign" style="font-size: 18px; color: #2980b9;"></i>';
-        $html .= '<strong id="ps-gtm-pill-title" style="color: #1f618d; font-size: 13px;">Composite Database ID</strong>';
-        $html .= '<span id="ps-gtm-pill-badge" class="label label-success" style="font-size: 11px; margin-left: 4px; padding: 3px 8px;">Recommended</span>';
-        $html .= '<span style="font-size: 11px; color: #7f8c8d; margin-left: 6px;"><i class="icon-hand-up"></i> ' . $this->l('Hover for details') . '</span>';
-        $html .= '</div>';
-        $html .= '<div id="ps-gtm-strategy-tooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 8px; width: 480px; max-width: 90vw; background: #ffffff; border: 1px solid #2980b9; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 14px 16px; z-index: 99999;">';
-        $html .= '<h4 id="ps-gtm-tooltip-heading" style="margin: 0 0 8px 0; font-size: 13px; font-weight: bold; color: #1f618d; border-bottom: 1px solid #eaecee; padding-bottom: 6px;"></h4>';
-        $html .= '<p id="ps-gtm-tooltip-body" style="margin: 0; font-size: 12px; color: #4a5568; line-height: 1.6;"></p>';
-        $html .= '</div>';
+        foreach ($strategies as $key => $s) {
+            $html .= '<div class="ps-gtm-strategy-card" data-key="' . htmlspecialchars($key) . '" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: #fff; border: 1px solid #d5dbdb; border-radius: 6px; cursor: pointer; transition: all 0.2s ease; position: relative;">';
+            $html .= '<div style="display: flex; align-items: center; gap: 10px;">';
+            $html .= '<i class="icon-circle-blank ps-gtm-card-radio" style="font-size: 18px; color: #bdc3c7;"></i>';
+            $html .= '<div>';
+            $html .= '<strong class="ps-gtm-card-name" style="color: #2c3e50; font-size: 13px;">' . htmlspecialchars($s['name']) . '</strong>';
+            $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . '" style="font-size: 10px; margin-left: 8px; padding: 3px 8px;">' . htmlspecialchars($s['badge']) . '</span>';
+            $html .= '</div>';
+            $html .= '</div>';
+
+            $html .= '<div class="ps-gtm-card-hover-box" style="display: flex; align-items: center; gap: 4px; color: #7f8c8d; font-size: 11px; background: #f8f9fa; padding: 4px 10px; border-radius: 4px; border: 1px solid #eaeded;">';
+            $html .= '<i class="icon-info-sign" style="color: ' . htmlspecialchars($s['icon_color']) . ';"></i>';
+            $html .= '<span>' . $this->l('Hover for details') . '</span>';
+            $html .= '</div>';
+
+            // Popover Tooltip
+            $html .= '<div class="ps-gtm-card-tooltip" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 6px; width: 100%; background: #ffffff; border: 1px solid ' . htmlspecialchars($s['icon_color']) . '; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 12px 16px; z-index: 99999;">';
+            $html .= '<h5 style="margin: 0 0 6px 0; font-weight: bold; color: ' . htmlspecialchars($s['icon_color']) . '; font-size: 13px;">' . htmlspecialchars($s['name']) . '</h5>';
+            $html .= '<p style="margin: 0; font-size: 12px; color: #4a5568; line-height: 1.5;">' . $s['desc'] . '</p>';
+            $html .= '</div>';
+
+            $html .= '</div>';
+        }
+
         $html .= '</div>';
         $html .= '</div>';
 
         $html .= '<script type="text/javascript">
             (function() {
-                var strategyData = ' . $jsonStrategies . ';
-                function updateStrategyCard() {
+                function syncStrategyCards() {
                     var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
                     if (!select) return;
-                    var val = select.value || "composite";
-                    var data = strategyData[val] || strategyData["composite"];
-                    var titleEl = document.getElementById("ps-gtm-pill-title");
-                    var badgeEl = document.getElementById("ps-gtm-pill-badge");
-                    var headEl = document.getElementById("ps-gtm-tooltip-heading");
-                    var bodyEl = document.getElementById("ps-gtm-tooltip-body");
-                    if (titleEl) titleEl.textContent = data.title;
-                    if (badgeEl) {
-                        badgeEl.textContent = data.badge;
-                        badgeEl.className = "label " + data.badge_class;
+                    var selectedVal = select.value || "composite";
+                    var cards = document.querySelectorAll(".ps-gtm-strategy-card");
+                    for (var i = 0; i < cards.length; i++) {
+                        var card = cards[i];
+                        var key = card.getAttribute("data-key");
+                        var radio = card.querySelector(".ps-gtm-card-radio");
+                        var nameEl = card.querySelector(".ps-gtm-card-name");
+                        if (key === selectedVal) {
+                            card.style.background = "#ebf5fb";
+                            card.style.borderColor = "#2980b9";
+                            card.style.borderWidth = "2px";
+                            if (radio) {
+                                radio.className = "icon-check-circle ps-gtm-card-radio";
+                                radio.style.color = "#2980b9";
+                            }
+                            if (nameEl) nameEl.style.color = "#1f618d";
+                        } else {
+                            card.style.background = "#ffffff";
+                            card.style.borderColor = "#d5dbdb";
+                            card.style.borderWidth = "1px";
+                            if (radio) {
+                                radio.className = "icon-circle-blank ps-gtm-card-radio";
+                                radio.style.color = "#bdc3c7";
+                            }
+                            if (nameEl) nameEl.style.color = "#2c3e50";
+                        }
                     }
-                    if (headEl) headEl.textContent = data.title;
-                    if (bodyEl) bodyEl.innerHTML = data.desc;
                 }
 
-                function bindHover() {
-                    var box = document.getElementById("ps-gtm-strategy-icon-box");
-                    var tip = document.getElementById("ps-gtm-strategy-tooltip");
-                    if (!box || !tip) return;
-                    box.addEventListener("mouseenter", function() { tip.style.display = "block"; });
-                    box.addEventListener("mouseleave", function() { tip.style.display = "none"; });
+                function setupCardListeners() {
+                    var cards = document.querySelectorAll(".ps-gtm-strategy-card");
                     var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
-                    if (select) {
-                        select.addEventListener("change", updateStrategyCard);
+                    for (var i = 0; i < cards.length; i++) {
+                        (function(card) {
+                            var tooltip = card.querySelector(".ps-gtm-card-tooltip");
+                            card.addEventListener("mouseenter", function() {
+                                if (tooltip) tooltip.style.display = "block";
+                            });
+                            card.addEventListener("mouseleave", function() {
+                                if (tooltip) tooltip.style.display = "none";
+                            });
+                            card.addEventListener("click", function(e) {
+                                var key = card.getAttribute("data-key");
+                                if (select && select.value !== key) {
+                                    select.value = key;
+                                    var evt = document.createEvent("HTMLEvents");
+                                    evt.initEvent("change", false, true);
+                                    select.dispatchEvent(evt);
+                                    syncStrategyCards();
+                                }
+                            });
+                        })(cards[i]);
                     }
-                    updateStrategyCard();
+
+                    if (select) {
+                        select.addEventListener("change", syncStrategyCards);
+                    }
+                    syncStrategyCards();
                 }
 
                 if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", bindHover);
+                    document.addEventListener("DOMContentLoaded", setupCardListeners);
                 } else {
-                    bindHover();
+                    setupCardListeners();
                 }
             })();
         </script>';

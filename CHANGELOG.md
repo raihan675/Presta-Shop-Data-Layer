@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.10.3] - 2026-10-22
+
+### Added
+- **Multi-Option Interactive Strategy Cards with Individual Hover Tooltips**:
+  - Displays all 3 catalog strategies (Composite Database ID, Base Product ID, Reference/SKU) simultaneously in a clean card layout.
+  - Each option features its own info icon and hover popover displaying detailed descriptions and feed recommendations.
+  - Clicking any card dynamically updates the dropdown selection with an active checkmark and styling.
+
+---
+
 ## [1.10.2] - 2026-10-22
 
 ### Added
