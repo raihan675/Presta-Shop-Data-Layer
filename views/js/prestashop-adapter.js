@@ -121,6 +121,7 @@
   }
 
   var lastAddToCartTime = 0;
+  var isCartUpdating = false;
   var lastInterceptedCartQty = 0;
 
   // Intercept native HTTP POST requests to PrestaShop CartController (Network/Controller level, ZERO DOM)
@@ -473,6 +474,10 @@
 
         // Emit add_to_cart for positive quantity changes (new additions or quantity increments)
         if (deltaResult.itemsAdded && deltaResult.itemsAdded.length > 0) {
+          lastAddToCartTime = new Date().getTime();
+          isCartUpdating = true;
+          setTimeout(function () { isCartUpdating = false; }, 2500);
+
           EDL.pushEvent('add_to_cart', {
             currency: currencyCode,
             value: EDL.calculateCartValue(deltaResult.itemsAdded, prec),
@@ -497,6 +502,8 @@
         var now = new Date().getTime();
         if (now - lastAddToCartTime < 800) return;
         lastAddToCartTime = now;
+        isCartUpdating = true;
+        setTimeout(function () { isCartUpdating = false; }, 2500);
 
         var addedIdProduct = reason.idProduct || reason.id_product || (event.resp && (event.resp.id_product || event.resp.idProduct)) || '';
         if (!addedIdProduct && window.psGtmConfig && window.psGtmConfig.currentProduct) {
@@ -569,17 +576,29 @@
     });
 
     // 2. Native Combination Switch on PDP via PrestaShop Core Event Bus
+    var lastViewedProductAttributeId = (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.variant_id)
+      ? String(window.psGtmConfig.currentProduct.variant_id)
+      : '';
+
     window.prestashop.on('updatedProduct', function (event) {
       if (!event || !event.id_product_attribute || event.id_product_attribute === '0') {
         return;
       }
 
       var now = new Date().getTime();
-      if (now - lastAddToCartTime < 1500) {
+      // Guard 1: Suppress combination event if cart action is in progress or occurred within 2500ms
+      if (isCartUpdating || (now - lastAddToCartTime < 2500)) {
         return;
       }
 
       var idAttr = String(event.id_product_attribute);
+
+      // Guard 2: Suppress duplicate view_item if the combination attribute did NOT actually change
+      if (lastViewedProductAttributeId && idAttr === lastViewedProductAttributeId) {
+        return;
+      }
+      lastViewedProductAttributeId = idAttr;
+
       var currentProd = (window.psGtmConfig && window.psGtmConfig.currentProduct) ? window.psGtmConfig.currentProduct : null;
       var idProduct = currentProd ? currentProd.item_id : (event.id_product || '');
 
@@ -876,6 +895,12 @@
         dispatchPaymentInfo(method);
       }
     }, true);
+
+    // 7. Native Faceted Navigation & AJAX Catalog Pagination (ps_facetedsearch / core listing)
+    window.prestashop.on('updateProductList', function (eventData) {
+      // PrestaShop updates product listings dynamically via AJAX.
+      // Delegated document click listeners automatically cover re-rendered miniatures.
+    });
   }
 
   if (document.readyState === 'loading') {

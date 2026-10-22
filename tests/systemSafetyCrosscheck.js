@@ -228,19 +228,19 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.10.3', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.11.0', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // -------------------------------------------------------------
 // CHECK 7: Upgrade Script Function Signature
 // -------------------------------------------------------------
-const upgrade1103Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.10.3.php');
-if (fs.existsSync(upgrade1103Path)) {
-  const upCode = fs.readFileSync(upgrade1103Path, 'utf8');
-  const hasUpgradeFunction = upCode.includes('function upgrade_module_1_10_3($module)');
+const upgrade1110Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.11.0.php');
+if (fs.existsSync(upgrade1110Path)) {
+  const upCode = fs.readFileSync(upgrade1110Path, 'utf8');
+  const hasUpgradeFunction = upCode.includes('function upgrade_module_1_11_0($module)');
   const returnsTrue = upCode.includes('return true;');
-  report('Upgrade function upgrade_module_1_10_3 properly declared', hasUpgradeFunction && returnsTrue, 'Missing or invalid function signature in upgrade-1.10.3.php');
+  report('Upgrade function upgrade_module_1_11_0 properly declared', hasUpgradeFunction && returnsTrue, 'Missing or invalid function signature in upgrade-1.11.0.php');
 } else {
-  report('Upgrade script upgrade-1.10.3.php exists', false, 'Missing upgrade-1.10.3.php');
+  report('Upgrade script upgrade-1.11.0.php exists', false, 'Missing upgrade-1.11.0.php');
 }
 
 // -------------------------------------------------------------

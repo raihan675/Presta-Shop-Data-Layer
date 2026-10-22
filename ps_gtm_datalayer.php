@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.10.3';
+        $this->version = '1.11.0';
         $this->author = 'Analytics Engineer';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.8.0', 'max' => _PS_VERSION_];
@@ -56,6 +56,7 @@ class Ps_Gtm_DataLayer extends Module
 
     public function install()
     {
+        $allEvents = array_keys(self::getSupportedEvents());
         return parent::install()
             && $this->registerHook('displayHeader')
             && $this->registerHook('displayAfterBodyOpeningTag')
@@ -68,7 +69,14 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
             && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
-            && Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', 'composite');
+            && Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', 'composite')
+            && Configuration::updateValue('PS_GTM_ADV_MASTER_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_META_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($allEvents))
+            && Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($allEvents))
+            && Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($allEvents));
     }
 
     public function uninstall()
@@ -79,7 +87,14 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
             && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
-            && Configuration::deleteByName('PS_GTM_CATALOG_ID_STRATEGY');
+            && Configuration::deleteByName('PS_GTM_CATALOG_ID_STRATEGY')
+            && Configuration::deleteByName('PS_GTM_ADV_MASTER_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_META_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_GADS_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_META_EVENTS')
+            && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_EVENTS')
+            && Configuration::deleteByName('PS_GTM_ADV_GADS_EVENTS');
     }
 
     public function getContent()
@@ -134,25 +149,61 @@ class Ps_Gtm_DataLayer extends Module
 
         // Handle Settings Submission
         if (Tools::isSubmit('submit' . $this->name)) {
-            $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
-            $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
-            $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
-            $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
-            $prefix = self::normalizePrefix($rawPrefix);
-            $catalogStrategy = trim((string)Tools::getValue('PS_GTM_CATALOG_ID_STRATEGY'));
-            if (!in_array($catalogStrategy, ['composite', 'id_product', 'reference_sku'])) {
-                $catalogStrategy = 'composite';
+            // 1. Process Core Settings if submitted
+            if (Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
+                $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
+                $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
+                $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
+                $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
+                $prefix = self::normalizePrefix($rawPrefix);
+                $catalogStrategy = trim((string)Tools::getValue('PS_GTM_CATALOG_ID_STRATEGY'));
+                if (!in_array($catalogStrategy, ['composite', 'id_product', 'reference_sku'])) {
+                    $catalogStrategy = 'composite';
+                }
+
+                if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
+                    $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).'));
+                } else {
+                    Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
+                    Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
+                    Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
+                    Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
+                    Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
+                    $output .= $this->displayConfirmation($this->l('Google Tag Manager & DataLayer settings successfully saved.'));
+                }
             }
 
-            if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
-                $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).'));
-            } else {
-                Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
-                Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
-                Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
-                Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
-                Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
-                $output .= $this->displayConfirmation($this->l('Settings successfully saved.'));
+            // 2. Process Advertising Platform Settings if submitted
+            if (Tools::getValue('PS_GTM_ADV_SUBMITTED') || Tools::getValue('PS_GTM_ADV_MASTER_ENABLED') !== false) {
+                $advMaster = Tools::getValue('PS_GTM_ADV_MASTER_ENABLED') ? '1' : '0';
+                $advMeta = Tools::getValue('PS_GTM_ADV_META_ENABLED') ? '1' : '0';
+                $advTiktok = Tools::getValue('PS_GTM_ADV_TIKTOK_ENABLED') ? '1' : '0';
+                $advGads = Tools::getValue('PS_GTM_ADV_GADS_ENABLED') ? '1' : '0';
+
+                Configuration::updateValue('PS_GTM_ADV_MASTER_ENABLED', $advMaster);
+                Configuration::updateValue('PS_GTM_ADV_META_ENABLED', $advMeta);
+                Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', $advTiktok);
+                Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', $advGads);
+
+                $metaEvts = [];
+                $tiktokEvts = [];
+                $gadsEvts = [];
+                foreach (array_keys(self::getSupportedEvents()) as $evtName) {
+                    if (Tools::getValue('adv_meta_' . $evtName)) {
+                        $metaEvts[] = $evtName;
+                    }
+                    if (Tools::getValue('adv_tiktok_' . $evtName)) {
+                        $tiktokEvts[] = $evtName;
+                    }
+                    if (Tools::getValue('adv_gads_' . $evtName)) {
+                        $gadsEvts[] = $evtName;
+                    }
+                }
+                Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($metaEvts));
+                Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($tiktokEvts));
+                Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($gadsEvts));
+
+                $output .= $this->displayConfirmation($this->l('Advertising platform dataLayer settings successfully saved.'));
             }
         }
 
@@ -341,12 +392,17 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
                 'PS_GTM_CATALOG_ID_STRATEGY' => Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite',
+                'PS_GTM_ADV_MASTER_ENABLED' => Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_TIKTOK_ENABLED' => Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_GADS_ENABLED' => Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_MATRIX_TABLE' => $this->renderAdvertisingMatrixTable(),
             ],
             'languages' => $this->context->controller->getLanguages(),
             'id_language' => $this->context->language->id,
         ];
 
-        return $helper->generateForm([$this->getConfigForm()]);
+        return $helper->generateForm([$this->getConfigForm(), $this->getAdvertisingConfigForm()]);
     }
 
     protected function getConfigForm()
@@ -423,11 +479,339 @@ class Ps_Gtm_DataLayer extends Module
                     ],
                 ],
                 'submit' => [
-                    'title' => $this->l('Save Settings'),
+                    'title' => $this->l('Save Core Settings'),
                     'class' => 'btn btn-default pull-right',
                 ],
             ],
         ];
+    }
+
+    protected function getAdvertisingConfigForm()
+    {
+        return [
+            'form' => [
+                'legend' => [
+                    'title' => $this->l('Advertising Platform Data Layer Settings'),
+                    'icon' => 'icon-bullhorn',
+                ],
+                'description' => $this->l('Configure dynamic catalog-matching and remarketing payloads for Meta Pixel/CAPI, TikTok Events API, and Google Ads Dynamic Remarketing. Toggle platforms globally or customize exact event routing via the interactive matrix below.'),
+                'input' => [
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Enable Advertising DataLayers (Master Switch)'),
+                        'name' => 'PS_GTM_ADV_MASTER_ENABLED',
+                        'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, tiktok, google_ads) are suppressed from the dataLayer across all events.'),
+                        'is_bool' => true,
+                        'desc' => $this->l('Master switch to enable or disable Meta, TikTok, and Google Ads namespaces across all events.'),
+                        'values' => [
+                            ['id' => 'adv_master_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'adv_master_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Meta Pixel & Conversions API (CAPI)'),
+                        'name' => 'PS_GTM_ADV_META_ENABLED',
+                        'hint' => $this->l('Exposes the "meta" object payload with content_type, content_ids, contents, currency, and value matching your catalog strategy.'),
+                        'is_bool' => true,
+                        'desc' => $this->l('Outputs the "meta" namespace formatted for Meta Pixel and CAPI tags.'),
+                        'values' => [
+                            ['id' => 'adv_meta_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'adv_meta_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('TikTok Pixel & Events API'),
+                        'name' => 'PS_GTM_ADV_TIKTOK_ENABLED',
+                        'hint' => $this->l('Exposes the "tiktok" object payload with content_id, contents, currency, and value formatted for TikTok.'),
+                        'is_bool' => true,
+                        'desc' => $this->l('Outputs the "tiktok" namespace formatted for TikTok Pixel and Events API.'),
+                        'values' => [
+                            ['id' => 'adv_tiktok_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'adv_tiktok_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Google Ads Dynamic Remarketing'),
+                        'name' => 'PS_GTM_ADV_GADS_ENABLED',
+                        'hint' => $this->l('Exposes the "google_ads" object payload with ecomm_prodid, ecomm_pagetype, ecomm_totalvalue, and items matching Google Merchant Center feeds.'),
+                        'is_bool' => true,
+                        'desc' => $this->l('Outputs the "google_ads" namespace formatted for Google Ads Remarketing.'),
+                        'values' => [
+                            ['id' => 'adv_gads_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'adv_gads_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'free',
+                        'label' => $this->l('Event-Level Platform Routing Matrix'),
+                        'name' => 'PS_GTM_ADV_MATRIX_TABLE',
+                        'desc' => $this->l('Select which ecommerce events should expose data for each advertising platform. Use the buttons above each column or row to quickly select or deselect all.'),
+                    ],
+                ],
+                'submit' => [
+                    'title' => $this->l('Save Advertising Settings'),
+                    'class' => 'btn btn-primary pull-right',
+                ],
+            ],
+        ];
+    }
+
+    public static function getSupportedEvents()
+    {
+        return [
+            'view_item_list' => [
+                'name' => 'view_item_list',
+                'label' => 'View Item List',
+                'desc' => 'Viewing category, search results, brand/manufacturer, or catalog listing',
+                'meta_spec' => 'content_type: product_group, content_ids: [parent_ids], contents, currency, value',
+                'tiktok_spec' => 'content_type: product_group, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'select_item' => [
+                'name' => 'select_item',
+                'label' => 'Select Item',
+                'desc' => 'Clicking on a product link or miniature card from any listing',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
+                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue'
+            ],
+            'view_item' => [
+                'name' => 'view_item',
+                'label' => 'View Item (PDP & Variants)',
+                'desc' => 'Product detail page view and combination/variant switching',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
+                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue'
+            ],
+            'add_to_cart' => [
+                'name' => 'add_to_cart',
+                'label' => 'Add to Cart',
+                'desc' => 'Adding a product or combination to the shopping cart',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'remove_from_cart' => [
+                'name' => 'remove_from_cart',
+                'label' => 'Remove from Cart',
+                'desc' => 'Removing an item or decrementing line item quantity in the cart',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'view_cart' => [
+                'name' => 'view_cart',
+                'label' => 'View Cart',
+                'desc' => 'Visiting the shopping cart summary page (/cart)',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'begin_checkout' => [
+                'name' => 'begin_checkout',
+                'label' => 'Begin Checkout',
+                'desc' => 'Proceeding to checkout funnel step 1 (/order)',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_ids], num_items, contents, currency, value',
+                'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'add_shipping_info' => [
+                'name' => 'add_shipping_info',
+                'label' => 'Add Shipping Info',
+                'desc' => 'Selecting a carrier or delivery method in checkout step 3',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'add_payment_info' => [
+                'name' => 'add_payment_info',
+                'label' => 'Add Payment Info',
+                'desc' => 'Selecting a payment gateway or option in checkout step 4',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'purchase' => [
+                'name' => 'purchase',
+                'label' => 'Purchase',
+                'desc' => 'Order completed with transaction details, order_totals, and user_data',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_ids], num_items, contents, currency, value',
+                'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
+                'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue'
+            ],
+            'add_to_wishlist' => [
+                'name' => 'add_to_wishlist',
+                'label' => 'Add to Wishlist',
+                'desc' => 'Adding an item to wishlist/favorites via ps_wishlist or blockwishlist',
+                'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
+                'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
+                'gads_spec' => 'ecomm_pagetype: other, ecomm_prodid: catalog_id, ecomm_totalvalue'
+            ],
+        ];
+    }
+
+    public function renderAdvertisingMatrixTable()
+    {
+        $events = self::getSupportedEvents();
+        $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
+        $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
+        $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
+
+        $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys($events);
+        $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys($events);
+        $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys($events);
+
+        if (!is_array($metaEvents)) $metaEvents = array_keys($events);
+        if (!is_array($tiktokEvents)) $tiktokEvents = array_keys($events);
+        if (!is_array($gadsEvents)) $gadsEvents = array_keys($events);
+
+        $html = '<div id="ps-gtm-adv-matrix-container" style="max-width: 950px; margin-top: 5px;">';
+        $html .= '<input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1" />';
+
+        // Convenience controls bar
+        $html .= '<div style="background: #f8f9fa; border: 1px solid #dcdde1; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">';
+        $html .= '<div style="font-size: 12px; font-weight: bold; color: #2c3e50;"><i class="icon-sliders"></i> ' . $this->l('Quick Controls:') . '</div>';
+        $html .= '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Meta') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
+        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All TikTok') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
+        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'gads\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Google Ads') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'gads\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
+        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-success btn-xs" onclick="psGtmSetMatrix(true)"><i class="icon-check-circle"></i> ' . $this->l('Enable All') . '</button>';
+        $html .= '<button type="button" class="btn btn-warning btn-xs" onclick="psGtmSetMatrix(false)"><i class="icon-ban"></i> ' . $this->l('Disable All') . '</button>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // Table
+        $html .= '<div class="table-responsive">';
+        $html .= '<table class="table table-bordered table-striped" style="background:#fff; margin-bottom: 0;">';
+        $html .= '<thead>';
+        $html .= '<tr style="background:#f1f2f6;">';
+        $html .= '<th style="width: 35px; text-align: center;">#</th>';
+        $html .= '<th>' . $this->l('Ecommerce Event') . '</th>';
+        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-facebook" style="color: #1877f2;"></i> ' . $this->l('Meta Pixel / CAPI') . '</th>';
+        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-music" style="color: #000;"></i> ' . $this->l('TikTok Events API') . '</th>';
+        $html .= '<th style="width: 170px; text-align: center;"><i class="icon-google" style="color: #ea4335;"></i> ' . $this->l('Google Ads Remarketing') . '</th>';
+        $html .= '<th style="width: 110px; text-align: center;">' . $this->l('Row Actions') . '</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+
+        $rowIdx = 1;
+        foreach ($events as $k => $e) {
+            $isMeta = in_array($k, $metaEvents);
+            $isTiktok = in_array($k, $tiktokEvents);
+            $isGads = in_array($k, $gadsEvents);
+
+            $html .= '<tr class="ps-gtm-matrix-row" data-row="' . $rowIdx . '">';
+            $html .= '<td style="text-align: center; vertical-align: middle; font-weight: bold; color: #7f8c8d;">' . $rowIdx . '</td>';
+            $html .= '<td style="vertical-align: middle;">';
+            $html .= '<div style="display: flex; align-items: center; justify-content: space-between; position: relative;">';
+            $html .= '<div>';
+            $html .= '<strong style="color: #2c3e50; font-size: 13px;"><code>' . htmlspecialchars($e['name']) . '</code></strong>';
+            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($e['desc']) . '</div>';
+            $html .= '</div>';
+            
+            // Tooltip trigger
+            $html .= '<div class="ps-gtm-info-popover-trigger" style="cursor: pointer; padding: 4px 8px; color: #3498db; background: #ebf5fb; border-radius: 4px; font-size: 11px; margin-left: 10px; white-space: nowrap;">';
+            $html .= '<i class="icon-info-sign"></i> ' . $this->l('Specs');
+            $html .= '<div class="ps-gtm-info-popover-body" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 6px; width: 380px; background: #ffffff; border: 1px solid #3498db; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 12px 14px; z-index: 99999; text-align: left;">';
+            $html .= '<strong style="color: #2980b9; font-size: 12px;">' . htmlspecialchars($e['name']) . ' ' . $this->l('Platform Namespaces') . '</strong>';
+            $html .= '<div style="margin-top: 6px; font-size: 11px; color: #2c3e50; line-height: 1.4;">';
+            $html .= '<div style="margin-bottom: 4px;"><strong>Meta:</strong> <code>' . htmlspecialchars($e['meta_spec']) . '</code></div>';
+            $html .= '<div style="margin-bottom: 4px;"><strong>TikTok:</strong> <code>' . htmlspecialchars($e['tiktok_spec']) . '</code></div>';
+            $html .= '<div><strong>Google Ads:</strong> <code>' . htmlspecialchars($e['gads_spec']) . '</code></div>';
+            $html .= '</div>';
+            $html .= '</div>';
+            $html .= '</div>';
+
+            $html .= '</div>';
+            $html .= '</td>';
+
+            // Meta Checkbox
+            $html .= '<td style="text-align: center; vertical-align: middle;">';
+            $html .= '<input type="checkbox" name="adv_meta_' . $k . '" class="ps-gtm-cb ps-gtm-col-meta ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isMeta ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            $html .= '</td>';
+
+            // TikTok Checkbox
+            $html .= '<td style="text-align: center; vertical-align: middle;">';
+            $html .= '<input type="checkbox" name="adv_tiktok_' . $k . '" class="ps-gtm-cb ps-gtm-col-tiktok ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isTiktok ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            $html .= '</td>';
+
+            // Google Ads Checkbox
+            $html .= '<td style="text-align: center; vertical-align: middle;">';
+            $html .= '<input type="checkbox" name="adv_gads_' . $k . '" class="ps-gtm-cb ps-gtm-col-gads ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isGads ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            $html .= '</td>';
+
+            // Row Action
+            $html .= '<td style="text-align: center; vertical-align: middle;">';
+            $html .= '<div class="btn-group">';
+            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetRow(' . $rowIdx . ', true)" title="' . $this->l('Enable all platforms for this event') . '"><i class="icon-check text-success"></i></button>';
+            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetRow(' . $rowIdx . ', false)" title="' . $this->l('Disable all platforms for this event') . '"><i class="icon-times text-danger"></i></button>';
+            $html .= '</div>';
+            $html .= '</td>';
+
+            $html .= '</tr>';
+            $rowIdx++;
+        }
+
+        $html .= '</tbody>';
+        $html .= '</table>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // Embedded Script for interactive matrix operations and hover popovers
+        $html .= '<script type="text/javascript">
+            function psGtmSetColumn(col, state) {
+                var cbs = document.querySelectorAll(".ps-gtm-col-" + col);
+                for (var i = 0; i < cbs.length; i++) {
+                    cbs[i].checked = state;
+                }
+            }
+            function psGtmSetRow(rowIdx, state) {
+                var cbs = document.querySelectorAll(".ps-gtm-row-" + rowIdx);
+                for (var i = 0; i < cbs.length; i++) {
+                    cbs[i].checked = state;
+                }
+            }
+            function psGtmSetMatrix(state) {
+                var cbs = document.querySelectorAll(".ps-gtm-cb");
+                for (var i = 0; i < cbs.length; i++) {
+                    cbs[i].checked = state;
+                }
+            }
+            (function() {
+                function setupPopovers() {
+                    var triggers = document.querySelectorAll(".ps-gtm-info-popover-trigger");
+                    for (var i = 0; i < triggers.length; i++) {
+                        (function(trigger) {
+                            var body = trigger.querySelector(".ps-gtm-info-popover-body");
+                            if (!body) return;
+                            trigger.addEventListener("mouseenter", function() {
+                                body.style.display = "block";
+                            });
+                            trigger.addEventListener("mouseleave", function() {
+                                body.style.display = "none";
+                            });
+                        })(triggers[i]);
+                    }
+                }
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", setupPopovers);
+                } else {
+                    setupPopovers();
+                }
+            })();
+        </script>';
+
+        return $html;
     }
 
     private function renderCatalogStrategyHelp()
@@ -688,6 +1072,29 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
+            $advMaster = Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0';
+            $advMeta = Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0';
+            $advTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0';
+            $advGads = Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0';
+
+            $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
+            $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
+            $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
+
+            $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys(self::getSupportedEvents());
+            $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys(self::getSupportedEvents());
+            $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys(self::getSupportedEvents());
+
+            $advSettings = [
+                'master_enabled' => (bool)$advMaster,
+                'meta_enabled' => (bool)$advMeta,
+                'tiktok_enabled' => (bool)$advTiktok,
+                'gads_enabled' => (bool)$advGads,
+                'meta_events' => is_array($metaEvents) ? $metaEvents : array_keys(self::getSupportedEvents()),
+                'tiktok_events' => is_array($tiktokEvents) ? $tiktokEvents : array_keys(self::getSupportedEvents()),
+                'gads_events' => is_array($gadsEvents) ? $gadsEvents : array_keys(self::getSupportedEvents()),
+            ];
+
             $this->context->smarty->assign([
                 'gtm_id' => $gtmId,
                 'sgtm_url' => $sgtmUrl,
@@ -701,6 +1108,7 @@ class Ps_Gtm_DataLayer extends Module
                 'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
                 'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
                 'catalog_id_strategy' => (Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite'),
+                'advertising_settings' => json_encode($advSettings, JSON_UNESCAPED_SLASHES),
                 'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);
 

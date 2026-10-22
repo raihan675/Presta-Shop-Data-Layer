@@ -1216,9 +1216,14 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(item.price, 13.00);
       assert.strictEqual(item.quantity, 1);
 
-      // Verify prior ecommerce state reset
+      // Verify prior ecommerce and advertising state reset
       const priorEntry = global.window.dataLayer[global.window.dataLayer.length - 2];
-      assert.deepStrictEqual(priorEntry, { ecommerce: null });
+      assert.deepStrictEqual(priorEntry, {
+        ecommerce: null,
+        meta: null,
+        tiktok: null,
+        google_ads: null
+      });
     });
 
     it('35. Universal Wishlist Parameter Extraction & Network Interception (Zero DOM)', function () {

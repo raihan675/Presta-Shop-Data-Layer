@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.11.0] - 2026-10-23
+
+### Fixed
+- **Resolved Spurious `view_item` Event After `add_to_cart`**:
+  - Eliminated race condition in PrestaShop core event bus where `updatedProduct` fired immediately following cart modal response.
+  - Added cart update active lock (`isCartUpdating` cooldown 2500ms) and combination attribute ID verification (`lastViewedProductAttributeId`) ensuring combination events only fire when a variant has genuinely changed.
+- **Fixed `view_item_list` on Empty Categories / Listings**:
+  - `PayloadBuilder::buildViewItemListPayload` now evaluates `$items` and returns `null` when no products exist on the page, preventing empty dataLayer emissions (`items: []`, `value: 0`).
+- **Complete Advertising Platform Namespaces across All 11 Ecommerce Events**:
+  - Resolved missing advertising namespaces (`meta`, `tiktok`, `google_ads`) on client-side events (`add_to_cart`, `remove_from_cart`, `select_item`, `add_to_wishlist`). All 11 supported events now consistently provide catalog-accurate identifiers.
+
+### Added
+- **Advertising Platform Data Layer Settings Panel in Back Office**:
+  - **Master Toggle**: Global switch (`PS_GTM_ADV_MASTER_ENABLED`) to enable or suppress all advertising namespaces (`meta`, `tiktok`, `google_ads`) in a single click.
+  - **Platform-Level Toggles**: Independent switches for Meta Pixel / CAPI, TikTok Events API, and Google Ads Dynamic Remarketing.
+  - **Interactive 11-Event Routing Matrix**: Full matrix table allowing granular activation of each advertising platform across all 11 supported events (`view_item_list`, `select_item`, `view_item`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`, `add_to_wishlist`).
+  - **Convenience Controls**: Quick action toolbar featuring "Select All" / "Deselect All" per platform, per event row, and global "Enable All / Disable All" toggles.
+  - **Detailed Spec Tooltips**: Hover popovers providing exact parameter specifications for Meta, TikTok, and Google Ads per event.
+
+---
+
 ## [1.10.3] - 2026-10-22
 
 ### Added

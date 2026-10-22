@@ -45,6 +45,13 @@
   {if isset($catalog_id_strategy)}
   window.psGtmConfig.catalogIdStrategy = '{$catalog_id_strategy|escape:'javascript':'UTF-8'}';
   {/if}
+  {if isset($advertising_settings)}
+  try {
+    window.psGtmConfig.advertisingSettings = {$advertising_settings nofilter};
+  } catch(e) {
+    window.psGtmConfig.advertisingSettings = null;
+  }
+  {/if}
 
   {if !empty($initial_server_payload)}
   (function(){

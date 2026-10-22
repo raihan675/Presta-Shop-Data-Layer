@@ -334,11 +334,33 @@
       googleAdsNamespace.ecomm_category = String(options.categoryName);
     }
 
-    return {
-      meta: metaNamespace,
-      tiktok: tiktokNamespace,
-      google_ads: googleAdsNamespace
-    };
+    var advSettings = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.advertisingSettings) ? window.psGtmConfig.advertisingSettings : null;
+
+    var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
+    if (!masterEnabled) {
+      return {};
+    }
+
+    var metaEnabled = advSettings ? (advSettings.meta_enabled !== false && advSettings.meta_enabled !== 0 && advSettings.meta_enabled !== '0') : true;
+    var tiktokEnabled = advSettings ? (advSettings.tiktok_enabled !== false && advSettings.tiktok_enabled !== 0 && advSettings.tiktok_enabled !== '0') : true;
+    var gadsEnabled = advSettings ? (advSettings.gads_enabled !== false && advSettings.gads_enabled !== 0 && advSettings.gads_enabled !== '0') : true;
+
+    var metaEvents = (advSettings && Array.isArray(advSettings.meta_events)) ? advSettings.meta_events : null;
+    var tiktokEvents = (advSettings && Array.isArray(advSettings.tiktok_events)) ? advSettings.tiktok_events : null;
+    var gadsEvents = (advSettings && Array.isArray(advSettings.gads_events)) ? advSettings.gads_events : null;
+
+    var result = {};
+    if (metaEnabled && (!metaEvents || metaEvents.indexOf(canonicalEventName) !== -1)) {
+      result.meta = metaNamespace;
+    }
+    if (tiktokEnabled && (!tiktokEvents || tiktokEvents.indexOf(canonicalEventName) !== -1)) {
+      result.tiktok = tiktokNamespace;
+    }
+    if (gadsEnabled && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
+      result.google_ads = googleAdsNamespace;
+    }
+
+    return result;
   }
 
   function pushEcommerceEvent(canonicalEventName, ecommerceData, userData, additionalNamespaces) {
@@ -367,16 +389,23 @@
     var canonicalPayload = {
       event: finalEventName,
       original_event: canonicalEventName,
-      ecommerce: ecommerceData,
-      meta: platformNamespaces.meta,
-      tiktok: platformNamespaces.tiktok,
-      google_ads: platformNamespaces.google_ads
+      ecommerce: ecommerceData
     };
 
+    if (platformNamespaces.meta) {
+      canonicalPayload.meta = platformNamespaces.meta;
+    }
+    if (platformNamespaces.tiktok) {
+      canonicalPayload.tiktok = platformNamespaces.tiktok;
+    }
+    if (platformNamespaces.google_ads) {
+      canonicalPayload.google_ads = platformNamespaces.google_ads;
+    }
+
     if (additionalNamespaces && typeof additionalNamespaces === 'object') {
-      if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta, additionalNamespaces.meta);
-      if (additionalNamespaces.tiktok) canonicalPayload.tiktok = Object.assign({}, canonicalPayload.tiktok, additionalNamespaces.tiktok);
-      if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads, additionalNamespaces.google_ads);
+      if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta || {}, additionalNamespaces.meta);
+      if (additionalNamespaces.tiktok) canonicalPayload.tiktok = Object.assign({}, canonicalPayload.tiktok || {}, additionalNamespaces.tiktok);
+      if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads || {}, additionalNamespaces.google_ads);
       if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
     }
 
@@ -384,9 +413,14 @@
       canonicalPayload.user_data = userData;
     }
 
-    // Explicitly reset the ecommerce object to purge prior stale properties in GTM
+    // Explicitly reset the ecommerce and advertising objects to purge prior stale properties in GTM
     if (typeof window !== 'undefined' && window.dataLayer) {
-      window.dataLayer.push({ ecommerce: null });
+      window.dataLayer.push({
+        ecommerce: null,
+        meta: null,
+        tiktok: null,
+        google_ads: null
+      });
       window.dataLayer.push(canonicalPayload);
     }
 

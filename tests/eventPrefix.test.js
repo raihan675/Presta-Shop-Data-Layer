@@ -45,9 +45,14 @@ describe('Dynamic Data Layer Event Prefix Test Suite', function () {
     EDL.setEventPrefix('shop_123');
     EDL.pushEvent('add_to_cart', { currency: 'EUR', value: 29.99, items: [] });
 
-    // Expect 2 pushes: 1st is ecommerce:null, 2nd is the event payload
+    // Expect 2 pushes: 1st is reset of ecommerce and advertising namespaces, 2nd is the event payload
     assert.strictEqual(global.window.dataLayer.length, 2);
-    assert.deepStrictEqual(global.window.dataLayer[0], { ecommerce: null });
+    assert.deepStrictEqual(global.window.dataLayer[0], {
+      ecommerce: null,
+      meta: null,
+      tiktok: null,
+      google_ads: null
+    });
 
     const payload = global.window.dataLayer[1];
     assert.strictEqual(payload.event, 'shop_123_add_to_cart');

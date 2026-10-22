@@ -180,11 +180,37 @@ class PayloadBuilder
             $googleAds['ecomm_category'] = (string)$options['category_name'];
         }
 
-        return [
-            'meta' => $meta,
-            'tiktok' => $tiktok,
-            'google_ads' => $googleAds,
-        ];
+        $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
+        if (!$masterEnabled) {
+            return [];
+        }
+
+        $metaEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0') : true;
+        $tiktokEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0') : true;
+        $gadsEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0') : true;
+
+        $metaEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_META_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_META_EVENTS'), true)
+            : null;
+        $tiktokEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS'), true)
+            : null;
+        $gadsEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_GADS_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_GADS_EVENTS'), true)
+            : null;
+
+        $result = [];
+        if ($metaEnabled && (empty($metaEvents) || !is_array($metaEvents) || in_array($canonicalEvent, $metaEvents))) {
+            $result['meta'] = $meta;
+        }
+        if ($tiktokEnabled && (empty($tiktokEvents) || !is_array($tiktokEvents) || in_array($canonicalEvent, $tiktokEvents))) {
+            $result['tiktok'] = $tiktok;
+        }
+        if ($gadsEnabled && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
+            $result['google_ads'] = $googleAds;
+        }
+
+        return $result;
     }
 
     public function buildPagePayload($controller, $params)
@@ -335,6 +361,10 @@ class PayloadBuilder
                     }
                 }
             }
+        }
+
+        if (empty($items)) {
+            return null;
         }
 
         $currencyCode = ($this->context->currency && !empty($this->context->currency->iso_code))
@@ -539,9 +569,6 @@ class PayloadBuilder
                 'coupon' => $coupon,
                 'items' => $items,
             ],
-            'meta' => $platformNamespaces['meta'],
-            'tiktok' => $platformNamespaces['tiktok'],
-            'google_ads' => $platformNamespaces['google_ads'],
             // Custom PrestaShop financial breakdown preserving exact order totals
             'order_totals' => [
                 'order_id' => (int)$order->id,
@@ -554,6 +581,16 @@ class PayloadBuilder
             ],
             'user_data' => $userData,
         ];
+
+        if (isset($platformNamespaces['meta'])) {
+            $purchasePayload['meta'] = $platformNamespaces['meta'];
+        }
+        if (isset($platformNamespaces['tiktok'])) {
+            $purchasePayload['tiktok'] = $platformNamespaces['tiktok'];
+        }
+        if (isset($platformNamespaces['google_ads'])) {
+            $purchasePayload['google_ads'] = $platformNamespaces['google_ads'];
+        }
 
         return $purchasePayload;
     }

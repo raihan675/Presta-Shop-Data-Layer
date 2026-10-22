@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.10.3",
-    "release_date":  "2026-10-22",
+    "latest_version":  "1.11.0",
+    "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.10.3/ps_gtm_datalayer.zip",
-    "checksum":  "1080eb574f371bd3b1e6f3a697cf79523e79f9a7b0ab216b802ab1fedf1e0570",
-    "release_type":  "patch",
-    "release_notes":  "1. All 3 Strategy Options Exposed With Individual Hover Cards: Every catalog strategy (Composite ID, Base Product ID, Reference/SKU) is now simultaneously displayed with its own dedicated info icon and hover tooltip.\n2. Interactive Selection: Clicking any strategy card automatically selects it in the dropdown and highlights the active choice with an active badge and checkmark.\n3. Two-Way Sync: Changing the dropdown automatically syncs and updates the cards."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.11.0/ps_gtm_datalayer.zip",
+    "checksum":  "d3dd3d621bf1756985a8f6c106d70f8d928ee1abdec3d854d053636cfc0f037f",
+    "release_type":  "minor",
+    "release_notes":  "1. Resolved Spurious view_item: Fixed race condition where updatedProduct was triggered after add_to_cart, adding 2500ms cart cooldown and combination attribute verification.\n2. Fixed Empty view_item_list: Prevents empty dataLayer emissions on category listings without products.\n3. Advertising Platform Settings: Added Back Office settings panel with Master toggle, platform switches (Meta, TikTok, Google Ads), interactive 11-event routing matrix with Select/Deselect All convenience controls, and spec tooltips."
 }

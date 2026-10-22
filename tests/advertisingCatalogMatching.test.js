@@ -393,4 +393,115 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(EDL.resolveCatalogItemId(simple, 'id_product'), '1033');
   });
 
+  it('10. Advertising Settings: Master toggle completely suppresses advertising namespaces', function () {
+    global.window.psGtmConfig.advertisingSettings = {
+      master_enabled: false,
+      meta_enabled: true,
+      tiktok_enabled: true,
+      gads_enabled: true
+    };
+
+    const item = {
+      item_id: '68',
+      variant_id: '298',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 1
+    };
+
+    EDL.pushEvent('view_item', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [item]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(payload.original_event, 'view_item');
+    assert.strictEqual(payload.meta, undefined);
+    assert.strictEqual(payload.tiktok, undefined);
+    assert.strictEqual(payload.google_ads, undefined);
+  });
+
+  it('11. Advertising Settings: Individual platform switches toggle specific namespaces', function () {
+    global.window.psGtmConfig.advertisingSettings = {
+      master_enabled: true,
+      meta_enabled: true,
+      tiktok_enabled: false,
+      gads_enabled: false
+    };
+
+    const item = {
+      item_id: '68',
+      variant_id: '298',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 1
+    };
+
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [item]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(payload.original_event, 'add_to_cart');
+    assert.ok(payload.meta !== undefined);
+    assert.strictEqual(payload.tiktok, undefined);
+    assert.strictEqual(payload.google_ads, undefined);
+  });
+
+  it('12. Advertising Settings: Event routing matrix activates platforms selectively per event', function () {
+    global.window.psGtmConfig.advertisingSettings = {
+      master_enabled: true,
+      meta_enabled: true,
+      tiktok_enabled: true,
+      gads_enabled: true,
+      meta_events: ['purchase', 'add_to_cart'],
+      tiktok_events: ['purchase'],
+      gads_events: ['view_item', 'purchase']
+    };
+
+    const item = {
+      item_id: '68',
+      variant_id: '298',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 1
+    };
+
+    // On view_item: only google_ads should be included
+    EDL.pushEvent('view_item', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [item]
+    });
+    let payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(payload.meta, undefined);
+    assert.strictEqual(payload.tiktok, undefined);
+    assert.ok(payload.google_ads !== undefined);
+
+    // On add_to_cart: only meta should be included
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [item]
+    });
+    payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.meta !== undefined);
+    assert.strictEqual(payload.tiktok, undefined);
+    assert.strictEqual(payload.google_ads, undefined);
+
+    // On purchase: all three should be included
+    EDL.pushEvent('purchase', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [item]
+    });
+    payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.meta !== undefined);
+    assert.ok(payload.tiktok !== undefined);
+    assert.ok(payload.google_ads !== undefined);
+  });
+
 });
