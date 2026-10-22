@@ -4,7 +4,7 @@
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.12.1/ps_gtm_datalayer.zip",
-    "checksum":  "8982b6726f645525f4ffe5732c3b96e026269a0823e02c8dc40f6d61b83eb6ee",
+    "checksum":  "3116c6ba10fcd4722619a87818d7c8fb66666f43c8a610bdd3d484baa6927b31",
     "release_type":  "patch",
     "release_notes":  "1. Fixed false select_item trigger when removing products on Checkout / Cart (excluded cart action triggers and deletion URLs from select_item).\n2. Universal remove_from_cart tracking across all checkout types (including ETS One Page Checkout, standard PrestaShop, slide-out mini-carts, and cart pages).\n3. Zero DOM data resolution: product data resolved strictly from backend memory or AJAX controller.\n4. Network-level XHR and Fetch interceptors with deduplication guards to ensure accurate, single remove_from_cart event emission."
 }
