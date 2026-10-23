@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.17.0] - 2026-10-23
+
+### Added
+- **TikTok Advanced Matching (`tiktok.user_data`)**:
+  - Implemented authoritative customer extraction and SHA-256 hashing for TikTok Advanced Matching parameters:
+    - `email`: Lowercase, trimmed email SHA-256 hashed.
+    - `phone_number`: E.164 formatted international phone number (+[country code][digits]) SHA-256 hashed.
+  - Pre-hydrated server-side on storefront page loads for authenticated customer sessions (`window.psGtmConfig.tiktokUserData`) and populated during checkout and purchase (`CompletePayment`) for maximum Event Match Quality (EMQ) on TikTok Events Manager.
+  - Documented Google Tag Manager Data Layer Variables (`{{dlv - tiktok.user_data}}`, `{{dlv - tiktok.user_data.email}}`, `{{dlv - tiktok.user_data.phone_number}}`) in `README.md`.
+
+---
+
 ## [1.16.0] - 2026-10-23
 
 ### Added

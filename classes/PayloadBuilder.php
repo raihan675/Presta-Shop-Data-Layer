@@ -378,6 +378,23 @@ class PayloadBuilder
                 $tiktok['content_category'] = (string)$items[0]['item_category'];
             }
         }
+        if (!empty($options['tiktok_user_data']) && is_array($options['tiktok_user_data'])) {
+            $tiktok['user_data'] = $options['tiktok_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $hashedTikTokUser = CustomerDataEngine::hashTikTokUserData($options['user_data']);
+            if (!empty($hashedTikTokUser)) {
+                $tiktok['user_data'] = $hashedTikTokUser;
+            }
+        } elseif (isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $tUserData = CustomerDataEngine::buildTikTokUserData($this->context->customer, $addr);
+            if (!empty($tUserData)) {
+                $tiktok['user_data'] = $tUserData;
+            }
+        }
 
         $googleAds = [
             'ecomm_pagetype' => $pageType,
@@ -1208,6 +1225,7 @@ class PayloadBuilder
             'order_id' => $orderReference,
             'user_data' => $userData,
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
+            'tiktok_user_data' => CustomerDataEngine::buildTikTokUserData($customer, $address),
         ]);
 
         $purchasePayload = [

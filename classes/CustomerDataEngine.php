@@ -280,4 +280,109 @@ class CustomerDataEngine
         }
         return $cleaned;
     }
+
+    /**
+     * Extracts, normalizes, and SHA-256 hashes customer data for TikTok Advanced Matching
+     * (email, phone_number).
+     *
+     * @param Customer $customer
+     * @param Address|null $address
+     * @return array
+     */
+    public static function buildTikTokUserData(Customer $customer, Address $address = null)
+    {
+        if (!Validate::isLoadedObject($customer)) {
+            return [];
+        }
+
+        $rawEmail = (string)$customer->email;
+        $rawPhone = '';
+        if ($address && Validate::isLoadedObject($address)) {
+            $rawPhone = !empty($address->phone_mobile) ? (string)$address->phone_mobile : (string)$address->phone;
+        }
+
+        return self::hashTikTokUserData([
+            'email' => $rawEmail,
+            'phone_number' => $rawPhone,
+        ], $address);
+    }
+
+    /**
+     * Normalizes and SHA-256 hashes arbitrary user data into TikTok Advanced Matching schema.
+     *
+     * @param array $userData
+     * @param Address|null $address
+     * @return array
+     */
+    public static function hashTikTokUserData(array $userData, Address $address = null)
+    {
+        $result = [];
+
+        // 1. Email: lowercase, trimmed, sha256
+        $email = !empty($userData['email']) ? trim((string)$userData['email']) : '';
+        if ($email !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $email)) {
+                $result['email'] = strtolower($email);
+            } else {
+                $cleanEmail = strtolower($email);
+                if (filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
+                    $result['email'] = hash('sha256', $cleanEmail);
+                }
+            }
+        }
+
+        // 2. Phone Number: E.164 (+[country code][digits]), sha256
+        $phone = !empty($userData['phone_number']) ? (string)$userData['phone_number'] : (!empty($userData['phone']) ? (string)$userData['phone'] : '');
+        if ($phone !== '') {
+            $cleanPhone = trim($phone);
+            if (preg_match('/^[a-f0-9]{64}$/i', $cleanPhone)) {
+                $result['phone_number'] = strtolower($cleanPhone);
+            } else {
+                $normalizedPhone = self::normalizeE164Phone($cleanPhone, $address);
+                if ($normalizedPhone !== '') {
+                    $result['phone_number'] = hash('sha256', $normalizedPhone);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalizes phone number to strict E.164 format (+[country code][digits]).
+     *
+     * @param string $phone
+     * @param Address|null $address
+     * @return string
+     */
+    public static function normalizeE164Phone($phone, Address $address = null)
+    {
+        if (empty($phone)) {
+            return '';
+        }
+
+        $cleaned = preg_replace('/[^\+0-9]/', '', (string)$phone);
+        if (strpos($cleaned, '00') === 0) {
+            $cleaned = '+' . substr($cleaned, 2);
+        }
+
+        if (strpos($cleaned, '+') !== 0 && $cleaned !== '') {
+            if ($address && !empty($address->id_country) && class_exists('Country')) {
+                try {
+                    $countryObj = new Country((int)$address->id_country);
+                    if (Validate::isLoadedObject($countryObj) && !empty($countryObj->call_prefix)) {
+                        $cleaned = '+' . (int)$countryObj->call_prefix . ltrim($cleaned, '0');
+                    } else {
+                        $cleaned = '+' . $cleaned;
+                    }
+                } catch (\Throwable $e) {
+                    $cleaned = '+' . $cleaned;
+                }
+            } else {
+                $cleaned = '+' . $cleaned;
+            }
+        }
+
+        return $cleaned;
+    }
 }

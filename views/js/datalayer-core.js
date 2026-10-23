@@ -439,6 +439,12 @@
       }
     }
 
+    var tUserData = options.tiktokUserData || options.tiktok_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.tiktokUserData ? window.psGtmConfig.tiktokUserData : null);
+    if (tUserData && typeof tUserData === 'object' && Object.keys(tUserData).length > 0) {
+      tiktokNamespace.user_data = tUserData;
+    }
+
     var googleAdsNamespace = {
       ecomm_pagetype: pageType,
       ecomm_prodid: isSingleProduct ? (googleProdIds[0] || '') : googleProdIds,

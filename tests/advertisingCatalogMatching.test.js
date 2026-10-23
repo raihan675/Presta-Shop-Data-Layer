@@ -1070,4 +1070,59 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(engineCode.includes("hash('sha256', $clean)"), 'SHA-256 hashing must be performed in hashPinterestField');
   });
 
+  it('23. TikTok Ads: Advanced Matching user_data mapping (email, phone_number, strictly omitting external_id)', function () {
+    const crypto = require('crypto');
+    function sha256(val) {
+      return crypto.createHash('sha256').update(val).digest('hex');
+    }
+
+    const item = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 1
+    };
+
+    const mockTikTokUserData = {
+      email: sha256('customer@example.com'),
+      phone_number: sha256('+14155552671')
+    };
+
+    // Test passing tiktokUserData via window.psGtmConfig
+    global.window.psGtmConfig.tiktokUserData = mockTikTokUserData;
+
+    EDL.pushEvent('purchase', {
+      transaction_id: 'ORD-7755',
+      currency: 'USD',
+      value: 13.00,
+      items: [item]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.tiktok, 'tiktok namespace must exist on purchase');
+    assert.strictEqual(payload.tiktok.event_name, 'CompletePayment');
+    assert.strictEqual(payload.tiktok.order_id, 'ORD-7755');
+    assert.strictEqual(payload.tiktok.currency, 'USD');
+    assert.strictEqual(payload.tiktok.value, 13.00);
+
+    // Advanced Matching user_data
+    assert.ok(payload.tiktok.user_data, 'tiktok.user_data must be present for Advanced Matching');
+    assert.strictEqual(payload.tiktok.user_data.email, mockTikTokUserData.email);
+    assert.strictEqual(payload.tiktok.user_data.phone_number, mockTikTokUserData.phone_number);
+    assert.strictEqual(payload.tiktok.user_data.external_id, undefined, 'external_id must be strictly omitted per configuration');
+
+    // Verify CustomerDataEngine PHP backend code implements the TikTok static helpers
+    const fs = require('fs');
+    const path = require('path');
+    const engineCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'CustomerDataEngine.php'), 'utf8');
+    assert.ok(engineCode.includes('public static function buildTikTokUserData'), 'buildTikTokUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function hashTikTokUserData'), 'hashTikTokUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function normalizeE164Phone'), 'normalizeE164Phone method must exist in CustomerDataEngine');
+  });
+
 });

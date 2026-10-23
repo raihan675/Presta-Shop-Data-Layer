@@ -88,6 +88,15 @@
   {else}
   window.psGtmConfig.pinterestUserData = null;
   {/if}
+  {if !empty($tiktok_user_data)}
+  try {
+    window.psGtmConfig.tiktokUserData = {$tiktok_user_data nofilter};
+  } catch(e) {
+    window.psGtmConfig.tiktokUserData = null;
+  }
+  {else}
+  window.psGtmConfig.tiktokUserData = null;
+  {/if}
   {if isset($page_context)}
   try {
     window.psGtmConfig.pageContext = {$page_context nofilter};

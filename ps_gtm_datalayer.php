@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.16.0';
+        $this->version = '1.17.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -639,7 +639,7 @@ class Ps_Gtm_DataLayer extends Module
                 'label' => 'Purchase',
                 'desc' => 'Order completed with transaction details, order_totals, and user_data',
                 'meta_spec' => 'fbq: Purchase, CAPI: Purchase, order_id, content_ids, num_items, contents, currency, value',
-                'tiktok_spec' => 'ttq: CompletePayment, Events API: CompletePayment, order_id, contents, quantity, value',
+                'tiktok_spec' => 'ttq: CompletePayment, Events API: CompletePayment, order_id, contents, quantity, value, user_data',
                 'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Checkout, order_id, value, currency, order_quantity, line_items, user_data',
             ],
@@ -1637,8 +1637,9 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
-            // Pre-hydrate Pinterest Advanced Matching hashed user data
+            // Pre-hydrate Pinterest and TikTok Advanced Matching hashed user data
             $pinterestUserData = null;
+            $tiktokUserData = null;
             if ($this->context->customer && Validate::isLoadedObject($this->context->customer)) {
                 $customerAddress = null;
                 if ($this->context->cart && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
@@ -1653,6 +1654,7 @@ class Ps_Gtm_DataLayer extends Module
                     }
                 }
                 $pinterestUserData = CustomerDataEngine::buildPinterestUserData($this->context->customer, $customerAddress);
+                $tiktokUserData = CustomerDataEngine::buildTikTokUserData($this->context->customer, $customerAddress);
             }
 
             $this->context->smarty->assign([
@@ -1675,6 +1677,7 @@ class Ps_Gtm_DataLayer extends Module
                 'selected_carrier' => $selectedCarrierName,
                 'cart_coupon' => $cartCoupon,
                 'pinterest_user_data' => !empty($pinterestUserData) ? json_encode($pinterestUserData, JSON_UNESCAPED_SLASHES) : null,
+                'tiktok_user_data' => !empty($tiktokUserData) ? json_encode($tiktokUserData, JSON_UNESCAPED_SLASHES) : null,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => !empty($initialPayloads) ? json_encode((count($initialPayloads) === 1 ? $initialPayloads[0] : $initialPayloads), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);

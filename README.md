@@ -114,6 +114,9 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   ```
 * `tiktok.quantity`: Total item count across all line items.
 * `tiktok.order_id`: Authoritative Order Reference for `CompletePayment` (used for Pixel & Events API deduplication).
+* `tiktok.user_data`: SHA-256 hashed customer identifiers for TikTok Advanced Matching:
+  - `email`: Lowercase, trimmed email (SHA-256)
+  - `phone_number`: E.164 normalized phone number (+[country code][digits]) (SHA-256)
 * `tiktok.search_string` & `tiktok.query`: Search query keyword string on search results (`search_string` is TikTok official standard).
 * `tiktok.currency` & `tiktok.value`: Normalized monetary value.
 
@@ -150,6 +153,7 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag `order_id` |
 | `{{dlv - tiktok.event_name}}` | `tiktok.event_name` | TikTok Pixel Event Name (`ttq.track(...)`) |
 | `{{dlv - tiktok.contents}}` | `tiktok.contents` | TikTok Pixel / Events API `contents` array |
+| `{{dlv - tiktok.user_data}}` | `tiktok.user_data` | TikTok Advanced Matching (`email`, `phone_number`) |
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |
 | `{{dlv - tiktok.content_id}}` | `tiktok.content_id` | TikTok Pixel `content_id` |
 | `{{dlv - tiktok.order_id}}` | `tiktok.order_id` | TikTok Pixel / Events API `event_id` / deduplication |
