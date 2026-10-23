@@ -50,3 +50,14 @@ Whenever ANY change, fix, or feature is made to the module, autonomously complet
    - Upload `ps_gtm_datalayer.zip` directly to the release assets.
    - Verify with `curl.exe -I` that the asset download URL returns `HTTP 302 Found / 200 OK`.
    - Confirm in the final report that the 1-Click Update in PrestaShop Back Office is live and working.
+
+---
+
+## 3. Mandatory Backend-Driven Tracking Architecture (Zero DOM Scraping)
+- **Authoritative Data Sources Only**: Use PrestaShop Back Office and backend data models — authoritative `Product`, `Combination`, `Cart`, `Order`, `Customer`, and `Carrier` objects, supported hooks, controllers, and services — to capture all event data and parameters.
+- **Zero DOM Scraping**: Never rely on DOM scraping, DOM listeners, CSS selectors, rendered HTML, or visible text to identify ecommerce events or extract their parameters.
+- **Lifecycle-Bound Triggers**: Event triggers must be tied directly to actual PrestaShop actions, event buses, or lifecycle hooks, not inferred from changes in page appearance or UI mutations.
+- **Application Source of Truth**: Product IDs, variant IDs, SKU references, prices, quantities, currency codes, search contexts, and order financials must come strictly from reliable application data sources (hydrated PHP configs or AJAX response payloads).
+- **Frontend Role Restriction**: Frontend JavaScript serves exclusively to transport verified backend data to `window.dataLayer`. It must never become an independent source of truth by parsing or scraping the page.
+- **Asynchronous Action Handling**: For asynchronous actions (AJAX add-to-cart, cart quantity updates, wishlist additions), always bind to official PrestaShop event buses (`prestashop.on(...)`), native controller JSON responses, or backend delta resolvers rather than fragile UI click detection.
+- **Deduplication & Accuracy**: Verify that every event fires strictly for its corresponding user action, with verified parameters, zero duplicates, and clean event isolation.
