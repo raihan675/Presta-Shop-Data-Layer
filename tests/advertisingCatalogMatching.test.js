@@ -964,4 +964,44 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.pinterest, undefined, 'Pinterest ViewCategory must be strictly suppressed on search results listing');
   });
 
+  it('20. Event-Level Platform Routing Matrix: Platform-Based Expandable Interface Structure & Toggle Integrity', function () {
+    const fs = require('fs');
+    const path = require('path');
+    const phpCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8');
+
+    // 1. Verify getAdvertisingConfigForm replaces old table with new expandable matrix
+    assert.ok(phpCode.includes("'name' => 'PS_GTM_ADV_MATRIX_TABLE'"), 'PS_GTM_ADV_MATRIX_TABLE free field must be defined');
+    assert.ok(!phpCode.includes("'type' => 'switch',\n                        'label' => $this->l('Meta Pixel & Conversions API (CAPI)')"), 'Redundant separate switches must be integrated directly into platform panels');
+
+    // 2. Verify all 4 supported platforms exist in renderAdvertisingMatrixTable
+    const supportedPlatforms = ['meta', 'gads', 'tiktok', 'pinterest'];
+    for (const p of supportedPlatforms) {
+      assert.ok(phpCode.includes(`'key' => '${p}'`), `Platform ${p} must be defined in platforms matrix`);
+    }
+
+    assert.ok(phpCode.includes("psGtmPlatformSelectAll(\\'' . $pKey . '\\', true)"), 'Enable all events button must exist');
+    assert.ok(phpCode.includes("psGtmPlatformSelectAll(\\'' . $pKey . '\\', false)"), 'Disable all events button must exist');
+    assert.ok(phpCode.includes('id="card_\' . $pKey . \'"'), 'card_$pKey ID must exist');
+    assert.ok(phpCode.includes('id="body_\' . $pKey . \'"'), 'body_$pKey accordion body must exist');
+    assert.ok(phpCode.includes('id="counter_\' . $pKey . \'"'), 'counter_$pKey active events counter must exist');
+    assert.ok(phpCode.includes('id="badge_\' . $pKey . \'"'), 'badge_$pKey status badge must exist');
+    assert.ok(phpCode.includes('id="master_\' . $pKey . \'"'), 'master_$pKey master toggle switch must exist');
+    assert.ok(phpCode.includes('id="chevron_\' . $pKey . \'"'), 'chevron_$pKey accordion chevron must exist');
+
+    // 3. Verify Google Ads Dynamic Remarketing on view_search_results is marked Excluded
+    assert.ok(phpCode.includes("($pKey === 'gads' && $evtK === 'view_search_results')"), 'Google Ads on view_search_results must be specifically excluded');
+
+    // 4. Verify interactive JavaScript functions are defined
+    assert.ok(phpCode.includes('function psGtmToggleAccordion(platformKey)'), 'psGtmToggleAccordion function must be present');
+    assert.ok(phpCode.includes('function psGtmExpandAllPanels(expand)'), 'psGtmExpandAllPanels function must be present');
+    assert.ok(phpCode.includes('function psGtmOnMasterToggle(platformKey, isChecked)'), 'psGtmOnMasterToggle function must be present');
+    assert.ok(phpCode.includes('function psGtmPlatformSelectAll(platformKey, state)'), 'psGtmPlatformSelectAll function must be present');
+    assert.ok(phpCode.includes('function psGtmOnEventToggle(platformKey)'), 'psGtmOnEventToggle function must be present');
+    assert.ok(phpCode.includes('function psGtmUpdateCounter(platformKey)'), 'psGtmUpdateCounter function must be present');
+    assert.ok(phpCode.includes('function psGtmToggleAllPlatforms(state)'), 'psGtmToggleAllPlatforms function must be present');
+
+    // 5. Verify accordion bodies are collapsed by default
+    assert.ok(phpCode.includes('.ps-gtm-card-body {\n                display: none;'), 'Platform accordion bodies must be collapsed (display: none) by default');
+  });
+
 });

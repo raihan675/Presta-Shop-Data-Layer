@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.5",
+    "latest_version":  "1.15.0",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.5/ps_gtm_datalayer.zip",
-    "checksum":  "cd2df77d4966ea912f79b032048f9064c20abfe972d5a3de2f4bd5f48200d23b",
-    "release_type":  "patch",
-    "release_notes":  "1. TikTok Events Schema Alignment: Added standard search_string parameter to tiktok advertising object on Search / view_search_results events.\n2. Preserved query parameter as legacy alias for backwards compatibility.\n3. Updated README guidelines and GTM variable mappings."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.15.0/ps_gtm_datalayer.zip",
+    "checksum":  "2fe210979509642150234220ce8c00c056efc082a88d66e88517835cc3fe3dec",
+    "release_type":  "minor",
+    "release_notes":  "1. Redesigned Event-Level Platform Routing Matrix into modern platform-based expandable accordion panels for Meta, Google Ads, TikTok, and Pinterest.\n2. Integrated platform master switches, status badges, and live event counters directly into platform headers.\n3. Preserved event selections when disabling platforms.\n4. Added platform-scoped bulk actions (Enable all / Disable all) and global toolbar controls."
 }

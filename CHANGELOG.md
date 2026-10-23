@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.15.0] - 2026-10-23
+
+### Added
+- **Platform-Based Expandable Event Routing UI**:
+  - Replaced the monolithic matrix table in the Back Office configuration with modern, platform-by-platform expandable accordion panels for **Meta**, **Google Ads**, **TikTok**, and **Pinterest**.
+  - **Integrated Platform Master Toggles**: Each platform panel header now houses its own dedicated master enable/disable switch, status badge (`Enabled` / `Disabled`), live active event counter (e.g. `12 of 12 events active`), and expand/collapse chevron.
+  - **Preserved Selections on Platform Disable**: Disabling a platform's master toggle preserves all underlying event-level selections, restoring them immediately when the platform is re-enabled.
+  - **Platform-Scoped Bulk Actions**: Added independent "Enable all events" and "Disable all events" controls within each expanded panel that affect only the selected platform.
+  - **Global Toolbar**: Added quick controls for "Expand All", "Collapse All", "Enable All Platforms", and "Disable All Platforms".
+  - **Payload Builder Empty Routing Fix**: Fixed PHP payload builder evaluation when all events are disabled for a platform (`metaEvents = []`), ensuring strict suppression without fallback to default arrays.
+
+---
+
 ## [1.14.5] - 2026-10-23
 
 ### Changed

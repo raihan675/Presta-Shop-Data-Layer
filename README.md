@@ -188,10 +188,11 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
 
 ### Advertising Platform DataLayer Settings
 * **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`) across all events in a single click.
-* **Platform Switches**: Independent switches for **Meta Pixel / CAPI**, **Pinterest Tag & CAPI**, **TikTok Events API**, and **Google Ads Dynamic Remarketing**.
-* **Interactive Event Routing Matrix**: Granular checkbox table to activate or deactivate specific advertising platforms on a per-event basis.
-* **Quick Action Controls**: Instant bulk buttons ("All Meta", "All Pinterest", "All TikTok", "All Google Ads", "Enable All", "Disable All").
-* **Hover Specification Popovers**: Hover over the "Specs" badge next to any event to view the exact payload structure generated for each platform.
+* **Platform-Based Expandable Routing Panels**: Each supported advertising platform (**Meta**, **Google Ads**, **TikTok**, and **Pinterest**) features its own expandable accordion panel.
+* **Independent Platform Master Toggles**: Enable or disable data layer output for an individual platform directly on its header card. Disabling a platform preserves its underlying event selections.
+* **Granular Event-Level Toggles**: Expand any platform to view its supported ecommerce events, payload specifications, and independently toggle data layer dispatch per event.
+* **Platform-Specific Bulk Actions**: Each expanded panel includes instant "Enable all events" and "Disable all events" buttons scoped exclusively to that platform.
+* **Global Controls**: Quick "Expand All", "Collapse All", "Enable All Platforms", and "Disable All Platforms" toolbar buttons.
 
 ---
 

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.14.5';
+        $this->version = '1.15.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -512,13 +512,13 @@ class Ps_Gtm_DataLayer extends Module
                     'title' => $this->l('Advertising Platform Data Layer Settings'),
                     'icon' => 'icon-bullhorn',
                 ],
-                'description' => $this->l('Configure dynamic catalog-matching and remarketing payloads for Meta Pixel/CAPI, Pinterest Tag/CAPI, TikTok Events API, and Google Ads Dynamic Remarketing. Toggle platforms globally or customize exact event routing via the interactive matrix below.'),
+                'description' => $this->l('Configure dynamic catalog-matching and remarketing payloads for Meta Pixel/CAPI, Google Ads Remarketing, TikTok Events API, and Pinterest Tag/CAPI. Toggle platforms globally or expand each platform below to independently customize event routing.'),
                 'input' => [
                     [
                         'type' => 'switch',
                         'label' => $this->l('Enable Advertising DataLayers (Master Switch)'),
                         'name' => 'PS_GTM_ADV_MASTER_ENABLED',
-                        'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, tiktok, google_ads, pinterest) are suppressed from the dataLayer across all events.'),
+                        'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, google_ads, tiktok, pinterest) are suppressed from the dataLayer across all events.'),
                         'is_bool' => true,
                         'desc' => $this->l('Master switch to enable or disable Meta, Pinterest, TikTok, and Google Ads namespaces across all events.'),
                         'values' => [
@@ -527,58 +527,10 @@ class Ps_Gtm_DataLayer extends Module
                         ],
                     ],
                     [
-                        'type' => 'switch',
-                        'label' => $this->l('Meta Pixel & Conversions API (CAPI)'),
-                        'name' => 'PS_GTM_ADV_META_ENABLED',
-                        'hint' => $this->l('Exposes the "meta" object payload with content_type, content_ids, contents, currency, and value matching your catalog strategy.'),
-                        'is_bool' => true,
-                        'desc' => $this->l('Outputs the "meta" namespace formatted for Meta Pixel and CAPI tags.'),
-                        'values' => [
-                            ['id' => 'adv_meta_on', 'value' => 1, 'label' => $this->l('Enabled')],
-                            ['id' => 'adv_meta_off', 'value' => 0, 'label' => $this->l('Disabled')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Pinterest Tag & Conversions API (CAPI)'),
-                        'name' => 'PS_GTM_ADV_PINTEREST_ENABLED',
-                        'hint' => $this->l('Exposes the "pinterest" object payload with line_items, product_ids, value, currency, order_quantity, and catalog matching IDs for Pinterest Tag and Conversions API.'),
-                        'is_bool' => true,
-                        'desc' => $this->l('Outputs the "pinterest" namespace formatted for Pinterest Tag and Pinterest CAPI.'),
-                        'values' => [
-                            ['id' => 'adv_pinterest_on', 'value' => 1, 'label' => $this->l('Enabled')],
-                            ['id' => 'adv_pinterest_off', 'value' => 0, 'label' => $this->l('Disabled')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('TikTok Pixel & Events API'),
-                        'name' => 'PS_GTM_ADV_TIKTOK_ENABLED',
-                        'hint' => $this->l('Exposes the "tiktok" object payload with content_id, contents, currency, and value formatted for TikTok.'),
-                        'is_bool' => true,
-                        'desc' => $this->l('Outputs the "tiktok" namespace formatted for TikTok Pixel and Events API.'),
-                        'values' => [
-                            ['id' => 'adv_tiktok_on', 'value' => 1, 'label' => $this->l('Enabled')],
-                            ['id' => 'adv_tiktok_off', 'value' => 0, 'label' => $this->l('Disabled')],
-                        ],
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Google Ads Dynamic Remarketing'),
-                        'name' => 'PS_GTM_ADV_GADS_ENABLED',
-                        'hint' => $this->l('Exposes the "google_ads" object payload with ecomm_prodid, ecomm_pagetype, ecomm_totalvalue, and items matching Google Merchant Center feeds.'),
-                        'is_bool' => true,
-                        'desc' => $this->l('Outputs the "google_ads" namespace formatted for Google Ads Remarketing.'),
-                        'values' => [
-                            ['id' => 'adv_gads_on', 'value' => 1, 'label' => $this->l('Enabled')],
-                            ['id' => 'adv_gads_off', 'value' => 0, 'label' => $this->l('Disabled')],
-                        ],
-                    ],
-                    [
                         'type' => 'free',
                         'label' => $this->l('Event-Level Platform Routing Matrix'),
                         'name' => 'PS_GTM_ADV_MATRIX_TABLE',
-                        'desc' => $this->l('Select which ecommerce events should expose data for each advertising platform. Use the buttons above each column or row to quickly select or deselect all.'),
+                        'desc' => $this->l('Expand any supported advertising platform below to configure its master status and independently toggle data layer output for each supported ecommerce event.'),
                     ],
                 ],
                 'submit' => [
@@ -706,6 +658,12 @@ class Ps_Gtm_DataLayer extends Module
     public function renderAdvertisingMatrixTable()
     {
         $events = self::getSupportedEvents();
+
+        $advMeta = Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0';
+        $advGads = Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0';
+        $advTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0';
+        $advPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0';
+
         $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
         $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
         $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
@@ -721,162 +679,451 @@ class Ps_Gtm_DataLayer extends Module
         if (!is_array($gadsEvents)) $gadsEvents = array_keys($events);
         if (!is_array($pinterestEvents)) $pinterestEvents = array_keys($events);
 
-        $html = '<div id="ps-gtm-adv-matrix-container" style="max-width: 1050px; margin-top: 5px;">';
+        $platforms = [
+            'meta' => [
+                'key' => 'meta',
+                'name' => 'Meta Pixel & Conversions API (CAPI)',
+                'short_name' => 'Meta',
+                'desc' => $this->l('Outputs the "meta" namespace formatted for Facebook & Instagram catalog matching and CAPI tags.'),
+                'config_key' => 'PS_GTM_ADV_META_ENABLED',
+                'enabled' => $advMeta,
+                'active_events' => $metaEvents,
+                'icon_class' => 'icon-facebook',
+                'brand_color' => '#1877f2',
+                'brand_bg' => '#eaf3fe',
+                'spec_key' => 'meta_spec',
+            ],
+            'gads' => [
+                'key' => 'gads',
+                'name' => 'Google Ads Dynamic Remarketing',
+                'short_name' => 'Google Ads',
+                'desc' => $this->l('Outputs the "google_ads" namespace with ecomm_prodid, ecomm_pagetype, and GMC feed matching items.'),
+                'config_key' => 'PS_GTM_ADV_GADS_ENABLED',
+                'enabled' => $advGads,
+                'active_events' => $gadsEvents,
+                'icon_class' => 'icon-google',
+                'brand_color' => '#ea4335',
+                'brand_bg' => '#fdeeed',
+                'spec_key' => 'gads_spec',
+            ],
+            'tiktok' => [
+                'key' => 'tiktok',
+                'name' => 'TikTok Pixel & Events API',
+                'short_name' => 'TikTok',
+                'desc' => $this->l('Outputs the "tiktok" namespace with search_string, contents array, and conversion parameters.'),
+                'config_key' => 'PS_GTM_ADV_TIKTOK_ENABLED',
+                'enabled' => $advTiktok,
+                'active_events' => $tiktokEvents,
+                'icon_class' => 'icon-music',
+                'brand_color' => '#111111',
+                'brand_bg' => '#f1f2f6',
+                'spec_key' => 'tiktok_spec',
+            ],
+            'pinterest' => [
+                'key' => 'pinterest',
+                'name' => 'Pinterest Tag & Conversions API (CAPI)',
+                'short_name' => 'Pinterest',
+                'desc' => $this->l('Outputs the "pinterest" namespace formatted with line_items, product_ids, and Pinterest CAPI parameters.'),
+                'config_key' => 'PS_GTM_ADV_PINTEREST_ENABLED',
+                'enabled' => $advPinterest,
+                'active_events' => $pinterestEvents,
+                'icon_class' => 'icon-pinterest',
+                'brand_color' => '#bd081c',
+                'brand_bg' => '#fdf0f1',
+                'spec_key' => 'pinterest_spec',
+            ],
+        ];
+
+        $html = '<div id="ps-gtm-adv-matrix-container" style="max-width: 1080px; margin-top: 5px;">';
         $html .= '<input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1" />';
 
-        // Convenience controls bar
-        $html .= '<div style="background: #f8f9fa; border: 1px solid #dcdde1; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">';
-        $html .= '<div style="font-size: 12px; font-weight: bold; color: #2c3e50;"><i class="icon-sliders"></i> ' . $this->l('Quick Controls:') . '</div>';
-        $html .= '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Meta') . '</button>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
-        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'pinterest\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Pinterest') . '</button>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'pinterest\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
-        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All TikTok') . '</button>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
-        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'gads\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Google Ads') . '</button>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'gads\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
-        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
-        $html .= '<button type="button" class="btn btn-success btn-xs" onclick="psGtmSetMatrix(true)"><i class="icon-check-circle"></i> ' . $this->l('Enable All') . '</button>';
-        $html .= '<button type="button" class="btn btn-warning btn-xs" onclick="psGtmSetMatrix(false)"><i class="icon-ban"></i> ' . $this->l('Disable All') . '</button>';
-        $html .= '</div>';
-        $html .= '</div>';
-
-        // Table
-        $html .= '<div class="table-responsive">';
-        $html .= '<table class="table table-bordered table-striped" style="background:#fff; margin-bottom: 0;">';
-        $html .= '<thead>';
-        $html .= '<tr style="background:#f1f2f6;">';
-        $html .= '<th style="width: 35px; text-align: center;">#</th>';
-        $html .= '<th>' . $this->l('Ecommerce Event') . '</th>';
-        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-facebook" style="color: #1877f2;"></i> ' . $this->l('Meta Pixel / CAPI') . '</th>';
-        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-pinterest" style="color: #bd081c;"></i> ' . $this->l('Pinterest Tag / CAPI') . '</th>';
-        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-music" style="color: #000;"></i> ' . $this->l('TikTok Events API') . '</th>';
-        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-google" style="color: #ea4335;"></i> ' . $this->l('Google Ads Remarketing') . '</th>';
-        $html .= '<th style="width: 100px; text-align: center;">' . $this->l('Row Actions') . '</th>';
-        $html .= '</tr>';
-        $html .= '</thead>';
-        $html .= '<tbody>';
-
-        $rowIdx = 1;
-        foreach ($events as $k => $e) {
-            $isMeta = in_array($k, $metaEvents);
-            $isPinterest = in_array($k, $pinterestEvents);
-            $isTiktok = in_array($k, $tiktokEvents);
-            $isGads = in_array($k, $gadsEvents);
-
-            $html .= '<tr class="ps-gtm-matrix-row" data-row="' . $rowIdx . '">';
-            $html .= '<td style="text-align: center; vertical-align: middle; font-weight: bold; color: #7f8c8d;">' . $rowIdx . '</td>';
-            $html .= '<td style="vertical-align: middle;">';
-            $html .= '<div style="display: flex; align-items: center; justify-content: space-between; position: relative;">';
-            $html .= '<div>';
-            $html .= '<strong style="color: #2c3e50; font-size: 13px;"><code>' . htmlspecialchars($e['name']) . '</code></strong>';
-            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($e['desc']) . '</div>';
-            $html .= '</div>';
-            
-            // Tooltip trigger
-            $html .= '<div class="ps-gtm-info-popover-trigger" style="cursor: pointer; padding: 4px 8px; color: #3498db; background: #ebf5fb; border-radius: 4px; font-size: 11px; margin-left: 10px; white-space: nowrap;">';
-            $html .= '<i class="icon-info-sign"></i> ' . $this->l('Specs');
-            $html .= '<div class="ps-gtm-info-popover-body" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 6px; width: 420px; background: #ffffff; border: 1px solid #3498db; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 12px 14px; z-index: 99999; text-align: left;">';
-            $html .= '<strong style="color: #2980b9; font-size: 12px;">' . htmlspecialchars($e['name']) . ' ' . $this->l('Platform Namespaces') . '</strong>';
-            $html .= '<div style="margin-top: 6px; font-size: 11px; color: #2c3e50; line-height: 1.4;">';
-            $html .= '<div style="margin-bottom: 4px;"><strong>Meta:</strong> <code>' . htmlspecialchars($e['meta_spec']) . '</code></div>';
-            $html .= '<div style="margin-bottom: 4px;"><strong>Pinterest:</strong> <code>' . htmlspecialchars($e['pinterest_spec']) . '</code></div>';
-            $html .= '<div style="margin-bottom: 4px;"><strong>TikTok:</strong> <code>' . htmlspecialchars($e['tiktok_spec']) . '</code></div>';
-            $html .= '<div><strong>Google Ads:</strong> <code>' . htmlspecialchars($e['gads_spec']) . '</code></div>';
-            $html .= '</div>';
-            $html .= '</div>';
-            $html .= '</div>';
-
-            $html .= '</div>';
-            $html .= '</td>';
-
-            // Meta Checkbox
-            $html .= '<td style="text-align: center; vertical-align: middle;">';
-            $html .= '<input type="checkbox" name="adv_meta_' . $k . '" class="ps-gtm-cb ps-gtm-col-meta ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isMeta ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
-            $html .= '</td>';
-
-            // Pinterest Checkbox
-            $html .= '<td style="text-align: center; vertical-align: middle;">';
-            $html .= '<input type="checkbox" name="adv_pinterest_' . $k . '" class="ps-gtm-cb ps-gtm-col-pinterest ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isPinterest ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
-            $html .= '</td>';
-
-            // TikTok Checkbox
-            $html .= '<td style="text-align: center; vertical-align: middle;">';
-            $html .= '<input type="checkbox" name="adv_tiktok_' . $k . '" class="ps-gtm-cb ps-gtm-col-tiktok ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isTiktok ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
-            $html .= '</td>';
-
-            // Google Ads Checkbox
-            $html .= '<td style="text-align: center; vertical-align: middle;">';
-            if ($k === 'view_search_results') {
-                $html .= '<span class="badge" style="background: #eaeded; color: #7f8c8d; font-size: 10px; font-weight: normal; padding: 3px 6px;">' . $this->l('Excluded') . '</span>';
-            } else {
-                $html .= '<input type="checkbox" name="adv_gads_' . $k . '" class="ps-gtm-cb ps-gtm-col-gads ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isGads ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+        // Scoped Stylesheet
+        $html .= '<style>
+            #ps-gtm-adv-matrix-container {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             }
-            $html .= '</td>';
+            .ps-gtm-toolbar {
+                background: #f8f9fa;
+                border: 1px solid #dcdde1;
+                border-radius: 8px;
+                padding: 12px 18px;
+                margin-bottom: 16px;
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+            .ps-gtm-platform-card {
+                background: #ffffff;
+                border: 1px solid #dcdde1;
+                border-radius: 8px;
+                margin-bottom: 14px;
+                overflow: hidden;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+                transition: all 0.2s ease;
+            }
+            .ps-gtm-platform-card:hover {
+                border-color: #bdc3c7;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            }
+            .ps-gtm-card-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 14px 20px;
+                cursor: pointer;
+                background: #ffffff;
+                user-select: none;
+                transition: background 0.15s ease;
+            }
+            .ps-gtm-card-header:hover {
+                background: #fcfdfe;
+            }
+            .ps-gtm-chevron {
+                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .ps-gtm-chevron.open {
+                transform: rotate(180deg);
+            }
+            .ps-gtm-card-body {
+                display: none;
+                border-top: 1px solid #edf2f7;
+                background: #fafbfc;
+                padding: 18px 22px;
+            }
+            .ps-gtm-switch {
+                position: relative;
+                display: inline-block;
+                width: 44px;
+                height: 24px;
+                margin: 0;
+                vertical-align: middle;
+            }
+            .ps-gtm-switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                position: absolute;
+            }
+            .ps-gtm-slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background-color: #cbd5e0;
+                transition: .25s ease;
+                border-radius: 24px;
+            }
+            .ps-gtm-slider:before {
+                position: absolute;
+                content: "";
+                height: 18px;
+                width: 18px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                transition: .25s ease;
+                border-radius: 50%;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+            }
+            .ps-gtm-switch input:checked + .ps-gtm-slider {
+                background-color: #27ae60;
+            }
+            .ps-gtm-switch input:focus + .ps-gtm-slider {
+                box-shadow: 0 0 1px #27ae60;
+            }
+            .ps-gtm-switch input:checked + .ps-gtm-slider:before {
+                transform: translateX(20px);
+            }
+            .ps-gtm-switch-sm {
+                width: 36px;
+                height: 20px;
+            }
+            .ps-gtm-switch-sm .ps-gtm-slider {
+                border-radius: 20px;
+            }
+            .ps-gtm-switch-sm .ps-gtm-slider:before {
+                height: 14px;
+                width: 14px;
+                left: 3px;
+                bottom: 3px;
+            }
+            .ps-gtm-switch-sm input:checked + .ps-gtm-slider:before {
+                transform: translateX(16px);
+            }
+            .ps-gtm-events-table {
+                width: 100%;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                border-collapse: separate;
+                border-spacing: 0;
+                overflow: hidden;
+            }
+            .ps-gtm-events-table th {
+                background: #f1f5f9;
+                padding: 10px 14px;
+                font-size: 12px;
+                font-weight: 700;
+                color: #475569;
+                border-bottom: 1px solid #e2e8f0;
+            }
+            .ps-gtm-events-table td {
+                padding: 12px 14px;
+                border-bottom: 1px solid #edf2f7;
+                vertical-align: middle;
+            }
+            .ps-gtm-events-table tr:last-child td {
+                border-bottom: none;
+            }
+            .ps-gtm-events-table tr:hover td {
+                background: #f8fafc;
+            }
+        </style>';
 
-            // Row Action
-            $html .= '<td style="text-align: center; vertical-align: middle;">';
-            $html .= '<div class="btn-group">';
-            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetRow(' . $rowIdx . ', true)" title="' . $this->l('Enable all platforms for this event') . '"><i class="icon-check text-success"></i></button>';
-            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetRow(' . $rowIdx . ', false)" title="' . $this->l('Disable all platforms for this event') . '"><i class="icon-times text-danger"></i></button>';
+        // Global Toolbar
+        $html .= '<div class="ps-gtm-toolbar">';
+        $html .= '<div style="display: flex; align-items: center; gap: 8px;">';
+        $html .= '<i class="icon-sliders" style="font-size: 14px; color: #2c3e50;"></i>';
+        $html .= '<span style="font-size: 13px; font-weight: 700; color: #2c3e50;">' . $this->l('Global Platform Controls:') . '</span>';
+        $html .= '</div>';
+        $html .= '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmExpandAllPanels(true)"><i class="icon-plus-square"></i> ' . $this->l('Expand All') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmExpandAllPanels(false)"><i class="icon-minus-square"></i> ' . $this->l('Collapse All') . '</button>';
+        $html .= '<span style="border-left: 1px solid #dcdde1; height: 16px; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-success btn-xs" onclick="psGtmToggleAllPlatforms(true)"><i class="icon-check-circle"></i> ' . $this->l('Enable All Platforms') . '</button>';
+        $html .= '<button type="button" class="btn btn-warning btn-xs" onclick="psGtmToggleAllPlatforms(false)"><i class="icon-ban"></i> ' . $this->l('Disable All Platforms') . '</button>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // Render Platform Accordion Panels
+        foreach ($platforms as $pKey => $p) {
+            $totalSupportedEvents = ($pKey === 'gads') ? (count($events) - 1) : count($events);
+            $activeCount = 0;
+            foreach ($events as $evtK => $evtV) {
+                if ($pKey === 'gads' && $evtK === 'view_search_results') {
+                    continue;
+                }
+                if (in_array($evtK, $p['active_events'])) {
+                    $activeCount++;
+                }
+            }
+
+            $html .= '<div class="ps-gtm-platform-card" id="card_' . $pKey . '">';
+
+            // Header (Accordion Trigger)
+            $html .= '<div class="ps-gtm-card-header" onclick="psGtmToggleAccordion(\'' . $pKey . '\')">';
+
+            // Left: Icon & Platform Info
+            $html .= '<div style="display: flex; align-items: center;">';
+            $html .= '<div style="width: 40px; height: 40px; border-radius: 8px; background: ' . $p['brand_bg'] . '; display: flex; align-items: center; justify-content: center; font-size: 20px; color: ' . $p['brand_color'] . '; margin-right: 14px; flex-shrink: 0;">';
+            $html .= '<i class="' . $p['icon_class'] . '"></i>';
             $html .= '</div>';
-            $html .= '</td>';
+            $html .= '<div>';
+            $html .= '<div style="font-size: 14px; font-weight: 700; color: #2c3e50;">' . htmlspecialchars($p['name']) . '</div>';
+            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($p['desc']) . '</div>';
+            $html .= '</div>';
+            $html .= '</div>';
 
+            // Right: Counter, Status Badge, Master Toggle, Chevron
+            $html .= '<div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;" onclick="event.stopPropagation();">';
+            $html .= '<span class="badge" id="counter_' . $pKey . '" style="background: #eef2f7; color: #34495e; font-weight: 600; font-size: 11px; padding: 5px 10px; border: 1px solid #dcdde1;">';
+            $html .= sprintf($this->l('%d of %d events active'), $activeCount, $totalSupportedEvents);
+            $html .= '</span>';
+
+            $badgeClass = $p['enabled'] ? 'label-success' : 'label-danger';
+            $badgeText = $p['enabled'] ? $this->l('Enabled') : $this->l('Disabled');
+            $html .= '<span class="label ' . $badgeClass . '" id="badge_' . $pKey . '" style="font-size: 11px; font-weight: 600; padding: 5px 10px;">' . $badgeText . '</span>';
+
+            // Platform Master Toggle Switch
+            $html .= '<label class="ps-gtm-switch" title="' . sprintf($this->l('Toggle %s Data Layer Output'), $p['short_name']) . '" style="margin: 0; cursor: pointer;">';
+            $html .= '<input type="checkbox" name="' . $p['config_key'] . '" id="master_' . $pKey . '" value="1" ' . ($p['enabled'] ? 'checked="checked"' : '') . ' onchange="psGtmOnMasterToggle(\'' . $pKey . '\', this.checked)">';
+            $html .= '<span class="ps-gtm-slider"></span>';
+            $html .= '</label>';
+
+            // Chevron Control
+            $html .= '<span onclick="psGtmToggleAccordion(\'' . $pKey . '\');" style="cursor: pointer; padding: 4px; display: inline-flex;">';
+            $html .= '<i class="icon-chevron-down ps-gtm-chevron" id="chevron_' . $pKey . '" style="font-size: 13px; color: #95a5a6;"></i>';
+            $html .= '</span>';
+
+            $html .= '</div>'; // End Right
+            $html .= '</div>'; // End Header
+
+            // Body (Expanded on demand)
+            $html .= '<div class="ps-gtm-card-body" id="body_' . $pKey . '">';
+
+            // Subheader Controls Bar
+            $html .= '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px;">';
+            $html .= '<div style="font-size: 12px; font-weight: 600; color: #34495e;">';
+            $html .= sprintf($this->l('%s Event Routing Specifications:'), $p['short_name']);
+            $html .= '</div>';
+            $html .= '<div style="display: flex; gap: 8px;">';
+            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', true)"><i class="icon-check" style="color: #27ae60;"></i> ' . $this->l('Enable all events') . '</button>';
+            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', false)"><i class="icon-times" style="color: #e74c3c;"></i> ' . $this->l('Disable all events') . '</button>';
+            $html .= '</div>';
+            $html .= '</div>';
+
+            // Warning Notice if Platform is Disabled
+            $noticeDisplay = $p['enabled'] ? 'none' : 'block';
+            $html .= '<div class="alert alert-warning ps-gtm-disabled-notice" id="notice_' . $pKey . '" style="display: ' . $noticeDisplay . '; padding: 8px 14px; margin-bottom: 14px; font-size: 11px;">';
+            $html .= '<i class="icon-warning-sign"></i> <strong>' . sprintf($this->l('%s data layer output is currently disabled.'), $p['short_name']) . '</strong> ' . $this->l('Event selections below are preserved and will reactivate whenever this platform is enabled.');
+            $html .= '</div>';
+
+            // Event List Table
+            $html .= '<table class="ps-gtm-events-table">';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th style="width: 75px; text-align: center;">' . $this->l('Push') . '</th>';
+            $html .= '<th style="width: 280px;">' . $this->l('Ecommerce Event') . '</th>';
+            $html .= '<th>' . $this->l('Platform DataLayer Specifications') . '</th>';
             $html .= '</tr>';
-            $rowIdx++;
+            $html .= '</thead>';
+            $html .= '<tbody>';
+
+            foreach ($events as $evtK => $e) {
+                $isExcluded = ($pKey === 'gads' && $evtK === 'view_search_results');
+                $isChecked = in_array($evtK, $p['active_events']);
+
+                $html .= '<tr>';
+
+                // Status Column
+                $html .= '<td style="text-align: center;">';
+                if ($isExcluded) {
+                    $html .= '<span class="label label-default" style="background:#eaeded; color:#7f8c8d; font-size: 10px; font-weight: normal; padding: 3px 6px;">' . $this->l('Excluded') . '</span>';
+                } else {
+                    $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
+                    $html .= '<input type="checkbox" name="adv_' . $pKey . '_' . $evtK . '" class="ps-gtm-evt-cb ps-gtm-evt-' . $pKey . '" data-platform="' . $pKey . '" value="1" ' . ($isChecked ? 'checked="checked"' : '') . ' onchange="psGtmOnEventToggle(\'' . $pKey . '\')">';
+                    $html .= '<span class="ps-gtm-slider"></span>';
+                    $html .= '</label>';
+                }
+                $html .= '</td>';
+
+                // Event Info Column
+                $html .= '<td>';
+                $html .= '<strong style="color: #2c3e50; font-size: 13px;"><code>' . htmlspecialchars($e['name']) . '</code></strong>';
+                $html .= '<span style="font-size: 12px; font-weight: 600; color: #475569; margin-left: 6px;">' . htmlspecialchars($e['label']) . '</span>';
+                $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($e['desc']) . '</div>';
+                $html .= '</td>';
+
+                // Specification Column
+                $html .= '<td>';
+                if ($isExcluded) {
+                    $html .= '<div style="font-size: 11px; color: #7f8c8d; line-height: 1.4;">';
+                    $html .= '<em>' . $this->l('Excluded per custom remarketing architecture. Search result listing impressions are tracked via view_item_list (ecomm_pagetype: searchresults).') . '</em>';
+                    $html .= '</div>';
+                } else {
+                    $spec = isset($e[$p['spec_key']]) ? $e[$p['spec_key']] : '';
+                    $html .= '<div style="font-size: 11px; color: #2c3e50; font-family: monospace; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; line-height: 1.4;">';
+                    $html .= htmlspecialchars($spec);
+                    $html .= '</div>';
+                }
+                $html .= '</td>';
+
+                $html .= '</tr>';
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+
+            $html .= '</div>'; // End Body
+            $html .= '</div>'; // End Platform Card
         }
 
-        $html .= '</tbody>';
-        $html .= '</table>';
-        $html .= '</div>';
-        $html .= '</div>';
+        $html .= '</div>'; // End Container
 
-        // Embedded Script for interactive matrix operations and hover popovers
+        // Embedded Interactive JavaScript
         $html .= '<script type="text/javascript">
-            function psGtmSetColumn(col, state) {
-                var cbs = document.querySelectorAll(".ps-gtm-col-" + col);
-                for (var i = 0; i < cbs.length; i++) {
-                    cbs[i].checked = state;
-                }
-            }
-            function psGtmSetRow(rowIdx, state) {
-                var cbs = document.querySelectorAll(".ps-gtm-row-" + rowIdx);
-                for (var i = 0; i < cbs.length; i++) {
-                    cbs[i].checked = state;
-                }
-            }
-            function psGtmSetMatrix(state) {
-                var cbs = document.querySelectorAll(".ps-gtm-cb");
-                for (var i = 0; i < cbs.length; i++) {
-                    cbs[i].checked = state;
-                }
-            }
-            (function() {
-                function setupPopovers() {
-                    var triggers = document.querySelectorAll(".ps-gtm-info-popover-trigger");
-                    for (var i = 0; i < triggers.length; i++) {
-                        (function(trigger) {
-                            var body = trigger.querySelector(".ps-gtm-info-popover-body");
-                            if (!body) return;
-                            trigger.addEventListener("mouseenter", function() {
-                                body.style.display = "block";
-                            });
-                            trigger.addEventListener("mouseleave", function() {
-                                body.style.display = "none";
-                            });
-                        })(triggers[i]);
+            function psGtmToggleAccordion(platformKey) {
+                var body = document.getElementById("body_" + platformKey);
+                var chevron = document.getElementById("chevron_" + platformKey);
+                if (!body) return;
+                var isOpen = (body.style.display === "block");
+                body.style.display = isOpen ? "none" : "block";
+                if (chevron) {
+                    if (isOpen) {
+                        chevron.classList.remove("open");
+                    } else {
+                        chevron.classList.add("open");
                     }
                 }
-                if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", setupPopovers);
-                } else {
-                    setupPopovers();
+            }
+
+            function psGtmExpandAllPanels(expand) {
+                var platforms = ["meta", "gads", "tiktok", "pinterest"];
+                for (var i = 0; i < platforms.length; i++) {
+                    var body = document.getElementById("body_" + platforms[i]);
+                    var chevron = document.getElementById("chevron_" + platforms[i]);
+                    if (body) {
+                        body.style.display = expand ? "block" : "none";
+                    }
+                    if (chevron) {
+                        if (expand) {
+                            chevron.classList.add("open");
+                        } else {
+                            chevron.classList.remove("open");
+                        }
+                    }
                 }
-            })();
+            }
+
+            function psGtmOnMasterToggle(platformKey, isChecked) {
+                var badge = document.getElementById("badge_" + platformKey);
+                var notice = document.getElementById("notice_" + platformKey);
+                if (badge) {
+                    if (isChecked) {
+                        badge.className = "label label-success";
+                        badge.textContent = "' . $this->l('Enabled') . '";
+                    } else {
+                        badge.className = "label label-danger";
+                        badge.textContent = "' . $this->l('Disabled') . '";
+                    }
+                }
+                if (notice) {
+                    notice.style.display = isChecked ? "none" : "block";
+                }
+                psGtmUpdateCounter(platformKey);
+            }
+
+            function psGtmPlatformSelectAll(platformKey, state) {
+                var cbs = document.querySelectorAll(".ps-gtm-evt-" + platformKey);
+                for (var i = 0; i < cbs.length; i++) {
+                    cbs[i].checked = state;
+                }
+                psGtmUpdateCounter(platformKey);
+            }
+
+            function psGtmOnEventToggle(platformKey) {
+                psGtmUpdateCounter(platformKey);
+            }
+
+            function psGtmUpdateCounter(platformKey) {
+                var counter = document.getElementById("counter_" + platformKey);
+                if (!counter) return;
+                var cbs = document.querySelectorAll(".ps-gtm-evt-" + platformKey);
+                var checkedCount = 0;
+                for (var i = 0; i < cbs.length; i++) {
+                    if (cbs[i].checked) checkedCount++;
+                }
+                var total = cbs.length;
+                var masterCb = document.getElementById("master_" + platformKey);
+                var isMasterOn = masterCb ? masterCb.checked : true;
+                if (!isMasterOn) {
+                    counter.textContent = checkedCount + " of " + total + " ' . $this->l('events (Platform Off)') . '";
+                } else {
+                    counter.textContent = checkedCount + " of " + total + " ' . $this->l('events active') . '";
+                }
+            }
+
+            function psGtmToggleAllPlatforms(state) {
+                var platforms = ["meta", "gads", "tiktok", "pinterest"];
+                for (var i = 0; i < platforms.length; i++) {
+                    var master = document.getElementById("master_" + platforms[i]);
+                    if (master) {
+                        master.checked = state;
+                        psGtmOnMasterToggle(platforms[i], state);
+                    }
+                }
+            }
         </script>';
 
         return $html;

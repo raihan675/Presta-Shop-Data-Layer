@@ -501,16 +501,23 @@ class PayloadBuilder
         $isSearchListing = ($canonicalEvent === 'view_item_list' && $pageType === 'searchresults');
 
         $result = [];
-        if (!$isSearchListing && $metaEnabled && (empty($metaEvents) || !is_array($metaEvents) || in_array($canonicalEvent, $metaEvents))) {
+        $isMetaActive = ($metaEvents === null) ? true : (is_array($metaEvents) && in_array($canonicalEvent, $metaEvents));
+        if (!$isSearchListing && $metaEnabled && $isMetaActive) {
             $result['meta'] = $meta;
         }
-        if (!$isSearchListing && $tiktokEnabled && (empty($tiktokEvents) || !is_array($tiktokEvents) || in_array($canonicalEvent, $tiktokEvents))) {
+
+        $isTiktokActive = ($tiktokEvents === null) ? true : (is_array($tiktokEvents) && in_array($canonicalEvent, $tiktokEvents));
+        if (!$isSearchListing && $tiktokEnabled && $isTiktokActive) {
             $result['tiktok'] = $tiktok;
         }
-        if ($gadsEnabled && !in_array($canonicalEvent, ['view_search_results', 'search']) && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
+
+        $isGadsActive = ($gadsEvents === null) ? true : (is_array($gadsEvents) && in_array($canonicalEvent, $gadsEvents));
+        if ($gadsEnabled && !in_array($canonicalEvent, ['view_search_results', 'search']) && $isGadsActive) {
             $result['google_ads'] = $googleAds;
         }
-        if (!$isSearchListing && $pinterestEnabled && (empty($pinterestEvents) || !is_array($pinterestEvents) || in_array($canonicalEvent, $pinterestEvents))) {
+
+        $isPinterestActive = ($pinterestEvents === null) ? true : (is_array($pinterestEvents) && in_array($canonicalEvent, $pinterestEvents));
+        if (!$isSearchListing && $pinterestEnabled && $isPinterestActive) {
             $result['pinterest'] = $pinterest;
         }
 
