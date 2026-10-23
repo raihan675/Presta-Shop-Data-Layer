@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.13.1';
+        $this->version = '1.14.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -601,6 +601,15 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: ViewCategory, CAPI: view_category, category_name, line_items, value, currency',
             ],
+            'view_search_results' => [
+                'name' => 'view_search_results',
+                'label' => 'View Search Results',
+                'desc' => 'Customer viewing on-site search results with search keyword and matching products',
+                'meta_spec' => 'fbq: Search, CAPI: Search, search_string, content_ids, contents',
+                'tiktok_spec' => 'ttq: Search, Events API: Search, query, content_ids, contents',
+                'gads_spec' => 'Excluded (Custom remarketing rule)',
+                'pinterest_spec' => 'pintrk: Search, CAPI: search, search_query, line_items, product_ids',
+            ],
             'select_item' => [
                 'name' => 'select_item',
                 'label' => 'Select Item',
@@ -802,7 +811,11 @@ class Ps_Gtm_DataLayer extends Module
 
             // Google Ads Checkbox
             $html .= '<td style="text-align: center; vertical-align: middle;">';
-            $html .= '<input type="checkbox" name="adv_gads_' . $k . '" class="ps-gtm-cb ps-gtm-col-gads ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isGads ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            if ($k === 'view_search_results') {
+                $html .= '<span class="badge" style="background: #eaeded; color: #7f8c8d; font-size: 10px; font-weight: normal; padding: 3px 6px;">' . $this->l('Excluded') . '</span>';
+            } else {
+                $html .= '<input type="checkbox" name="adv_gads_' . $k . '" class="ps-gtm-cb ps-gtm-col-gads ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isGads ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            }
             $html .= '</td>';
 
             // Row Action
@@ -1151,6 +1164,20 @@ class Ps_Gtm_DataLayer extends Module
             $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
             $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
+            $initialPayloads = [];
+            if ($controller === 'search') {
+                $searchQuery = (string)Tools::getValue('s', Tools::getValue('search_query', Tools::getValue('tag', '')));
+                if ($searchQuery !== '') {
+                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery);
+                    if ($searchPayload) {
+                        $initialPayloads[] = $searchPayload;
+                    }
+                }
+            }
+            if ($serverPayload) {
+                $initialPayloads[] = $serverPayload;
+            }
+
             // Pre-build combinations dictionary for PDP directly from database models
             $combosMap = [];
             if ($controller === 'product') {
@@ -1379,7 +1406,7 @@ class Ps_Gtm_DataLayer extends Module
                 'selected_carrier' => $selectedCarrierName,
                 'cart_coupon' => $cartCoupon,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-                'initial_server_payload' => $serverPayload ? json_encode($serverPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+                'initial_server_payload' => !empty($initialPayloads) ? json_encode((count($initialPayloads) === 1 ? $initialPayloads[0] : $initialPayloads), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);
 
             if (is_object($this->context->controller) && method_exists($this->context->controller, 'registerJavascript')) {

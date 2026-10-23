@@ -346,7 +346,7 @@
       metaEventName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
       metaEventName = 'Purchase';
-    } else if (canonicalEventName === 'search') {
+    } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
       metaEventName = 'Search';
     } else if (canonicalEventName === 'add_to_wishlist') {
       metaEventName = 'AddToWishlist';
@@ -402,7 +402,7 @@
       tiktokEventName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
       tiktokEventName = 'CompletePayment';
-    } else if (canonicalEventName === 'search') {
+    } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
       tiktokEventName = 'Search';
     } else if (canonicalEventName === 'add_to_wishlist') {
       tiktokEventName = 'AddToWishlist';
@@ -471,7 +471,7 @@
       pinterestEventName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
       pinterestEventName = 'Checkout';
-    } else if (canonicalEventName === 'search') {
+    } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
       pinterestEventName = 'Search';
     } else if (canonicalEventName === 'remove_from_cart') {
       pinterestEventName = 'Custom';
@@ -544,7 +544,7 @@
     if (tiktokEnabled && (!tiktokEvents || tiktokEvents.indexOf(canonicalEventName) !== -1)) {
       result.tiktok = tiktokNamespace;
     }
-    if (gadsEnabled && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
+    if (gadsEnabled && canonicalEventName !== 'view_search_results' && canonicalEventName !== 'search' && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
       result.google_ads = googleAdsNamespace;
     }
     if (pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {
@@ -585,6 +585,15 @@
       original_event: canonicalEventName,
       ecommerce: ecommerceData
     };
+
+    if (canonicalEventName === 'view_search_results') {
+      if (ecommerceData.search_term !== undefined) {
+        canonicalPayload.search_term = String(ecommerceData.search_term);
+      }
+      if (ecommerceData.search_results_count !== undefined) {
+        canonicalPayload.search_results_count = Number(ecommerceData.search_results_count);
+      }
+    }
 
     if (platformNamespaces.meta) {
       canonicalPayload.meta = platformNamespaces.meta;

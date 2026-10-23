@@ -200,6 +200,7 @@ class PayloadBuilder
                 $metaEventName = 'Purchase';
                 break;
             case 'search':
+            case 'view_search_results':
                 $metaEventName = 'Search';
                 break;
             case 'add_to_wishlist':
@@ -270,6 +271,7 @@ class PayloadBuilder
                 $tiktokEventName = 'CompletePayment';
                 break;
             case 'search':
+            case 'view_search_results':
                 $tiktokEventName = 'Search';
                 break;
             case 'add_to_wishlist':
@@ -353,6 +355,7 @@ class PayloadBuilder
                 $pinterestEventName = 'Checkout';
                 break;
             case 'search':
+            case 'view_search_results':
                 $pinterestEventName = 'Search';
                 break;
             case 'remove_from_cart':
@@ -437,7 +440,7 @@ class PayloadBuilder
         if ($tiktokEnabled && (empty($tiktokEvents) || !is_array($tiktokEvents) || in_array($canonicalEvent, $tiktokEvents))) {
             $result['tiktok'] = $tiktok;
         }
-        if ($gadsEnabled && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
+        if ($gadsEnabled && !in_array($canonicalEvent, ['view_search_results', 'search']) && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
             $result['google_ads'] = $googleAds;
         }
         if ($pinterestEnabled && (empty($pinterestEvents) || !is_array($pinterestEvents) || in_array($canonicalEvent, $pinterestEvents))) {
@@ -731,6 +734,92 @@ class PayloadBuilder
                 'value' => (float)$totalListValue,
                 'item_list_id' => $listId,
                 'item_list_name' => $listName,
+                'items' => $items,
+            ],
+        ], $platformNamespaces);
+    }
+
+    /**
+     * Builds official GA4 view_search_results payload with authoritative search_term,
+     * search_results_count, matching catalog items, and ad platform namespaces (Meta, TikTok, Pinterest).
+     * Google Ads Dynamic Remarketing is strictly excluded per custom remarketing architecture.
+     *
+     * @param string|null $searchTerm
+     * @param int|null $resultsCount
+     * @param array $items
+     * @return array|null
+     */
+    public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [])
+    {
+        $query = ($searchTerm !== null)
+            ? trim((string)$searchTerm)
+            : trim((string)Tools::getValue('s', Tools::getValue('search_query', Tools::getValue('tag', ''))));
+
+        if ($query === '') {
+            return null;
+        }
+
+        $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $totalResultsCount = 0;
+
+        if (empty($items)) {
+            $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
+            $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
+            if (class_exists('Search') && method_exists('Search', 'find')) {
+                $searchRes = Search::find($idLanguage, $query, $p, $n, 'position', 'desc');
+                if (!empty($searchRes['total'])) {
+                    $totalResultsCount = (int)$searchRes['total'];
+                }
+                if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
+                    $idx = 1;
+                    foreach ($searchRes['result'] as $pItem) {
+                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                        if (!empty($pItem['manufacturer_name'])) {
+                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                        }
+                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                        $item = $this->formatItem($productObj, 0, 1, $price);
+                        $item['index'] = $idx++;
+                        $item['item_list_id'] = 'search_results';
+                        $item['item_list_name'] = 'Search: ' . $query;
+                        $items[] = $item;
+                    }
+                }
+            }
+        }
+
+        if ($resultsCount !== null) {
+            $totalResultsCount = (int)$resultsCount;
+        } elseif ($totalResultsCount === 0 && !empty($items)) {
+            $totalResultsCount = count($items);
+        }
+
+        $currencyCode = ($this->context->currency && !empty($this->context->currency->iso_code))
+            ? (string)$this->context->currency->iso_code
+            : 'EUR';
+
+        $totalValue = 0.0;
+        foreach ($items as $it) {
+            $totalValue += (float)$it['price'];
+        }
+        $totalValue = PricingEngine::roundHalfUp($totalValue, $currencyPrecision);
+
+        $platformNamespaces = $this->buildPlatformNamespaces('view_search_results', $items, $currencyCode, $totalValue, [
+            'search_term' => $query,
+            'results_count' => $totalResultsCount,
+            'list_id' => 'search_results',
+            'list_name' => 'Search: ' . $query,
+        ]);
+
+        return array_merge([
+            'event' => $this->getEventName('view_search_results'),
+            'original_event' => 'view_search_results',
+            'search_term' => $query,
+            'search_results_count' => (int)$totalResultsCount,
+            'ecommerce' => [
+                'currency' => $currencyCode,
+                'search_term' => $query,
                 'items' => $items,
             ],
         ], $platformNamespaces);

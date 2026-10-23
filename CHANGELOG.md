@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.0] - 2026-10-23
+
+### Added
+- **Official GA4 `view_search_results` Event Tracking**:
+  - Automatically fired when a user views on-site search results, strictly adhering to GA4 Enhanced Measurement and official eCommerce specifications.
+  - Automatically captures `search_term` (query keyword) and `search_results_count` (total matching catalog results from PrestaShop database model `Search::find`).
+  - Pre-hydrates matching catalog `items` in standard GA4 schema with catalog-accurate prices, brand, categories, and identifiers.
+  - Dynamic event prefixing fully supported (e.g. `raihan_view_search_results`, `ps_view_search_results`).
+- **Advertising Platform Search Namespaces**:
+  - **Meta**: Exposes official `Search` event with `search_string = search_term`, catalog `content_ids`, and official `contents` array (`id`, `quantity`, `item_price`).
+  - **TikTok**: Exposes official `Search` event with `query = search_term`, `content_id`, `content_ids`, and official `contents` array (`content_id`, `content_type`, `content_name`, `content_category`, `quantity`, `price`).
+  - **Pinterest**: Exposes official `Search` event with `search_query = search_term`, `product_ids`, `line_items` (Web Tag), and `contents` (Conversions API v5).
+- **Strict Exclusion of Google Ads Dynamic Remarketing**:
+  - `google_ads` is strictly excluded from `view_search_results` and `search` payloads per custom remarketing architecture.
+  - Back Office routing matrix displays transparent non-editable "Excluded" badge for Google Ads on `view_search_results`.
+- **Seamless Dual Search View Dispatching**:
+  - Emits both `view_search_results` and `view_item_list` on search results pages, ensuring search discovery and list impression measurements operate simultaneously without collision.
+
+---
+
 ## [1.13.1] - 2026-10-23
 
 ### Changed

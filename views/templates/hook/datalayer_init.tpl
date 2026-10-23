@@ -92,25 +92,30 @@
     try {
       var payload = {$initial_server_payload nofilter};
       window.psGtmConfig.initialServerPayload = payload;
-      if (payload && payload.event) {
-        if (payload.original_event === 'view_item' && payload.ecommerce && payload.ecommerce.items && payload.ecommerce.items[0]) {
-          window.psGtmConfig.currentProduct = payload.ecommerce.items[0];
-          window.psGtmConfig.currency = payload.ecommerce.currency || 'EUR';
-        } else if (payload.original_event === 'view_item_list' && payload.ecommerce) {
-          window.psGtmConfig.currentList = {
-            item_list_id: payload.ecommerce.item_list_id || '',
-            item_list_name: payload.ecommerce.item_list_name || '',
-            items: payload.ecommerce.items || []
-          };
-          window.psGtmConfig.currency = payload.ecommerce.currency || 'EUR';
+      var payloads = Array.isArray(payload) ? payload : [payload];
+      for (var pIdx = 0; pIdx < payloads.length; pIdx++) {
+        var p = payloads[pIdx];
+        if (p && p.event) {
+          if (p.original_event === 'view_item' && p.ecommerce && p.ecommerce.items && p.ecommerce.items[0]) {
+            window.psGtmConfig.currentProduct = p.ecommerce.items[0];
+            window.psGtmConfig.currency = p.ecommerce.currency || 'EUR';
+          } else if (p.original_event === 'view_item_list' && p.ecommerce) {
+            window.psGtmConfig.currentList = {
+              item_list_id: p.ecommerce.item_list_id || '',
+              item_list_name: p.ecommerce.item_list_name || '',
+              items: p.ecommerce.items || []
+            };
+            window.psGtmConfig.currency = p.ecommerce.currency || 'EUR';
+          }
+          window.dataLayer.push({
+            ecommerce: null,
+            meta: null,
+            tiktok: null,
+            google_ads: null,
+            pinterest: null
+          });
+          window.dataLayer.push(p);
         }
-        window.dataLayer.push({
-          ecommerce: null,
-          meta: null,
-          tiktok: null,
-          google_ads: null
-        });
-        window.dataLayer.push(payload);
       }
     } catch(e) {
       console.error('[GTM DataLayer] Initialization error:', e);
@@ -128,7 +133,8 @@
             ecommerce: null,
             meta: null,
             tiktok: null,
-            google_ads: null
+            google_ads: null,
+            pinterest: null
           });
           window.dataLayer.push(pending[i]);
         }

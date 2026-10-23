@@ -781,4 +781,79 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.tiktok.order_id, 'ORD-5544');
   });
 
+  it('17. view_search_results: GA4 search schema, Meta Search (search_string), TikTok Search (query), Pinterest Search (search_query), and strictly NO Google Ads', function () {
+    EDL.setEventPrefix('raihan');
+
+    const searchItem = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 1
+    };
+
+    EDL.pushEvent('view_search_results', {
+      search_term: 'Trinkbecher blau',
+      search_results_count: 5,
+      currency: 'EUR',
+      value: 13.00,
+      items: [searchItem]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+
+    // GA4 Core Schema & Prefixing
+    assert.strictEqual(payload.event, 'raihan_view_search_results');
+    assert.strictEqual(payload.original_event, 'view_search_results');
+    assert.strictEqual(payload.search_term, 'Trinkbecher blau');
+    assert.strictEqual(payload.search_results_count, 5);
+    assert.strictEqual(payload.ecommerce.search_term, 'Trinkbecher blau');
+    assert.strictEqual(payload.ecommerce.currency, 'EUR');
+    assert.strictEqual(payload.ecommerce.value, 13.00);
+    assert.strictEqual(payload.ecommerce.items.length, 1);
+    assert.strictEqual(payload.ecommerce.items[0].item_id, '68');
+
+    // Meta Pixel & CAPI namespace
+    assert.ok(payload.meta, 'meta namespace must exist on view_search_results');
+    assert.strictEqual(payload.meta.event_name, 'Search');
+    assert.strictEqual(payload.meta.search_string, 'Trinkbecher blau');
+    assert.deepStrictEqual(payload.meta.content_ids, ['68_299']);
+    assert.strictEqual(payload.meta.currency, 'EUR');
+    assert.strictEqual(payload.meta.value, 13.00);
+    assert.strictEqual(payload.meta.contents.length, 1);
+    assert.deepStrictEqual(payload.meta.contents[0], {
+      id: '68_299',
+      quantity: 1,
+      item_price: 13.00
+    });
+
+    // TikTok Events API namespace
+    assert.ok(payload.tiktok, 'tiktok namespace must exist on view_search_results');
+    assert.strictEqual(payload.tiktok.event_name, 'Search');
+    assert.strictEqual(payload.tiktok.query, 'Trinkbecher blau');
+    assert.strictEqual(payload.tiktok.content_id, '68_299');
+    assert.deepStrictEqual(payload.tiktok.content_ids, ['68_299']);
+    assert.strictEqual(payload.tiktok.currency, 'EUR');
+    assert.strictEqual(payload.tiktok.value, 13.00);
+    assert.strictEqual(payload.tiktok.contents.length, 1);
+    assert.strictEqual(payload.tiktok.contents[0].content_id, '68_299');
+
+    // Pinterest Tag & Conversions API namespace
+    assert.ok(payload.pinterest, 'pinterest namespace must exist on view_search_results');
+    assert.strictEqual(payload.pinterest.event_name, 'Search');
+    assert.strictEqual(payload.pinterest.search_query, 'Trinkbecher blau');
+    assert.deepStrictEqual(payload.pinterest.product_ids, ['68_299']);
+    assert.strictEqual(payload.pinterest.line_items.length, 1);
+    assert.strictEqual(payload.pinterest.line_items[0].product_id, '68_299');
+    assert.strictEqual(payload.pinterest.contents.length, 1);
+    assert.strictEqual(payload.pinterest.contents[0].id, '68_299');
+
+    // GOOGLE ADS REMARKETING MUST BE STRICTLY EXCLUDED
+    assert.strictEqual(payload.google_ads, undefined, 'Google Ads Dynamic Remarketing must be strictly excluded from view_search_results');
+  });
+
 });
