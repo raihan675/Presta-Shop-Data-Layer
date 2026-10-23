@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.13.1] - 2026-10-23
+
+### Changed
+- **Streamlined Item Arrays for Meta, TikTok & Pinterest**:
+  - `meta.contents`: Strictly limited to official required/recommended fields (`id`, `quantity`, `item_price`). Extraneous properties (`title`, `item_name`, `brand`, `category`) removed.
+  - `tiktok.contents`: Strictly aligned to official TikTok Pixel & Events API specifications (`content_id`, `content_type`, `content_name`, `content_category`, `quantity`, `price`). Extraneous `brand` removed.
+  - `pinterest`: Added dedicated `contents` array (`id`, `item_name`, `item_price`, `quantity`, `item_category`, `item_brand`) matching official Pinterest Conversions API v5 inside `custom_data`, alongside `line_items` for the Pinterest Web Tag.
+- **Removed `capi_event_name`**:
+  - Removed `capi_event_name` across `meta`, `tiktok`, and `pinterest` schemas to keep the dataLayer lightweight and clean.
+
+---
+
 ## [1.13.0] - 2026-10-23
 
 ### Added

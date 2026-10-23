@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.13.0",
+    "latest_version":  "1.13.1",
     "release_date":  "2026-10-23",
-    "min_ps_version":  "1.7.8.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.13.0/ps_gtm_datalayer.zip",
-    "checksum":  "15ed8f39a26fef8b490675048fa8441c97bca803d0703e29aa27ba4dc07541d2",
-    "release_type":  "minor",
-    "release_notes":  "1. Full official Pinterest Ads tracking integration (Pinterest Tag pintrk \u0026 Conversions API CAPI schemas).\n2. Dedicated pinterest namespace in dataLayer containing line_items, product_ids, value, currency, and order_quantity.\n3. Dynamic Product Ads catalog matching supporting composite, id_product, and reference_sku strategies.\n4. Independent Pinterest switch (PS_GTM_ADV_PINTEREST_ENABLED) and granular 11-event routing matrix (PS_GTM_ADV_PINTEREST_EVENTS).\n5. Zero DOM scraping: 100% authoritative backend data sourcing across PrestaShop 1.7.0.0 through 8.x/9.x."
+    "min_ps_version":  "1.7.0.0",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.13.1/ps_gtm_datalayer.zip",
+    "checksum":  "f63a55a296c89723168511a45138a02fa0bdd5e5d5395c83953e6c41e622e237",
+    "release_type":  "patch",
+    "release_notes":  "1. Streamlined Meta contents array to official parameters ({id, quantity, item_price}).\n2. Streamlined TikTok contents array to official parameters ({content_id, content_type, content_name, content_category, quantity, price}).\n3. Added dedicated Pinterest contents array ({id, item_name, item_price, quantity, item_category, item_brand}) for Pinterest Conversions API v5 alongside line_items.\n4. Removed capi_event_name across all ad schemas.\n5. Verified seamless 1-click update support in PrestaShop Back Office."
 }
