@@ -602,6 +602,14 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.custom_event_name, 'RemoveFromCart');
 
+    // 4b. view_cart -> Custom (ViewCart)
+    EDL.pushEvent('view_cart', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.capi_event_name, undefined);
+    assert.strictEqual(p.custom_event_name, 'ViewCart');
+    assert.strictEqual(p.order_quantity, 2);
+
     // 5. begin_checkout -> InitiateCheckout
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;

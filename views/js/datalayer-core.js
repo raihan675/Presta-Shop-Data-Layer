@@ -459,8 +459,11 @@
     var pinterestEventName = 'Custom';
     var pinterestCustomName = null;
 
-    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item') {
       pinterestEventName = 'PageVisit';
+    } else if (canonicalEventName === 'view_cart') {
+      pinterestEventName = 'Custom';
+      pinterestCustomName = 'ViewCart';
     } else if (canonicalEventName === 'view_item_list') {
       pinterestEventName = 'ViewCategory';
     } else if (canonicalEventName === 'add_to_cart') {

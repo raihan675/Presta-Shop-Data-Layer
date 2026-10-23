@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.17.1] - 2026-10-23
+
+### Changed
+- **Pinterest ViewCart Event Alignment**:
+  - Reclassified Pinterest `view_cart` mapping from standard `PageVisit` to `Custom` event with `custom_event_name: 'ViewCart'`.
+  - Preserved standard `PageVisit` strictly for product detail page views (`view_item`) and miniature card interactions (`select_item`), preventing cart summary views from generating conflicting product page signals on Pinterest Ads Manager.
+  - Updated Back Office event specifications and documentation in `README.md`.
+
+---
+
 ## [1.17.0] - 2026-10-23
 
 ### Added

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.17.0';
+        $this->version = '1.17.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -605,7 +605,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, contents, num_items',
                 'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, contents, quantity',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: PageVisit, line_items, value, currency, order_quantity',
+                'pinterest_spec' => 'pintrk: Custom (ViewCart), line_items, value, currency, order_quantity',
             ],
             'begin_checkout' => [
                 'name' => 'begin_checkout',

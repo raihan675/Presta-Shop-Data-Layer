@@ -413,8 +413,11 @@ class PayloadBuilder
         switch ($canonicalEvent) {
             case 'view_item':
             case 'select_item':
-            case 'view_cart':
                 $pinterestEventName = 'PageVisit';
+                break;
+            case 'view_cart':
+                $pinterestEventName = 'Custom';
+                $pinterestCustomName = 'ViewCart';
                 break;
             case 'view_item_list':
                 $pinterestEventName = 'ViewCategory';

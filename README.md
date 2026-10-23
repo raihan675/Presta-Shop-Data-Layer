@@ -23,7 +23,7 @@ The module supports all core ecommerce actions across the full customer funnel w
 | **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads` |
 | **6** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **7** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`Custom: ViewCart`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
@@ -59,7 +59,7 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 
 ### 2. Pinterest Ads (Pinterest Tag & Enhanced Matching)
 * `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddToWishList'`, `'Checkout'`, `'Search'`, or `'Custom'`).
-* `pinterest.custom_event_name`: Custom event label when applicable (e.g. `'AddShippingInfo'`, `'RemoveFromCart'`).
+* `pinterest.custom_event_name`: Custom event label when applicable (e.g. `'ViewCart'`, `'AddShippingInfo'`, `'RemoveFromCart'`).
 * `pinterest.line_items`: Official item array matching Pinterest Web Tag specifications:
   ```json
   [
