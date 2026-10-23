@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.19.0] - 2026-10-23
+
+### Added
+- **Google Ads Conversions with Cart Data (`google_ads.conversion_data`)**:
+  - Structured dedicated basket-level conversion payload for Google Ads conversion tracking tags according to official Google specifications ([Answer 14943675](https://support.google.com/google-ads/answer/14943675)).
+  - Implemented the official conversion cart data items schema containing strictly feed-matching `id`, units sold `quantity`, and unit selling `price`.
+  - Added transaction-level parameters: `transaction_id`, `value`, `currency`, top-level `discount`, `aw_feed_country`, `aw_feed_language`, and optional `aw_merchant_id`.
+  - Added Back Office toggle `PS_GTM_ADV_GADS_CART_DATA` and optional input `PS_GTM_ADV_GADS_MERCHANT_ID` under the Advertising tab.
+- **Google Ads Retail Dynamic Remarketing (`google_ads.dynamic_remarketing`)**:
+  - Structured dedicated dynamic remarketing payload across all shopping lifecycle events (`view_item`, `view_item_list`, `view_search_results`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `purchase`).
+  - Implemented the official retail dynamic remarketing items schema containing strictly `id` and `google_business_vertical: 'retail'`.
+  - Included standard and legacy remarketing parameters: `event_name`, `value`, `currency`, `ecomm_pagetype`, `ecomm_prodid`, `ecomm_totalvalue`, and `ecomm_category`.
+- **Clean Namespace Separation & 100% Backward Compatibility**:
+  - Maintained complete separation between `conversion_data` (strictly on `purchase`) and `dynamic_remarketing` (on remarketing events).
+  - Preserved root-level backward-compatible aliases (`google_ads.ecomm_prodid`, `google_ads.ecomm_pagetype`, `google_ads.ecomm_totalvalue`, `google_ads.items`) so existing GTM tags require no mandatory reconfiguration.
+
+---
+
 ## [1.18.3] - 2026-10-23
 
 ### Fixed

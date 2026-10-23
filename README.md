@@ -129,12 +129,25 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `tiktok.search_string` & `tiktok.query`: Search query keyword string on search results (`search_string` is TikTok official standard).
 * `tiktok.currency` & `tiktok.value`: Normalized monetary value.
 
-### 4. Google Ads Dynamic Remarketing (Retail Vertical)
-* `google_ads.ecomm_pagetype`: Strict standard funnel values (`'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`).
-* `google_ads.ecomm_prodid`: String or Array of strings matching `<g:id>` in Google Merchant Center (GMC).
-* `google_ads.ecomm_totalvalue`: Total monetary value.
-* `google_ads.ecomm_category`: Category name for category listing pages.
-* `google_ads.items`: Array of Google Tag item objects with `google_business_vertical: 'retail'`.
+### 4. Google Ads Data Layer (Cart Data Conversions & Retail Dynamic Remarketing)
+* **Retail Dynamic Remarketing (`google_ads.dynamic_remarketing`)**:
+  * `google_ads.dynamic_remarketing.event_name`: Exact dynamic remarketing event name (`'view_item'`, `'view_item_list'`, `'view_search_results'`, `'add_to_cart'`, `'remove_from_cart'`, `'view_cart'`, `'begin_checkout'`, `'purchase'`).
+  * `google_ads.dynamic_remarketing.items`: Dedicated dynamic remarketing items array containing strictly `id` (Merchant Center matching ID) and `google_business_vertical: 'retail'`.
+  * `google_ads.dynamic_remarketing.ecomm_pagetype`: Strict standard funnel values (`'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`).
+  * `google_ads.dynamic_remarketing.ecomm_prodid`: String or Array of strings matching `<g:id>` in Google Merchant Center (GMC).
+  * `google_ads.dynamic_remarketing.ecomm_totalvalue`: Total monetary value.
+  * `google_ads.dynamic_remarketing.ecomm_category`: Category name for category listing pages.
+* **Conversions with Cart Data (`google_ads.conversion_data`)** *(Strictly on `purchase`)*:
+  * `google_ads.conversion_data.transaction_id`: PrestaShop Order ID / Transaction reference.
+  * `google_ads.conversion_data.value`: Authoritative order conversion value.
+  * `google_ads.conversion_data.currency`: 3-letter ISO 4217 currency code (`EUR`, `USD`, etc.).
+  * `google_ads.conversion_data.discount`: Top-level order discount / voucher amount.
+  * `google_ads.conversion_data.aw_merchant_id`: Linked Google Merchant Center Account ID (configured in Back Office).
+  * `google_ads.conversion_data.aw_feed_country`: 2-letter CLDR country code of order delivery address.
+  * `google_ads.conversion_data.aw_feed_language`: 2-letter ISO language code of order context.
+  * `google_ads.conversion_data.items`: Dedicated cart data items array containing strictly feed-matching `id`, units sold `quantity`, and unit selling `price`.
+* **Root Backward Compatibility Aliases**:
+  * `google_ads.ecomm_pagetype`, `google_ads.ecomm_prodid`, `google_ads.ecomm_totalvalue`, and `google_ads.items` remain populated at the root level for zero-friction backward compatibility with existing GTM containers.
 
 > [!NOTE]
 > **Strict Event Separation: Search vs Product-List Tracking**:
@@ -167,9 +180,18 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |
 | `{{dlv - tiktok.content_id}}` | `tiktok.content_id` | TikTok Pixel `content_id` |
 | `{{dlv - tiktok.order_id}}` | `tiktok.order_id` | TikTok Pixel / Events API `event_id` / deduplication |
-| `{{dlv - google_ads.ecomm_prodid}}` | `google_ads.ecomm_prodid` | Google Ads Dynamic Remarketing: **Product ID** |
-| `{{dlv - google_ads.ecomm_pagetype}}` | `google_ads.ecomm_pagetype` | Google Ads Dynamic Remarketing: **Page Type** |
-| `{{dlv - google_ads.ecomm_totalvalue}}` | `google_ads.ecomm_totalvalue` | Google Ads Dynamic Remarketing: **Total Value** |
+| `{{dlv - google_ads.dynamic_remarketing.items}}` | `google_ads.dynamic_remarketing.items` | Google Ads Retail Dynamic Remarketing `items` array (`id`, `google_business_vertical: 'retail'`) |
+| `{{dlv - google_ads.dynamic_remarketing.event_name}}` | `google_ads.dynamic_remarketing.event_name` | Google Ads Dynamic Remarketing Event Name |
+| `{{dlv - google_ads.conversion_data.items}}` | `google_ads.conversion_data.items` | Google Ads Conversions with Cart Data `items` array (`id`, `quantity`, `price`) |
+| `{{dlv - google_ads.conversion_data.transaction_id}}` | `google_ads.conversion_data.transaction_id` | Google Ads Conversion Transaction ID |
+| `{{dlv - google_ads.conversion_data.value}}` | `google_ads.conversion_data.value` | Google Ads Conversion Total Value |
+| `{{dlv - google_ads.conversion_data.discount}}` | `google_ads.conversion_data.discount` | Google Ads Conversion Top-Level Discount |
+| `{{dlv - google_ads.conversion_data.aw_merchant_id}}` | `google_ads.conversion_data.aw_merchant_id` | Google Ads Conversion Merchant Center ID (`mid`) |
+| `{{dlv - google_ads.conversion_data.aw_feed_country}}` | `google_ads.conversion_data.aw_feed_country` | Google Ads Conversion Feed Country |
+| `{{dlv - google_ads.conversion_data.aw_feed_language}}` | `google_ads.conversion_data.aw_feed_language` | Google Ads Conversion Feed Language |
+| `{{dlv - google_ads.ecomm_prodid}}` | `google_ads.ecomm_prodid` | Google Ads Dynamic Remarketing: **Product ID** (Legacy/Root alias) |
+| `{{dlv - google_ads.ecomm_pagetype}}` | `google_ads.ecomm_pagetype` | Google Ads Dynamic Remarketing: **Page Type** (Legacy/Root alias) |
+| `{{dlv - google_ads.ecomm_totalvalue}}` | `google_ads.ecomm_totalvalue` | Google Ads Dynamic Remarketing: **Total Value** (Legacy/Root alias) |
 | `{{dlv - ecommerce.currency}}` | `ecommerce.currency` | All tags (Currency ISO) |
 | `{{dlv - ecommerce.value}}` | `ecommerce.value` | All tags (Event Revenue) |
 | `{{dlv - user_data}}` | `user_data` | Enhanced Conversions, Meta Advanced Matching, Pinterest User Data |

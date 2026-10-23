@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.18.3",
+    "latest_version":  "1.19.0",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.3/ps_gtm_datalayer.zip",
-    "checksum":  "91a884335242d31d123cb67c6f8c7a7bc9715f1bef4698ad8ab4d95d031dc173",
-    "release_type":  "patch",
-    "release_notes":  "1. Fixed select_item triggering on Add to Wishlist clicks.\n2. Isolated PDP main product from self-selection events.\n3. Added comprehensive exclusion for all official and third-party theme wishlist selectors."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.19.0/ps_gtm_datalayer.zip",
+    "checksum":  "793a86c71ada6195fdf4cb70a64355155f2c4d30ed19d4411147d050c5b98bd8",
+    "release_type":  "minor",
+    "release_notes":  "1. Dedicated Google Ads Conversions with Cart Data schema (conversion_data.items with id, quantity, price, and aw_merchant_id).\n2. Dedicated Google Ads Retail Dynamic Remarketing schema (dynamic_remarketing.items with id and google_business_vertical: \u0027retail\u0027).\n3. Back Office controls for Cart Data conversions and Google Merchant Center ID."
 }

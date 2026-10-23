@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.18.3';
+        $this->version = '1.19.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -80,6 +80,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_ADV_META_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_GADS_CART_DATA', '1')
+            && Configuration::updateValue('PS_GTM_ADV_GADS_MERCHANT_ID', '')
             && Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($allEvents))
             && Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($allEvents))
@@ -100,6 +102,8 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_ADV_META_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_GADS_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_GADS_CART_DATA')
+            && Configuration::deleteByName('PS_GTM_ADV_GADS_MERCHANT_ID')
             && Configuration::deleteByName('PS_GTM_ADV_PINTEREST_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_META_EVENTS')
             && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_EVENTS')
@@ -195,6 +199,8 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_ADV_META_ENABLED', $advMeta);
                 Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', $advTiktok);
                 Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', $advGads);
+                Configuration::updateValue('PS_GTM_ADV_GADS_CART_DATA', Tools::getValue('PS_GTM_ADV_GADS_CART_DATA') ? '1' : '0');
+                Configuration::updateValue('PS_GTM_ADV_GADS_MERCHANT_ID', trim((string)Tools::getValue('PS_GTM_ADV_GADS_MERCHANT_ID', '')));
                 Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', $advPinterest);
 
                 $metaEvts = [];
@@ -1025,6 +1031,29 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '</tbody>';
             $html .= '</table>';
 
+            if ($pKey === 'gads') {
+                $cartDataVal = Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0';
+                $gadsMerchantId = (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID');
+                $html .= '<div style="margin-top: 16px; padding: 14px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">';
+                $html .= '<h4 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 600; color: #2c3e50;"><i class="icon-shopping-cart" style="color: #ea4335;"></i> ' . $this->l('Google Ads Conversions with Cart Data (Basket Reporting)') . '</h4>';
+                $html .= '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">';
+                $html .= '<div>';
+                $html .= '<strong style="font-size: 12px; color: #34495e;">' . $this->l('Enable Cart Data on Purchase Conversions') . '</strong>';
+                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Populates "conversion_data" on the purchase event with feed-matching product IDs, unit prices, and quantities for Google Ads basket reporting.') . '</div>';
+                $html .= '</div>';
+                $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
+                $html .= '<input type="checkbox" name="PS_GTM_ADV_GADS_CART_DATA" value="1" ' . ($cartDataVal ? 'checked="checked"' : '') . '>';
+                $html .= '<span class="ps-gtm-slider"></span>';
+                $html .= '</label>';
+                $html .= '</div>';
+                $html .= '<div style="margin-top: 10px;">';
+                $html .= '<label style="font-size: 12px; font-weight: 600; color: #34495e; display: block; margin-bottom: 4px;">' . $this->l('Google Merchant Center ID (Optional)') . '</label>';
+                $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId) . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 280px; font-size: 12px;">';
+                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates "aw_merchant_id" inside "conversion_data".') . '</p>';
+                $html .= '</div>';
+                $html .= '</div>';
+            }
+
             $html .= '</div>'; // End Body
             $html .= '</div>'; // End Platform Card
         }
@@ -1549,6 +1578,8 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_enabled' => (bool)$advMeta,
                 'tiktok_enabled' => (bool)$advTiktok,
                 'gads_enabled' => (bool)$advGads,
+                'gads_cart_data' => Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0',
+                'gads_merchant_id' => (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID'),
                 'pinterest_enabled' => (bool)$advPinterest,
                 'meta_events' => is_array($metaEvents) ? $metaEvents : array_keys(self::getSupportedEvents()),
                 'tiktok_events' => is_array($tiktokEvents) ? $tiktokEvents : array_keys(self::getSupportedEvents()),

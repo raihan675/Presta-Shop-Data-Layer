@@ -170,7 +170,8 @@ class PayloadBuilder
         $metaContents = [];
         $tiktokContents = [];
         $googleProdIds = [];
-        $googleItems = [];
+        $googleDynamicItems = [];
+        $googleCartDataItems = [];
         $pinterestProdIds = [];
         $pinterestLineItems = [];
         $totalQuantity = 0;
@@ -210,11 +211,16 @@ class PayloadBuilder
             if (!in_array($catId, $googleProdIds)) {
                 $googleProdIds[] = $catId;
             }
-            $googleItems[] = [
+            // Google Ads Retail Dynamic Remarketing items schema
+            $googleDynamicItems[] = [
                 'id' => $catId,
                 'google_business_vertical' => 'retail',
-                'price' => $price,
+            ];
+            // Google Ads Conversions with Cart Data items schema
+            $googleCartDataItems[] = [
+                'id' => $catId,
                 'quantity' => $qty,
+                'price' => $price,
             ];
 
             if (!in_array($catId, $pinterestProdIds)) {
@@ -416,14 +422,103 @@ class PayloadBuilder
             }
         }
 
-        $googleAds = [
+        // Google Ads Event Name Resolution
+        $gadsEventName = $canonicalEvent;
+        switch ($canonicalEvent) {
+            case 'view_item':
+            case 'select_item':
+                $gadsEventName = 'view_item';
+                break;
+            case 'view_cart':
+                $gadsEventName = 'view_cart';
+                break;
+            case 'view_item_list':
+                $gadsEventName = 'view_item_list';
+                break;
+            case 'search':
+            case 'view_search_results':
+                $gadsEventName = 'view_search_results';
+                break;
+            case 'add_to_cart':
+                $gadsEventName = 'add_to_cart';
+                break;
+            case 'remove_from_cart':
+                $gadsEventName = 'remove_from_cart';
+                break;
+            case 'begin_checkout':
+                $gadsEventName = 'begin_checkout';
+                break;
+            case 'add_shipping_info':
+                $gadsEventName = 'add_shipping_info';
+                break;
+            case 'add_payment_info':
+                $gadsEventName = 'add_payment_info';
+                break;
+            case 'purchase':
+                $gadsEventName = 'purchase';
+                break;
+            case 'add_to_wishlist':
+                $gadsEventName = 'add_to_wishlist';
+                break;
+            default:
+                $gadsEventName = $canonicalEvent;
+                break;
+        }
+
+        $dynamicRemarketing = [
+            'event_name' => $gadsEventName,
+            'value' => $val,
+            'currency' => $currencyCode,
+            'items' => $googleDynamicItems,
             'ecomm_pagetype' => $pageType,
             'ecomm_prodid' => $isSingleProduct ? (isset($googleProdIds[0]) ? $googleProdIds[0] : '') : $googleProdIds,
             'ecomm_totalvalue' => $val,
-            'items' => $googleItems,
+        ];
+        if (!empty($options['category_name'])) {
+            $dynamicRemarketing['ecomm_category'] = (string)$options['category_name'];
+        }
+        if (!empty($options['search_term'])) {
+            $dynamicRemarketing['search_term'] = (string)$options['search_term'];
+        }
+
+        $googleAds = [
+            'event_name' => $gadsEventName,
+            'dynamic_remarketing' => $dynamicRemarketing,
+            // Backward-compatible root properties:
+            'ecomm_pagetype' => $pageType,
+            'ecomm_prodid' => $isSingleProduct ? (isset($googleProdIds[0]) ? $googleProdIds[0] : '') : $googleProdIds,
+            'ecomm_totalvalue' => $val,
+            'items' => $googleDynamicItems,
         ];
         if (!empty($options['category_name'])) {
             $googleAds['ecomm_category'] = (string)$options['category_name'];
+        }
+
+        $cartDataEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0') : true;
+        if ($canonicalEvent === 'purchase' && $cartDataEnabled) {
+            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+            $conversionData = [
+                'transaction_id' => $txId,
+                'value' => $val,
+                'currency' => $currencyCode,
+                'items' => $googleCartDataItems,
+            ];
+            if (isset($options['discount']) && (float)$options['discount'] > 0) {
+                $conversionData['discount'] = (float)$options['discount'];
+            }
+            $gadsMerchantId = !empty($options['aw_merchant_id']) 
+                ? (string)$options['aw_merchant_id'] 
+                : (class_exists('Configuration') ? (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID') : '');
+            if (!empty($gadsMerchantId)) {
+                $conversionData['aw_merchant_id'] = $gadsMerchantId;
+            }
+            if (!empty($options['aw_feed_country'])) {
+                $conversionData['aw_feed_country'] = (string)$options['aw_feed_country'];
+            }
+            if (!empty($options['aw_feed_language'])) {
+                $conversionData['aw_feed_language'] = (string)$options['aw_feed_language'];
+            }
+            $googleAds['conversion_data'] = $conversionData;
         }
 
         // Pinterest Event Name and Schema Resolution
@@ -1214,8 +1309,27 @@ class PayloadBuilder
         }
 
         $orderReference = !empty($order->reference) ? (string)$order->reference : (string)$order->id;
+        $orderDiscount = (isset($order->total_discounts_tax_incl) && (float)$order->total_discounts_tax_incl > 0)
+            ? PricingEngine::roundHalfUp((float)$order->total_discounts_tax_incl, $currencyPrecision)
+            : 0.0;
+
+        $countryIso = ($address && !empty($address->id_country) && class_exists('Country'))
+            ? strtoupper((string)Country::getIsoById((int)$address->id_country))
+            : '';
+        $langIso = '';
+        if (!empty($order->id_lang) && class_exists('Language')) {
+            $langIso = strtolower((string)Language::getIsoById((int)$order->id_lang));
+        }
+        if (empty($langIso) && isset($this->context->language) && !empty($this->context->language->iso_code)) {
+            $langIso = strtolower((string)$this->context->language->iso_code);
+        }
+
         $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value, [
             'order_id' => $orderReference,
+            'transaction_id' => (string)$order->id,
+            'discount' => $orderDiscount,
+            'aw_feed_country' => $countryIso,
+            'aw_feed_language' => $langIso,
             'user_data' => $userData,
             'meta_user_data' => CustomerDataEngine::buildMetaUserData($customer, $address),
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),

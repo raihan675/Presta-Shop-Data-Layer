@@ -234,6 +234,7 @@
       ? (typeof totalValue === 'number' ? totalValue : parseFloat(totalValue) || 0.0)
       : calculateCartValue(items);
     var strategy = options.catalogIdStrategy || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.catalogIdStrategy) || 'composite';
+    var advSettings = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.advertisingSettings) ? window.psGtmConfig.advertisingSettings : null;
 
     var isList = (canonicalEventName === 'view_item_list');
     var isSingleProduct = (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'add_to_wishlist') && items.length === 1;
@@ -260,7 +261,8 @@
     var metaContents = [];
     var tiktokContents = [];
     var googleProdIds = [];
-    var googleItems = [];
+    var googleDynamicItems = [];
+    var googleCartDataItems = [];
     var pinterestProdIds = [];
     var pinterestLineItems = [];
     var totalNumItems = 0;
@@ -300,11 +302,16 @@
       if (googleProdIds.indexOf(catId) === -1) {
         googleProdIds.push(catId);
       }
-      googleItems.push({
+      // Google Ads Retail Dynamic Remarketing items schema
+      googleDynamicItems.push({
         id: catId,
-        google_business_vertical: 'retail',
-        price: itemPrice,
-        quantity: itemQty
+        google_business_vertical: 'retail'
+      });
+      // Google Ads Conversions with Cart Data items schema
+      googleCartDataItems.push({
+        id: catId,
+        quantity: itemQty,
+        price: itemPrice
       });
 
       if (pinterestProdIds.indexOf(catId) === -1) {
@@ -454,14 +461,82 @@
       tiktokNamespace.user_data = tUserData;
     }
 
+    var gadsEventName = canonicalEventName;
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item') {
+      gadsEventName = 'view_item';
+    } else if (canonicalEventName === 'view_item_list') {
+      gadsEventName = 'view_item_list';
+    } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
+      gadsEventName = 'view_search_results';
+    } else if (canonicalEventName === 'view_cart') {
+      gadsEventName = 'view_cart';
+    } else if (canonicalEventName === 'add_to_cart') {
+      gadsEventName = 'add_to_cart';
+    } else if (canonicalEventName === 'remove_from_cart') {
+      gadsEventName = 'remove_from_cart';
+    } else if (canonicalEventName === 'begin_checkout') {
+      gadsEventName = 'begin_checkout';
+    } else if (canonicalEventName === 'add_shipping_info') {
+      gadsEventName = 'add_shipping_info';
+    } else if (canonicalEventName === 'add_payment_info') {
+      gadsEventName = 'add_payment_info';
+    } else if (canonicalEventName === 'purchase') {
+      gadsEventName = 'purchase';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      gadsEventName = 'add_to_wishlist';
+    }
+
+    var dynamicRemarketing = {
+      event_name: gadsEventName,
+      value: val,
+      currency: curr,
+      items: googleDynamicItems,
+      ecomm_pagetype: pageType,
+      ecomm_prodid: isSingleProduct ? (googleProdIds[0] || '') : googleProdIds,
+      ecomm_totalvalue: val
+    };
+    if (options.categoryName) {
+      dynamicRemarketing.ecomm_category = String(options.categoryName);
+    }
+    if (options.searchTerm) {
+      dynamicRemarketing.search_term = String(options.searchTerm);
+    }
+
     var googleAdsNamespace = {
+      event_name: gadsEventName,
+      dynamic_remarketing: dynamicRemarketing,
       ecomm_pagetype: pageType,
       ecomm_prodid: isSingleProduct ? (googleProdIds[0] || '') : googleProdIds,
       ecomm_totalvalue: val,
-      items: googleItems
+      items: googleDynamicItems
     };
     if (options.categoryName) {
       googleAdsNamespace.ecomm_category = String(options.categoryName);
+    }
+
+    var cartDataEnabled = advSettings ? (advSettings.gads_cart_data !== false && advSettings.gads_cart_data !== 0 && advSettings.gads_cart_data !== '0') : true;
+    if (canonicalEventName === 'purchase' && cartDataEnabled) {
+      var txId = options.transactionId ? String(options.transactionId) : (options.orderId ? String(options.orderId) : '');
+      var conversionData = {
+        transaction_id: txId,
+        value: val,
+        currency: curr,
+        items: googleCartDataItems
+      };
+      if (options.discount) {
+        conversionData.discount = parseFloat(options.discount);
+      }
+      var gMerchantId = options.awMerchantId || (advSettings && advSettings.gads_merchant_id ? advSettings.gads_merchant_id : '');
+      if (gMerchantId) {
+        conversionData.aw_merchant_id = String(gMerchantId);
+      }
+      if (options.awFeedCountry) {
+        conversionData.aw_feed_country = String(options.awFeedCountry);
+      }
+      if (options.awFeedLanguage) {
+        conversionData.aw_feed_language = String(options.awFeedLanguage);
+      }
+      googleAdsNamespace.conversion_data = conversionData;
     }
 
     // Pinterest Event Mapping and Schema Resolution
@@ -530,8 +605,6 @@
       pinterestNamespace.user_data = pUserData;
     }
 
-    var advSettings = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.advertisingSettings) ? window.psGtmConfig.advertisingSettings : null;
-
     var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
     if (!masterEnabled) {
       return {};
@@ -588,6 +661,11 @@
       listName: ecommerceData.item_list_name || '',
       categoryName: (items[0] && items[0].item_category) ? items[0].item_category : '',
       orderId: ecommerceData.transaction_id || '',
+      transactionId: ecommerceData.transaction_id || '',
+      discount: ecommerceData.discount || (additionalNamespaces && additionalNamespaces.order_totals ? (additionalNamespaces.order_totals.discount_total || 0) : 0),
+      awMerchantId: ecommerceData.aw_merchant_id || (additionalNamespaces && additionalNamespaces.aw_merchant_id) || '',
+      awFeedCountry: ecommerceData.aw_feed_country || (additionalNamespaces && additionalNamespaces.aw_feed_country) || '',
+      awFeedLanguage: ecommerceData.aw_feed_language || (additionalNamespaces && additionalNamespaces.aw_feed_language) || '',
       searchTerm: ecommerceData.search_term || '',
       property: ecommerceData.shipping_tier || ecommerceData.payment_type || ''
     });
