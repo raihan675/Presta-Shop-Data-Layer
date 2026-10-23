@@ -1,10 +1,10 @@
-# Enterprise GA4, Meta, TikTok & Google Ads DataLayer Module for PrestaShop
+# Enterprise GA4, Meta, Pinterest, TikTok & Google Ads DataLayer Module for PrestaShop
 
-[![PrestaShop Compatibility](https://img.shields.io/badge/PrestaShop-1.7.8%20--%208.2.x%20%2F%209.x-blue.svg)](https://www.prestashop.com/)
+[![PrestaShop Compatibility](https://img.shields.io/badge/PrestaShop-1.7.0.0%20--%208.2.x%20%2F%209.x-blue.svg)](https://www.prestashop.com/)
 [![License: Academic Free License (AFL 3.0)](https://img.shields.io/badge/License-AFL%203.0-green.svg)](https://opensource.org/licenses/AFL-3.0)
 [![Latest Release](https://img.shields.io/github/v/release/raihan675/Presta-Shop-Data-Layer?color=brightgreen)](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest)
 
-An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **TikTok Pixel & Events API**, and **Google Ads Dynamic Remarketing (Retail vertical)** with zero client-side transformation required in Google Tag Manager.
+An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, and **Google Ads Dynamic Remarketing (Retail vertical)** with zero client-side transformation required in Google Tag Manager.
 
 Includes **Server-Side GTM (sGTM)** support, **Google Consent Mode v2**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
@@ -12,21 +12,21 @@ Includes **Server-Side GTM (sGTM)** support, **Google Consent Mode v2**, and **1
 
 ## Supported E-Commerce Events
 
-The module supports **11 core ecommerce events**, providing complete visibility across every step of the customer purchase funnel:
+The module supports all core ecommerce actions across the full customer funnel with native platform payload generation:
 
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
-| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. | `ecommerce`, `meta` (`product_group`), `tiktok` (`product_group`), `google_ads` (`category` pagetype) |
-| **2** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `tiktok`, `google_ads` (`product` pagetype) |
-| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
-| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `tiktok`, `google_ads` |
-| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `tiktok`, `google_ads` (`cart` pagetype) |
-| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `tiktok`, `google_ads` (`cart` pagetype) |
-| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `tiktok`, `google_ads` (`cart` pagetype) |
-| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout. | `ecommerce` (`shipping_tier`), `meta`, `tiktok`, `google_ads` (`cart` pagetype) |
-| **10** | **`add_payment_info`** | Selecting a payment gateway during checkout. | `ecommerce` (`payment_type`), `meta`, `tiktok`, `google_ads` (`cart` pagetype) |
-| **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
+| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. | `ecommerce`, `meta` (`product_group`), `pinterest` (`ViewCategory`), `tiktok` (`product_group`), `google_ads` (`category` pagetype) |
+| **2** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
+| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
+| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
+| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`Custom: InitiateCheckout`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`Custom: AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
 
 ---
 
@@ -41,13 +41,38 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `meta.num_items`: Total unit count on checkout and purchase.
 * `meta.currency` & `meta.value`: Normalized monetary value.
 
-### 2. TikTok (Pixel & Events API)
+### 2. Pinterest Ads (Pinterest Tag & Conversions API)
+* `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'Checkout'`, `'Search'`, or `'Custom'`).
+* `pinterest.capi_event_name`: Pinterest Conversions API event name (`'page_visit'`, `'view_category'`, `'add_to_cart'`, `'checkout'`, `'search'`, `'custom'`).
+* `pinterest.custom_event_name`: Custom event label when applicable (`'InitiateCheckout'`, `'RemoveFromCart'`, `'AddWishList'`, `'AddShippingInfo'`, `'AddPaymentInfo'`).
+* `pinterest.line_items`: Array of product items matching Pinterest Catalog specifications:
+  ```json
+  [
+    {
+      "product_id": "68_299",
+      "product_name": "Trink und Snack Tasse",
+      "product_price": 13.00,
+      "product_quantity": 2,
+      "product_category": "Trinkbecher",
+      "product_brand": "Dooky",
+      "product_variant": "Farbe: Stahlblau",
+      "product_variant_id": "299"
+    }
+  ]
+  ```
+* `pinterest.product_ids`: Top-level array of product catalog IDs.
+* `pinterest.order_quantity`: Total item quantity in the event.
+* `pinterest.order_id`: Authoritative Order Reference for `Checkout` (used for 48-hour Tag & CAPI deduplication).
+* `pinterest.property`: Contextual metadata (carrier name for `AddShippingInfo`, payment method for `AddPaymentInfo`).
+* `pinterest.currency` & `pinterest.value`: Exact monetary figures.
+
+### 3. TikTok (Pixel & Events API)
 * `tiktok.content_type`: `'product'` or `'product_group'`.
 * `tiktok.content_id`: Top-level catalog SKU ID.
 * `tiktok.contents`: Array of line items with `{ content_id, content_type, content_name, quantity, price }`.
 * `tiktok.currency` & `tiktok.value`: Normalized monetary value.
 
-### 3. Google Ads Dynamic Remarketing (Retail Vertical)
+### 4. Google Ads Dynamic Remarketing (Retail Vertical)
 * `google_ads.ecomm_pagetype`: Strict standard funnel values (`'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`).
 * `google_ads.ecomm_prodid`: String or Array of strings matching `<g:id>` in Google Merchant Center (GMC).
 * `google_ads.ecomm_totalvalue`: Total monetary value.
@@ -58,13 +83,19 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 
 ## Google Tag Manager (GTM) Variable Mapping
 
-Create these simple **Data Layer Variables (DLVs)** in your GTM container and bind them directly to your advertising tags:
+Create these simple **Data Layer Variables (DLVs)** in your GTM container and bind them directly to your tags:
 
 | GTM Variable Name | Data Layer Variable Path | Target Tag / Usage |
 | :--- | :--- | :--- |
 | `{{dlv - meta.content_ids}}` | `meta.content_ids` | Meta Pixel `content_ids` |
 | `{{dlv - meta.content_type}}` | `meta.content_type` | Meta Pixel `content_type` (`product` / `product_group`) |
 | `{{dlv - meta.contents}}` | `meta.contents` | Meta Pixel / CAPI line-item breakdown |
+| `{{dlv - pinterest.event_name}}` | `pinterest.event_name` | Pinterest Tag Event (`pintrk`) |
+| `{{dlv - pinterest.capi_event_name}}` | `pinterest.capi_event_name` | Pinterest Conversions API Event |
+| `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag & CAPI `line_items` parameter |
+| `{{dlv - pinterest.product_ids}}` | `pinterest.product_ids` | Pinterest Tag `product_ids` |
+| `{{dlv - pinterest.order_quantity}}` | `pinterest.order_quantity` | Pinterest Tag & CAPI `order_quantity` |
+| `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag & CAPI `order_id` (Deduplication) |
 | `{{dlv - tiktok.contents}}` | `tiktok.contents` | TikTok Pixel / Events API `contents` array |
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |
 | `{{dlv - tiktok.content_id}}` | `tiktok.content_id` | TikTok Pixel `content_id` |
@@ -73,39 +104,49 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - google_ads.ecomm_totalvalue}}` | `google_ads.ecomm_totalvalue` | Google Ads Dynamic Remarketing: **Total Value** |
 | `{{dlv - ecommerce.currency}}` | `ecommerce.currency` | All tags (Currency ISO) |
 | `{{dlv - ecommerce.value}}` | `ecommerce.value` | All tags (Event Revenue) |
-| `{{dlv - user_data}}` | `user_data` | Enhanced Conversions & Meta Advanced Matching |
+| `{{dlv - user_data}}` | `user_data` | Enhanced Conversions, Meta Advanced Matching, Pinterest User Data |
 
 ---
 
-## Configuration Settings
+## Configuration Settings & Back Office Controls
 
-In the module configuration screen (**Modules > Module Manager > Enterprise GA4, Meta, TikTok & Google Ads DataLayer > Configure**):
+In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLayer > Configure**):
 
-| Setting | Description | Default / Options |
-| :--- | :--- | :--- |
-| **GTM Container ID** | Your Google Tag Manager Web Container ID | `GTM-XXXXXXX` |
-| **Product Catalog Identifier Strategy** | Selects how product IDs match your advertising feeds (GMC, Meta Catalog, TikTok Catalog) | **Composite Database ID: `{id_product}_{id_product_attribute}`** (Recommended) / **Base Product ID: `{id_product}`** / **Reference / SKU: `{sku}`** |
-| **Data Layer Event Prefix** | Custom prefix for DataLayer events | Blank (standard GA4) or custom (e.g. `raihan`, `masum`) |
-| **Server-Side GTM Transport URL** | Custom domain endpoint for Server-side GTM | `https://gtm.yourdomain.com` |
-| **Enable Google Consent Mode v2** | Initializes default denied consent flags for GDPR/DMA | Enabled (`Yes`) |
+### Core DataLayer Settings
+* **GTM Container ID**: Web container ID (`GTM-XXXXXXX`).
+* **Data Layer Event Prefix**: Custom prefix for events (e.g. `raihan`, `shop`) or leave empty for standard GA4 event names.
+* **Product Catalog Identifier Strategy**: Choose how product IDs match your merchant feeds:
+  1. **Composite Database ID**: `{id_product}_{id_product_attribute}` (e.g., `68_299` or `1033`). **(Recommended)**
+  2. **Base Product ID**: `{id_product}` (e.g., `68` or `1033`).
+  3. **Reference / Physical SKU**: Authoritative combination/product reference (e.g., `BHK125-B`).
+* **Server-Side GTM Transport URL**: Custom domain endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com`).
+* **Enable Google Consent Mode v2**: Automatically injects GDPR/DMA compliant default denied consent flags before GTM loads.
+
+### Advertising Platform DataLayer Settings
+* **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`) across all events in a single click.
+* **Platform Switches**: Independent switches for **Meta Pixel / CAPI**, **Pinterest Tag & CAPI**, **TikTok Events API**, and **Google Ads Dynamic Remarketing**.
+* **Interactive Event Routing Matrix**: Granular checkbox table to activate or deactivate specific advertising platforms on a per-event basis.
+* **Quick Action Controls**: Instant bulk buttons ("All Meta", "All Pinterest", "All TikTok", "All Google Ads", "Enable All", "Disable All").
+* **Hover Specification Popovers**: Hover over the "Specs" badge next to any event to view the exact payload structure generated for each platform.
 
 ---
 
 ## Installation & Setup
 
 ### Method 1: PrestaShop Back Office Upload (Recommended)
-1. Download the latest release: [ps_gtm_datalayer.zip](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest/download/ps_gtm_datalayer.zip).
-2. In your PrestaShop Back Office, navigate to **Modules > Module Manager**.
+1. Download the latest release archive: [ps_gtm_datalayer.zip](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest/download/ps_gtm_datalayer.zip).
+2. In PrestaShop Back Office, navigate to **Modules > Module Manager**.
 3. Click **Upload a module** and select `ps_gtm_datalayer.zip`.
-4. Click **Configure** once the installation completes.
+4. Click **Configure** once installation succeeds.
 
 ### Method 2: Manual FTP / SFTP Installation
 1. Download and extract `ps_gtm_datalayer.zip`.
-2. Upload the unzipped `ps_gtm_datalayer` directory to `/modules/` on your web server.
-3. In PrestaShop Back Office, go to **Modules > Module Manager**, find **Enterprise GA4, Meta, TikTok & Google Ads DataLayer**, and click **Install**.
+2. Upload the unzipped `ps_gtm_datalayer` folder into `/modules/` on your server.
+3. In PrestaShop Back Office, find **E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok & Google Ads** in Module Manager and click **Install**.
 
 ---
 
 ## License
 
 This project is licensed under the **Academic Free License (AFL 3.0)**.
+Author: **Raihan**

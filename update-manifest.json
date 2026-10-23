@@ -4,7 +4,7 @@
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.8.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.13.0/ps_gtm_datalayer.zip",
-    "checksum":  "d6d1a89bf644bb03ff8193a5178386c616d00554f4e20d43bb7f6cca481c48e7",
+    "checksum":  "95fe2832930a54c975d2f510a337e2072d5ee1547ac59cac2296ce1c10cbfbb1",
     "release_type":  "minor",
     "release_notes":  "1. Full official Pinterest Ads tracking integration (Pinterest Tag pintrk \u0026 Conversions API CAPI schemas).\n2. Dedicated pinterest namespace in dataLayer containing line_items, product_ids, value, currency, and order_quantity.\n3. Dynamic Product Ads catalog matching supporting composite, id_product, and reference_sku strategies.\n4. Independent Pinterest switch (PS_GTM_ADV_PINTEREST_ENABLED) and granular 11-event routing matrix (PS_GTM_ADV_PINTEREST_EVENTS).\n5. Zero DOM scraping: 100% authoritative backend data sourcing across PrestaShop 1.7.0.0 through 8.x/9.x."
 }
