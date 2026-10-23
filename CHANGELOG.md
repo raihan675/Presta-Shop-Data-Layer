@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.19.3] - 2026-10-24
+
+### Changed
+- **Streamlined Google Ads Data Layer Schema**:
+  - Eliminated redundant `conversion_data` object in favor of `cart_data` to ensure clean, deduplicated schema consistency.
+  - Removed duplicate root-level parameters (`ecomm_pagetype`, `ecomm_prodid`, `ecomm_totalvalue`, `items`, `ecomm_category`) under `google_ads`, keeping them strictly isolated within their authoritative `google_ads.dynamic_remarketing` and `google_ads.cart_data` child objects.
+  - Maintained complete separation between `dynamic_remarketing.items` (with `google_business_vertical: 'retail'`) and `cart_data.items` (with `id`, `quantity`, and `price`) across all conversion events.
+
+---
+
 ## [1.19.2] - 2026-10-24
 
 ### Added

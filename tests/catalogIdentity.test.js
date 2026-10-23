@@ -1580,7 +1580,7 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(pushShip1.meta.currency, 'EUR');
       assert.ok(pushShip1.tiktok, 'TikTok namespace present');
       assert.ok(pushShip1.google_ads, 'Google Ads namespace present');
-      assert.strictEqual(pushShip1.google_ads.ecomm_pagetype, 'cart');
+      assert.strictEqual(pushShip1.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
 
       // -------------------------------------------------------------
       // SCENARIO 2: Customer changes the selected shipping method
@@ -2029,9 +2029,11 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
 
       // Google Ads: ecomm_pagetype: 'cart'
       assert.ok(push.google_ads, 'Google Ads namespace must exist');
-      assert.strictEqual(push.google_ads.ecomm_pagetype, 'cart');
-      assert.strictEqual(push.google_ads.ecomm_totalvalue, 59.97);
-      assert.deepStrictEqual(push.google_ads.ecomm_prodid, ['1149']);
+      assert.strictEqual(push.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
+      assert.strictEqual(push.google_ads.dynamic_remarketing.ecomm_totalvalue, 59.97);
+      assert.deepStrictEqual(push.google_ads.dynamic_remarketing.ecomm_prodid, ['1149']);
+      assert.strictEqual(push.google_ads.conversion_data, undefined);
+      assert.strictEqual(push.google_ads.ecomm_pagetype, undefined);
     });
 
     it('42. Search & List Separation: Search results emits strictly view_search_results (without view_item_list), Category emits strictly view_item_list, and select_item from search uses clean product identity', function () {

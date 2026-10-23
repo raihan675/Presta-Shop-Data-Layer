@@ -486,19 +486,11 @@ class PayloadBuilder
         $googleAds = [
             'event_name' => $gadsEventName,
             'dynamic_remarketing' => $dynamicRemarketing,
-            // Backward-compatible root properties:
-            'ecomm_pagetype' => $pageType,
-            'ecomm_prodid' => $isSingleProduct ? (isset($googleProdIds[0]) ? $googleProdIds[0] : '') : $googleProdIds,
-            'ecomm_totalvalue' => $val,
-            'items' => $googleDynamicItems,
         ];
-        if (!empty($options['category_name'])) {
-            $googleAds['ecomm_category'] = (string)$options['category_name'];
-        }
 
         $cartDataEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0') : true;
         if ($cartDataEnabled && !empty($googleCartDataItems)) {
-            $conversionData = [
+            $cartData = [
                 'event_name' => $gadsEventName,
                 'value' => $val,
                 'currency' => $currencyCode,
@@ -506,25 +498,24 @@ class PayloadBuilder
             ];
             $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
             if (!empty($txId)) {
-                $conversionData['transaction_id'] = $txId;
+                $cartData['transaction_id'] = $txId;
             }
             if (isset($options['discount']) && (float)$options['discount'] > 0) {
-                $conversionData['discount'] = (float)$options['discount'];
+                $cartData['discount'] = (float)$options['discount'];
             }
             $gadsMerchantId = !empty($options['aw_merchant_id']) 
                 ? (string)$options['aw_merchant_id'] 
                 : (class_exists('Configuration') ? (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID') : '');
             if (!empty($gadsMerchantId)) {
-                $conversionData['aw_merchant_id'] = $gadsMerchantId;
+                $cartData['aw_merchant_id'] = $gadsMerchantId;
             }
             if (!empty($options['aw_feed_country'])) {
-                $conversionData['aw_feed_country'] = (string)$options['aw_feed_country'];
+                $cartData['aw_feed_country'] = (string)$options['aw_feed_country'];
             }
             if (!empty($options['aw_feed_language'])) {
-                $conversionData['aw_feed_language'] = (string)$options['aw_feed_language'];
+                $cartData['aw_feed_language'] = (string)$options['aw_feed_language'];
             }
-            $googleAds['conversion_data'] = $conversionData;
-            $googleAds['cart_data'] = $conversionData;
+            $googleAds['cart_data'] = $cartData;
         }
 
         // Pinterest Event Name and Schema Resolution

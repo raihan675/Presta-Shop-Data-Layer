@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.19.2';
+        $this->version = '1.19.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1025,7 +1025,7 @@ class Ps_Gtm_DataLayer extends Module
                 $html .= '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">';
                 $html .= '<div>';
                 $html .= '<strong style="font-size: 12px; color: #34495e;">' . $this->l('Enable Cart Data on Purchase Conversions') . '</strong>';
-                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Populates "conversion_data" on the purchase event with feed-matching product IDs, unit prices, and quantities for Google Ads basket reporting.') . '</div>';
+                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Populates "cart_data" across ecommerce events with feed-matching product IDs, unit prices, and quantities for Google Ads basket reporting.') . '</div>';
                 $html .= '</div>';
                 $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
                 $html .= '<input type="checkbox" name="PS_GTM_ADV_GADS_CART_DATA" value="1" ' . ($cartDataVal ? 'checked="checked"' : '') . '>';
@@ -1035,7 +1035,7 @@ class Ps_Gtm_DataLayer extends Module
                 $html .= '<div style="margin-top: 10px;">';
                 $html .= '<label style="font-size: 12px; font-weight: 600; color: #34495e; display: block; margin-bottom: 4px;">' . $this->l('Google Merchant Center ID (Optional)') . '</label>';
                 $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId) . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 280px; font-size: 12px;">';
-                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates "aw_merchant_id" inside "conversion_data".') . '</p>';
+                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates "aw_merchant_id" inside "cart_data".') . '</p>';
                 $html .= '</div>';
                 $html .= '</div>';
             }

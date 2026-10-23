@@ -506,43 +506,35 @@
 
     var googleAdsNamespace = {
       event_name: gadsEventName,
-      dynamic_remarketing: dynamicRemarketing,
-      ecomm_pagetype: pageType,
-      ecomm_prodid: isSingleProduct ? (googleProdIds[0] || '') : googleProdIds,
-      ecomm_totalvalue: val,
-      items: googleDynamicItems
+      dynamic_remarketing: dynamicRemarketing
     };
-    if (options.categoryName) {
-      googleAdsNamespace.ecomm_category = String(options.categoryName);
-    }
 
     var cartDataEnabled = advSettings ? (advSettings.gads_cart_data !== false && advSettings.gads_cart_data !== 0 && advSettings.gads_cart_data !== '0') : true;
     if (cartDataEnabled && googleCartDataItems.length > 0) {
       var txId = options.transactionId ? String(options.transactionId) : (options.orderId ? String(options.orderId) : '');
-      var conversionData = {
+      var cartData = {
         event_name: gadsEventName,
         value: val,
         currency: curr,
         items: googleCartDataItems
       };
       if (txId) {
-        conversionData.transaction_id = txId;
+        cartData.transaction_id = txId;
       }
       if (options.discount) {
-        conversionData.discount = parseFloat(options.discount);
+        cartData.discount = parseFloat(options.discount);
       }
       var gMerchantId = options.awMerchantId || (advSettings && advSettings.gads_merchant_id ? advSettings.gads_merchant_id : '');
       if (gMerchantId) {
-        conversionData.aw_merchant_id = String(gMerchantId);
+        cartData.aw_merchant_id = String(gMerchantId);
       }
       if (options.awFeedCountry) {
-        conversionData.aw_feed_country = String(options.awFeedCountry);
+        cartData.aw_feed_country = String(options.awFeedCountry);
       }
       if (options.awFeedLanguage) {
-        conversionData.aw_feed_language = String(options.awFeedLanguage);
+        cartData.aw_feed_language = String(options.awFeedLanguage);
       }
-      googleAdsNamespace.conversion_data = conversionData;
-      googleAdsNamespace.cart_data = conversionData;
+      googleAdsNamespace.cart_data = cartData;
     }
 
     // Pinterest Event Mapping and Schema Resolution

@@ -97,20 +97,15 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
       { id: '68_299', google_business_vertical: 'retail' }
     ]);
-    assert.ok(payload.google_ads.conversion_data, 'conversion_data must exist on view_item');
-    assert.deepStrictEqual(payload.google_ads.conversion_data.items, [
-      { id: '68_299', quantity: 1, price: 13.00 }
-    ]);
+    assert.strictEqual(payload.google_ads.conversion_data, undefined, 'conversion_data must be removed in favor of cart_data');
     assert.deepStrictEqual(payload.google_ads.cart_data.items, [
       { id: '68_299', quantity: 1, price: 13.00 }
     ]);
-    // Root backward-compatible aliases
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'product');
-    assert.strictEqual(payload.google_ads.ecomm_prodid, '68_299');
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 13.00);
-    assert.deepStrictEqual(payload.google_ads.items, [
-      { id: '68_299', google_business_vertical: 'retail' }
-    ]);
+    // Root duplicate parameters must not exist
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, undefined);
+    assert.strictEqual(payload.google_ads.ecomm_prodid, undefined);
+    assert.strictEqual(payload.google_ads.ecomm_totalvalue, undefined);
+    assert.strictEqual(payload.google_ads.items, undefined);
 
     // Pinterest Tag & Conversions API namespace
     assert.ok(payload.pinterest, 'pinterest namespace must exist');
@@ -167,10 +162,11 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.contents[0].price, 9.99);
 
     // Google Ads
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'product');
-    assert.strictEqual(payload.google_ads.ecomm_prodid, '1033');
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 9.99);
-    assert.strictEqual(payload.google_ads.items[0].id, '1033');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'product');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, '1033');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 9.99);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.items[0].id, '1033');
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, undefined);
   });
 
   it('3. Multi-quantity add_to_cart: 2 units of Variant 299 (26.00 €) with cart pagetype', function () {
@@ -209,9 +205,9 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.value, 26.00);
 
     // Google Ads: cart pagetype, array of prodids, total value 26.00
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'cart');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['68_299']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 26.00);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 26.00);
   });
 
   it('4. begin_checkout: Multi-product cart with 2 Blue Cups + 1 Sunshade (Total 35.99 €)', function () {
@@ -257,9 +253,9 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.value, 35.99);
 
     // Google Ads
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'cart');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['68_299', '1033']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 35.99);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['68_299', '1033']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 35.99);
   });
 
   it('5. add_shipping_info & add_payment_info checkout funnel stages', function () {
@@ -279,7 +275,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     let payload = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(payload.ecommerce.shipping_tier, 'DHL Paket Standard');
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'cart');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299', '1033']);
 
     // add_payment_info
@@ -292,7 +288,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     payload = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(payload.ecommerce.payment_type, 'PayPal Checkout');
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'cart');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
     assert.strictEqual(payload.meta.value, 35.99);
   });
 
@@ -368,24 +364,26 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       { id: '1033', google_business_vertical: 'retail' }
     ]);
 
-    // Google Ads Conversions with Cart Data
-    assert.ok(payload.google_ads.conversion_data, 'conversion_data must exist on purchase');
-    assert.strictEqual(payload.google_ads.conversion_data.transaction_id, '1250');
-    assert.strictEqual(payload.google_ads.conversion_data.value, 35.99);
-    assert.strictEqual(payload.google_ads.conversion_data.currency, 'EUR');
-    assert.deepStrictEqual(payload.google_ads.conversion_data.items, [
+    // Google Ads Cart Data
+    assert.strictEqual(payload.google_ads.conversion_data, undefined, 'conversion_data must be removed in favor of cart_data');
+    assert.ok(payload.google_ads.cart_data, 'cart_data must exist on purchase');
+    assert.strictEqual(payload.google_ads.cart_data.transaction_id, '1250');
+    assert.strictEqual(payload.google_ads.cart_data.value, 35.99);
+    assert.strictEqual(payload.google_ads.cart_data.currency, 'EUR');
+    assert.deepStrictEqual(payload.google_ads.cart_data.items, [
       { id: '68_299', quantity: 2, price: 13.00 },
       { id: '1033', quantity: 1, price: 9.99 }
     ]);
 
-    // Root backward-compatible aliases
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'purchase');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['68_299', '1033']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 35.99);
-    assert.deepStrictEqual(payload.google_ads.items, [
+    // Google Ads Dynamic Remarketing
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'purchase');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['68_299', '1033']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 35.99);
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
       { id: '68_299', google_business_vertical: 'retail' },
       { id: '1033', google_business_vertical: 'retail' }
     ]);
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, undefined);
 
     // User Data & Order Totals
     assert.strictEqual(payload.user_data.email, 'customer@example.de');
@@ -418,10 +416,10 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.content_type, 'product_group');
 
     // Google Ads: pagetype category, ecomm_category preserved
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'category');
-    assert.strictEqual(payload.google_ads.ecomm_category, 'Auto & Unterwegs');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['68', '1033']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 22.99);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'category');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_category, 'Auto & Unterwegs');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['68', '1033']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 22.99);
   });
 
   it('8. add_to_wishlist: Dispatches with catalog-accurate advertising parameters', function () {
@@ -446,8 +444,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.original_event, 'add_to_wishlist');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299']);
     assert.strictEqual(payload.tiktok.content_id, '68_299');
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'product');
-    assert.strictEqual(payload.google_ads.ecomm_prodid, '68_299');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'product');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, '68_299');
   });
 
   it('9. Catalog ID Strategy Switching: composite vs reference_sku vs id_product', function () {
@@ -913,8 +911,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
       { id: '68_299', google_business_vertical: 'retail' }
     ]);
-    assert.ok(payload.google_ads.conversion_data, 'conversion_data must exist on view_search_results');
-    assert.deepStrictEqual(payload.google_ads.conversion_data.items, [
+    assert.strictEqual(payload.google_ads.conversion_data, undefined, 'conversion_data must be removed in favor of cart_data');
+    assert.deepStrictEqual(payload.google_ads.cart_data.items, [
       { id: '68_299', quantity: 1, price: 13.00 }
     ]);
   });
@@ -964,13 +962,14 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.pinterest.event_name, 'Search');
     assert.strictEqual(payload.pinterest.search_query, 'baby');
     assert.ok(payload.google_ads, 'google_ads namespace must exist on view_search_results');
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'searchresults');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['1066', '1186']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 31.92);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'searchresults');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['1066', '1186']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 31.92);
     assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
       { id: '1066', google_business_vertical: 'retail' },
       { id: '1186', google_business_vertical: 'retail' }
     ]);
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, undefined);
   });
 
   it('19. Search Results Listing view_item_list isolation: Emits Google Ads Dynamic Remarketing (ecomm_pagetype: searchresults) and strictly excludes false ViewCategory / ViewContent on Meta, TikTok, and Pinterest', function () {
@@ -1023,9 +1022,10 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // Google Ads Remarketing for search results
     assert.ok(payload.google_ads, 'Google Ads namespace must exist on search listing view_item_list');
-    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'searchresults');
-    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['1066', '1186']);
-    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 37.98);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'searchresults');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['1066', '1186']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_totalvalue, 37.98);
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, undefined);
 
     // Strict Advertising Isolation: Meta, TikTok, Pinterest MUST NOT fire false ViewCategory/ViewContent on search listings
     assert.strictEqual(payload.meta, undefined, 'Meta ViewCategory must be strictly suppressed on search results listing');
@@ -1344,7 +1344,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(listPayload.meta.event_name, 'ViewCategory');
     assert.strictEqual(listPayload.tiktok.event_name, 'ViewContent');
     assert.strictEqual(listPayload.pinterest.event_name, 'ViewCategory');
-    assert.strictEqual(listPayload.google_ads.ecomm_pagetype, 'category');
+    assert.strictEqual(listPayload.google_ads.dynamic_remarketing.ecomm_pagetype, 'category');
 
     // Scenario 3: Verify backend source architecture
     const payloadBuilderCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'PayloadBuilder.php'), 'utf8');
@@ -1392,7 +1392,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       }
     ];
 
-    // 1. view_item: BOTH dynamic_remarketing items AND conversion_data items present
+    // 1. view_item: BOTH dynamic_remarketing items AND cart_data items present; zero conversion_data and zero duplicate root properties
     EDL.pushEvent('view_item', {
       currency: 'EUR',
       value: 19.99,
@@ -1402,21 +1402,22 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     let lastEvent = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.ok(lastEvent.google_ads, 'google_ads must exist on view_item');
     assert.strictEqual(lastEvent.google_ads.event_name, 'view_item');
+    assert.strictEqual(lastEvent.google_ads.conversion_data, undefined, 'conversion_data must be removed');
+    assert.strictEqual(lastEvent.google_ads.ecomm_pagetype, undefined, 'duplicate root ecomm_pagetype must be removed');
+    assert.strictEqual(lastEvent.google_ads.ecomm_prodid, undefined, 'duplicate root ecomm_prodid must be removed');
+    assert.strictEqual(lastEvent.google_ads.ecomm_totalvalue, undefined, 'duplicate root ecomm_totalvalue must be removed');
+    assert.strictEqual(lastEvent.google_ads.items, undefined, 'duplicate root items must be removed');
     assert.strictEqual(lastEvent.google_ads.dynamic_remarketing.event_name, 'view_item');
     assert.strictEqual(lastEvent.google_ads.dynamic_remarketing.value, 19.99);
     assert.strictEqual(lastEvent.google_ads.dynamic_remarketing.currency, 'EUR');
     assert.deepStrictEqual(lastEvent.google_ads.dynamic_remarketing.items, [
       { id: '1149_299', google_business_vertical: 'retail' }
     ]);
-    assert.ok(lastEvent.google_ads.conversion_data, 'conversion_data must exist on view_item');
-    assert.deepStrictEqual(lastEvent.google_ads.conversion_data.items, [
-      { id: '1149_299', quantity: 2, price: 19.99 }
-    ]);
     assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
       { id: '1149_299', quantity: 2, price: 19.99 }
     ]);
 
-    // 2. add_to_cart: BOTH dynamic_remarketing items AND conversion_data items present
+    // 2. add_to_cart: BOTH dynamic_remarketing items AND cart_data items present
     global.window.dataLayer = [];
     EDL.pushEvent('add_to_cart', {
       currency: 'EUR',
@@ -1425,18 +1426,16 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     });
     lastEvent = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(lastEvent.google_ads.event_name, 'add_to_cart');
+    assert.strictEqual(lastEvent.google_ads.conversion_data, undefined);
+    assert.strictEqual(lastEvent.google_ads.ecomm_pagetype, undefined);
     assert.deepStrictEqual(lastEvent.google_ads.dynamic_remarketing.items, [
       { id: '1149_299', google_business_vertical: 'retail' }
-    ]);
-    assert.ok(lastEvent.google_ads.conversion_data, 'conversion_data must exist on add_to_cart');
-    assert.deepStrictEqual(lastEvent.google_ads.conversion_data.items, [
-      { id: '1149_299', quantity: 2, price: 19.99 }
     ]);
     assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
       { id: '1149_299', quantity: 2, price: 19.99 }
     ]);
 
-    // 3. purchase: BOTH dynamic_remarketing items AND conversion_data items, kept strictly separate
+    // 3. purchase: BOTH dynamic_remarketing items AND cart_data items, kept strictly separate
     global.window.dataLayer = [];
     EDL.pushEvent('purchase', {
       transaction_id: '1042',
@@ -1450,6 +1449,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     lastEvent = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.ok(lastEvent.google_ads, 'google_ads must exist on purchase');
     assert.strictEqual(lastEvent.google_ads.event_name, 'purchase');
+    assert.strictEqual(lastEvent.google_ads.conversion_data, undefined);
+    assert.strictEqual(lastEvent.google_ads.ecomm_pagetype, undefined);
 
     // Verify dynamic_remarketing items schema
     assert.deepStrictEqual(lastEvent.google_ads.dynamic_remarketing.items, [
@@ -1457,16 +1458,16 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       { id: '1033', google_business_vertical: 'retail' }
     ]);
 
-    // Verify conversion_data items schema
-    assert.ok(lastEvent.google_ads.conversion_data, 'conversion_data must exist on purchase');
-    assert.strictEqual(lastEvent.google_ads.conversion_data.transaction_id, '1042');
-    assert.strictEqual(lastEvent.google_ads.conversion_data.value, 49.97);
-    assert.strictEqual(lastEvent.google_ads.conversion_data.currency, 'EUR');
-    assert.strictEqual(lastEvent.google_ads.conversion_data.discount, 5.00);
-    assert.strictEqual(lastEvent.google_ads.conversion_data.aw_merchant_id, '123456789');
-    assert.strictEqual(lastEvent.google_ads.conversion_data.aw_feed_country, 'DE');
-    assert.strictEqual(lastEvent.google_ads.conversion_data.aw_feed_language, 'de');
-    assert.deepStrictEqual(lastEvent.google_ads.conversion_data.items, [
+    // Verify cart_data items schema
+    assert.ok(lastEvent.google_ads.cart_data, 'cart_data must exist on purchase');
+    assert.strictEqual(lastEvent.google_ads.cart_data.transaction_id, '1042');
+    assert.strictEqual(lastEvent.google_ads.cart_data.value, 49.97);
+    assert.strictEqual(lastEvent.google_ads.cart_data.currency, 'EUR');
+    assert.strictEqual(lastEvent.google_ads.cart_data.discount, 5.00);
+    assert.strictEqual(lastEvent.google_ads.cart_data.aw_merchant_id, '123456789');
+    assert.strictEqual(lastEvent.google_ads.cart_data.aw_feed_country, 'DE');
+    assert.strictEqual(lastEvent.google_ads.cart_data.aw_feed_language, 'de');
+    assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
       { id: '1149_299', quantity: 2, price: 19.99 },
       { id: '1033', quantity: 1, price: 9.99 }
     ]);
