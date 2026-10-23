@@ -97,7 +97,13 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
       { id: '68_299', google_business_vertical: 'retail' }
     ]);
-    assert.strictEqual(payload.google_ads.conversion_data, undefined, 'conversion_data must NOT exist on view_item');
+    assert.ok(payload.google_ads.conversion_data, 'conversion_data must exist on view_item');
+    assert.deepStrictEqual(payload.google_ads.conversion_data.items, [
+      { id: '68_299', quantity: 1, price: 13.00 }
+    ]);
+    assert.deepStrictEqual(payload.google_ads.cart_data.items, [
+      { id: '68_299', quantity: 1, price: 13.00 }
+    ]);
     // Root backward-compatible aliases
     assert.strictEqual(payload.google_ads.ecomm_pagetype, 'product');
     assert.strictEqual(payload.google_ads.ecomm_prodid, '68_299');
@@ -1367,7 +1373,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       }
     ];
 
-    // 1. view_item: only dynamic_remarketing items, NO conversion_data
+    // 1. view_item: BOTH dynamic_remarketing items AND conversion_data items present
     EDL.pushEvent('view_item', {
       currency: 'EUR',
       value: 19.99,
@@ -1383,9 +1389,15 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(lastEvent.google_ads.dynamic_remarketing.items, [
       { id: '1149_299', google_business_vertical: 'retail' }
     ]);
-    assert.strictEqual(lastEvent.google_ads.conversion_data, undefined, 'conversion_data must NOT exist on view_item');
+    assert.ok(lastEvent.google_ads.conversion_data, 'conversion_data must exist on view_item');
+    assert.deepStrictEqual(lastEvent.google_ads.conversion_data.items, [
+      { id: '1149_299', quantity: 2, price: 19.99 }
+    ]);
+    assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
+      { id: '1149_299', quantity: 2, price: 19.99 }
+    ]);
 
-    // 2. add_to_cart: dynamic_remarketing items, NO conversion_data
+    // 2. add_to_cart: BOTH dynamic_remarketing items AND conversion_data items present
     global.window.dataLayer = [];
     EDL.pushEvent('add_to_cart', {
       currency: 'EUR',
@@ -1397,7 +1409,13 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(lastEvent.google_ads.dynamic_remarketing.items, [
       { id: '1149_299', google_business_vertical: 'retail' }
     ]);
-    assert.strictEqual(lastEvent.google_ads.conversion_data, undefined, 'conversion_data must NOT exist on add_to_cart');
+    assert.ok(lastEvent.google_ads.conversion_data, 'conversion_data must exist on add_to_cart');
+    assert.deepStrictEqual(lastEvent.google_ads.conversion_data.items, [
+      { id: '1149_299', quantity: 2, price: 19.99 }
+    ]);
+    assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
+      { id: '1149_299', quantity: 2, price: 19.99 }
+    ]);
 
     // 3. purchase: BOTH dynamic_remarketing items AND conversion_data items, kept strictly separate
     global.window.dataLayer = [];

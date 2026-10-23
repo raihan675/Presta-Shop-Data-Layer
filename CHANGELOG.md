@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.19.1] - 2026-10-23
+
+### Fixed
+- **Google Ads Dual Items Array Availability Across All Events**:
+  - Expanded `conversion_data.items` (and alias `cart_data.items`) to all ecommerce events that contain product items (`add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `view_item`), rather than restricting it solely to `purchase`.
+  - Both `dynamic_remarketing.items` (containing strictly `id` and `google_business_vertical: 'retail'`) and `conversion_data.items` / `cart_data.items` (containing strictly `id`, `quantity`, and `price`) are now simultaneously present and kept completely separate on all interactions.
+
+---
+
 ## [1.19.0] - 2026-10-23
 
 ### Added

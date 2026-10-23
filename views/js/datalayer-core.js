@@ -515,14 +515,17 @@
     }
 
     var cartDataEnabled = advSettings ? (advSettings.gads_cart_data !== false && advSettings.gads_cart_data !== 0 && advSettings.gads_cart_data !== '0') : true;
-    if (canonicalEventName === 'purchase' && cartDataEnabled) {
+    if (cartDataEnabled && googleCartDataItems.length > 0) {
       var txId = options.transactionId ? String(options.transactionId) : (options.orderId ? String(options.orderId) : '');
       var conversionData = {
-        transaction_id: txId,
+        event_name: gadsEventName,
         value: val,
         currency: curr,
         items: googleCartDataItems
       };
+      if (txId) {
+        conversionData.transaction_id = txId;
+      }
       if (options.discount) {
         conversionData.discount = parseFloat(options.discount);
       }
@@ -537,6 +540,7 @@
         conversionData.aw_feed_language = String(options.awFeedLanguage);
       }
       googleAdsNamespace.conversion_data = conversionData;
+      googleAdsNamespace.cart_data = conversionData;
     }
 
     // Pinterest Event Mapping and Schema Resolution

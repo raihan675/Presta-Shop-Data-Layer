@@ -495,14 +495,17 @@ class PayloadBuilder
         }
 
         $cartDataEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0') : true;
-        if ($canonicalEvent === 'purchase' && $cartDataEnabled) {
-            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+        if ($cartDataEnabled && !empty($googleCartDataItems)) {
             $conversionData = [
-                'transaction_id' => $txId,
+                'event_name' => $gadsEventName,
                 'value' => $val,
                 'currency' => $currencyCode,
                 'items' => $googleCartDataItems,
             ];
+            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+            if (!empty($txId)) {
+                $conversionData['transaction_id'] = $txId;
+            }
             if (isset($options['discount']) && (float)$options['discount'] > 0) {
                 $conversionData['discount'] = (float)$options['discount'];
             }
@@ -519,6 +522,7 @@ class PayloadBuilder
                 $conversionData['aw_feed_language'] = (string)$options['aw_feed_language'];
             }
             $googleAds['conversion_data'] = $conversionData;
+            $googleAds['cart_data'] = $conversionData;
         }
 
         // Pinterest Event Name and Schema Resolution
