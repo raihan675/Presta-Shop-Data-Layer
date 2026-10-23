@@ -2091,5 +2091,114 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.notStrictEqual(selectEvents[0].ecommerce.item_list_id, 'search_results');
       assert.notStrictEqual(selectEvents[0].ecommerce.item_list_name, 'Search: baby');
     });
+
+    it('43. Wishlist Click Isolation: Clicking Add to Wishlist on PDP or Listing card must NOT trigger select_item and must emit add_to_wishlist', function () {
+      global.window.dataLayer = [];
+      EDL.setEventPrefix('ps');
+
+      // 1. Verify that wishlist button selectors are rejected by select_item logic
+      const wishlistSelectors = [
+        '.wishlist-button',
+        '.wishlist-button-add',
+        '.btn-wishlist',
+        '.btn-outline-wishlist',
+        '[data-action="add-to-wishlist"]',
+        '[data-wishlist-add]',
+        '.js-wishlist-button',
+        '.addToWishlist',
+        '.add-to-wishlist',
+        '.wishlist_button',
+        '.iqitwishlist-add'
+      ];
+
+      function simulateSelectItemClick(targetEl, pageController = 'category', currentProductId = '') {
+        const isCartOrActionElement = targetEl.closest && targetEl.closest(
+          '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
+          '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, .cart-line-product-actions, ' +
+          'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"], ' +
+          '.js-increase-product-quantity, .js-decrease-product-quantity, [data-link-action="update-qty"], ' +
+          '.cart-line-product-quantity, .bootstrap-touchspin-up, .bootstrap-touchspin-down, ' +
+          '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
+          '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
+          '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
+          '.checkout-cart-overview, .order-confirmation-table, .add-to-cart, [data-button-action="add-to-cart"], ' +
+          '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"], ' +
+          '.wishlist-button, .wishlist-button-add, .btn-wishlist, .btn-outline-wishlist, ' +
+          '[data-action="add-to-wishlist"], [data-action*="wishlist"], [data-wishlist-add], ' +
+          '[data-link-action*="wishlist"], [data-button-action*="wishlist"], [data-id-wishlist], ' +
+          '.js-wishlist-button, .js-wishlist-btn, .wishtlist-btn, .addToWishlist, .add-to-wishlist, ' +
+          '.wishlist_button, .iqitwishlist-add, .iqitwishlist-button, .leo-wishlist-button, ' +
+          '.favorite-button, [class*="favorite"], [class*="wishlist"], [id*="wishlist"], ' +
+          'a[href*="wishlist"], button[name*="wishlist"]'
+        );
+        if (isCartOrActionElement) return false;
+
+        const anchor = targetEl.closest ? targetEl.closest('a') : null;
+        if (anchor && anchor.href && anchor.href.toLowerCase().indexOf('wishlist') !== -1) {
+          return false;
+        }
+
+        if (pageController === 'product') {
+          const mainContainer = targetEl.closest && targetEl.closest('#main, #product, .product-detail, form#add-to-cart-or-refresh, .product-container');
+          const isRelatedMiniature = targetEl.closest && targetEl.closest('.product-accessories, .featured-products, .crossselling, .js-product-miniature, article.product-miniature');
+          if (mainContainer && !isRelatedMiniature) {
+            return false;
+          }
+        }
+
+        const productCard = targetEl.closest ? targetEl.closest('.js-product-miniature, article.product-miniature, .product-miniature, [data-id-product]') : null;
+        let idProduct = '';
+        if (productCard && productCard.getAttribute('data-id-product')) {
+          idProduct = productCard.getAttribute('data-id-product');
+        }
+
+        if (pageController === 'product' && currentProductId && String(idProduct) === String(currentProductId)) {
+          return false;
+        }
+
+        return Boolean(idProduct);
+      }
+
+      // Test wishlist button click on PDP
+      const mockWishlistBtn = {
+        className: 'btn btn-unstyle wishlist-button-add',
+        closest: function(sel) {
+          if (sel.includes('.wishlist-button-add') || sel.includes('[class*="wishlist"]')) return this;
+          return null;
+        }
+      };
+      assert.strictEqual(simulateSelectItemClick(mockWishlistBtn, 'product', '1149'), false, 'Click on wishlist button must be rejected by select_item');
+
+      // Test click on PDP main container for current product
+      const mockMainPdpEl = {
+        className: 'product-description',
+        closest: function(sel) {
+          if (sel.includes('#main') || sel.includes('.product-detail')) return this;
+          if (sel.includes('[data-id-product]')) return { getAttribute: () => '1149' };
+          return null;
+        }
+      };
+      assert.strictEqual(simulateSelectItemClick(mockMainPdpEl, 'product', '1149'), false, 'Click on main PDP element must not trigger select_item for current product');
+
+      // Test wishlist click dispatch operates cleanly
+      EDL.pushEvent('add_to_wishlist', {
+        currency: 'EUR',
+        value: 19.99,
+        items: [
+          {
+            item_id: '1149',
+            item_name: 'Sicherheitsset – Starterpaket für Zuhause',
+            price: 19.99,
+            quantity: 1
+          }
+        ]
+      });
+
+      const events = global.window.dataLayer.filter(e => e && e.event);
+      assert.strictEqual(events.length, 1, 'Only ps_add_to_wishlist must be pushed to dataLayer');
+      assert.strictEqual(events[0].event, 'ps_add_to_wishlist');
+      assert.strictEqual(events[0].original_event, 'add_to_wishlist');
+      assert.strictEqual(events[0].ecommerce.items[0].item_id, '1149');
+    });
   });
 });

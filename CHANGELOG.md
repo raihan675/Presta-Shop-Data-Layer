@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.18.3] - 2026-10-23
+
+### Fixed
+- **Wishlist Click Isolation & False `select_item` Suppression**:
+  - Fixed an issue where clicking "Add to Wishlist" on a Product Detail Page (PDP) or catalog card triggered a false `select_item` event before `add_to_wishlist`.
+  - Added comprehensive exclusion filters across all official and third-party theme wishlist selectors (`.wishlist-button-add`, `.btn-wishlist`, `[data-action*="wishlist"]`, `[data-wishlist-add]`, `.addToWishlist`, `.iqitwishlist-add`, `a[href*="wishlist"]`, etc.) to immediately bypass the `select_item` click listener.
+  - Isolated the main product on Product Detail Pages (`pageContext.controller === 'product'`) so clicks on the current product's details, gallery, buttons, or options cannot trigger `select_item` for itself.
+  - Implemented a 2000ms wishlist state debounce lock in `handleSelectItem` ensuring that no asynchronous or bubbling wishlist event can leak a stray `select_item` push.
+
+---
+
 ## [1.18.2] - 2026-10-23
 
 ### Fixed

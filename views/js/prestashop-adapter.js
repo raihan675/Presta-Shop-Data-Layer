@@ -831,6 +831,19 @@
     function handleSelectItem(idProduct) {
       if (!idProduct) return;
       var now = new Date().getTime();
+
+      // Suppress select_item if a wishlist action occurred within 2000ms
+      if (now - lastWishlistTime < 2000) {
+        return;
+      }
+
+      // Suppress select_item on PDP if user clicked the main product being viewed
+      var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
+      var currentMainId = (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_id) || '';
+      if (pageCtx && pageCtx.controller === 'product' && currentMainId && String(idProduct) === String(currentMainId)) {
+        return;
+      }
+
       if (lastSelectedItemId === String(idProduct) && (now - lastSelectedItemTime < 1500)) {
         return; // Debounce duplicate/rapid clicks within 1500ms
       }
@@ -1096,10 +1109,21 @@
         '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
         '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
         '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
-        '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], ' +
-        '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"]'
+        '.checkout-cart-overview, .order-confirmation-table, .add-to-cart, [data-button-action="add-to-cart"], ' +
+        '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"], ' +
+        // Universal Wishlist selectors across official blockwishlist & third-party themes
+        '.wishlist-button, .wishlist-button-add, .btn-wishlist, .btn-outline-wishlist, ' +
+        '[data-action="add-to-wishlist"], [data-action*="wishlist"], [data-wishlist-add], ' +
+        '[data-link-action*="wishlist"], [data-button-action*="wishlist"], [data-id-wishlist], ' +
+        '.js-wishlist-button, .js-wishlist-btn, .wishtlist-btn, .addToWishlist, .add-to-wishlist, ' +
+        '.wishlist_button, .iqitwishlist-add, .iqitwishlist-button, .leo-wishlist-button, ' +
+        '.favorite-button, [class*="favorite"], [class*="wishlist"], [id*="wishlist"], ' +
+        'a[href*="wishlist"], button[name*="wishlist"]'
       );
       if (isCartOrActionElement) {
+        if (targetEl.closest && targetEl.closest('[class*="wishlist"], [id*="wishlist"], [data-action*="wishlist"], [data-link-action*="wishlist"], a[href*="wishlist"]')) {
+          lastWishlistTime = new Date().getTime();
+        }
         return;
       }
 
@@ -1109,12 +1133,28 @@
         if (hrefLower.indexOf('delete=1') !== -1 ||
             hrefLower.indexOf('action=delete') !== -1 ||
             hrefLower.indexOf('deleteproduct') !== -1 ||
-            hrefLower.indexOf('opc_delete_cart') !== -1) {
+            hrefLower.indexOf('opc_delete_cart') !== -1 ||
+            hrefLower.indexOf('wishlist') !== -1) {
+          if (hrefLower.indexOf('wishlist') !== -1) {
+            lastWishlistTime = new Date().getTime();
+          }
           return;
         }
       }
 
-      var productCard = targetEl.closest ? targetEl.closest('[data-id-product], .js-product-miniature, article.product-miniature') : null;
+      var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
+      var currentMainId = (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_id) || '';
+
+      // On PDP, if clicking within the main product container rather than a genuine miniature card, ignore
+      if (pageCtx && pageCtx.controller === 'product') {
+        var mainContainer = targetEl.closest && targetEl.closest('#main, #product, .product-detail, form#add-to-cart-or-refresh, .product-container');
+        var isRelatedMiniature = targetEl.closest && targetEl.closest('.product-accessories, .featured-products, .crossselling, .js-product-miniature, article.product-miniature');
+        if (mainContainer && !isRelatedMiniature) {
+          return; // Clicks inside main PDP details are not list selection events
+        }
+      }
+
+      var productCard = targetEl.closest ? targetEl.closest('.js-product-miniature, article.product-miniature, .product-miniature, [data-id-product]') : null;
 
       var idProduct = '';
       if (productCard && productCard.getAttribute('data-id-product')) {
@@ -1127,6 +1167,10 @@
       }
 
       if (idProduct && window.psGtmConfig) {
+        // Prevent current PDP product from selecting itself
+        if (pageCtx && pageCtx.controller === 'product' && currentMainId && String(idProduct) === String(currentMainId)) {
+          return;
+        }
         handleSelectItem(idProduct);
       }
     }, true);

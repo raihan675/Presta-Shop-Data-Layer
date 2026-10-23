@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.18.2",
+    "latest_version":  "1.18.3",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.2/ps_gtm_datalayer.zip",
-    "checksum":  "56780de42045c26706416e45cacdd20d8af098de68a92af70128611806ae8de2",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.3/ps_gtm_datalayer.zip",
+    "checksum":  "91a884335242d31d123cb67c6f8c7a7bc9715f1bef4698ad8ab4d95d031dc173",
     "release_type":  "patch",
-    "release_notes":  "1. Separated view_search_results and view_item_list events strictly by actual user actions.\n2. Eliminated consecutive dual-event firing on search pages; only view_search_results fires on search actions.\n3. Preserved view_item_list strictly for genuine product listings (Category, Home Featured, Brand, On Sale, New Products, Best Sellers) with authentic list IDs and names.\n4. Cleaned up synthetic item_list_id (\u0027search_results\u0027) and item_list_name (\u0027Search: \u003cterm\u003e\u0027) parameters."
+    "release_notes":  "1. Fixed select_item triggering on Add to Wishlist clicks.\n2. Isolated PDP main product from self-selection events.\n3. Added comprehensive exclusion for all official and third-party theme wishlist selectors."
 }
