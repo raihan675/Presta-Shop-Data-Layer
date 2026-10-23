@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.15.0';
+        $this->version = '1.16.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -551,7 +551,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: ViewCategory, CAPI: ViewCategory, content_type: product_group, content_ids, contents',
                 'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product_group, contents',
                 'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: ViewCategory, CAPI: view_category, category_name, line_items, value, currency',
+                'pinterest_spec' => 'pintrk: ViewCategory, category_name, line_items, value, currency',
             ],
             'view_search_results' => [
                 'name' => 'view_search_results',
@@ -560,7 +560,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: Search, CAPI: Search, search_string, content_ids, contents',
                 'tiktok_spec' => 'ttq: Search, Events API: Search, query, content_ids, contents',
                 'gads_spec' => 'Excluded (Custom remarketing rule)',
-                'pinterest_spec' => 'pintrk: Search, CAPI: search, search_query, line_items, product_ids',
+                'pinterest_spec' => 'pintrk: Search, search_query, line_items, product_ids',
             ],
             'select_item' => [
                 'name' => 'select_item',
@@ -569,7 +569,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, contents, value',
                 'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, content_id, contents',
                 'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
+                'pinterest_spec' => 'pintrk: PageVisit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
             ],
             'view_item' => [
                 'name' => 'view_item',
@@ -578,7 +578,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, content_name, contents',
                 'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, content_id, content_name, contents',
                 'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
+                'pinterest_spec' => 'pintrk: PageVisit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
             ],
             'add_to_cart' => [
                 'name' => 'add_to_cart',
@@ -587,7 +587,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: AddToCart, CAPI: AddToCart, content_type: product, content_ids, contents, currency, value',
                 'tiktok_spec' => 'ttq: AddToCart, Events API: AddToCart, content_type: product, content_id, contents, quantity',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: AddToCart, CAPI: add_to_cart, line_items: [{product_id, ...}], value, currency, order_quantity',
+                'pinterest_spec' => 'pintrk: AddToCart, line_items: [{product_id, ...}], value, currency, order_quantity',
             ],
             'remove_from_cart' => [
                 'name' => 'remove_from_cart',
@@ -596,7 +596,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: Custom (RemoveFromCart), CAPI: Custom, content_ids, contents, currency, value',
                 'tiktok_spec' => 'ttq: Custom (RemoveFromCart), Events API: Custom, content_id, contents, quantity',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Custom (RemoveFromCart), CAPI: custom, line_items, value, currency, order_quantity',
+                'pinterest_spec' => 'pintrk: Custom (RemoveFromCart), line_items, value, currency, order_quantity',
             ],
             'view_cart' => [
                 'name' => 'view_cart',
@@ -605,7 +605,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, contents, num_items',
                 'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, contents, quantity',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items, value, currency, order_quantity',
+                'pinterest_spec' => 'pintrk: PageVisit, line_items, value, currency, order_quantity',
             ],
             'begin_checkout' => [
                 'name' => 'begin_checkout',
@@ -614,7 +614,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: InitiateCheckout, CAPI: InitiateCheckout, content_ids, num_items, contents, value',
                 'tiktok_spec' => 'ttq: InitiateCheckout, Events API: InitiateCheckout, contents, quantity, value',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Custom (InitiateCheckout), CAPI: custom, line_items, value, currency, order_quantity',
+                'pinterest_spec' => 'pintrk: InitiateCheckout, line_items, value, currency, order_quantity',
             ],
             'add_shipping_info' => [
                 'name' => 'add_shipping_info',
@@ -623,7 +623,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: AddShippingInfo, CAPI: AddShippingInfo, content_ids, contents, currency, value',
                 'tiktok_spec' => 'ttq: AddShippingInfo, Events API: AddShippingInfo, contents, quantity, currency, value',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Custom (AddShippingInfo), CAPI: custom, line_items, value, currency, property',
+                'pinterest_spec' => 'pintrk: Custom (AddShippingInfo), line_items, value, currency, property',
             ],
             'add_payment_info' => [
                 'name' => 'add_payment_info',
@@ -632,7 +632,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: AddPaymentInfo, CAPI: AddPaymentInfo, content_ids, contents, currency, value',
                 'tiktok_spec' => 'ttq: AddPaymentInfo, Events API: AddPaymentInfo, contents, quantity, currency, value',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Custom (AddPaymentInfo), CAPI: custom, line_items, value, currency, property',
+                'pinterest_spec' => 'pintrk: AddPaymentInfo, line_items, value, currency, property',
             ],
             'purchase' => [
                 'name' => 'purchase',
@@ -641,7 +641,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: Purchase, CAPI: Purchase, order_id, content_ids, num_items, contents, currency, value',
                 'tiktok_spec' => 'ttq: CompletePayment, Events API: CompletePayment, order_id, contents, quantity, value',
                 'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Checkout, CAPI: checkout, order_id, value, currency, order_quantity, line_items',
+                'pinterest_spec' => 'pintrk: Checkout, order_id, value, currency, order_quantity, line_items, user_data',
             ],
             'add_to_wishlist' => [
                 'name' => 'add_to_wishlist',
@@ -650,7 +650,7 @@ class Ps_Gtm_DataLayer extends Module
                 'meta_spec' => 'fbq: AddToWishlist, CAPI: AddToWishlist, content_ids, contents, currency, value',
                 'tiktok_spec' => 'ttq: AddToWishlist, Events API: AddToWishlist, content_id, contents, currency, value',
                 'gads_spec' => 'ecomm_pagetype: other, ecomm_prodid: catalog_id, ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: Custom (AddWishList), CAPI: custom, line_items, value, currency',
+                'pinterest_spec' => 'pintrk: AddToWishList, line_items, value, currency',
             ],
         ];
     }
@@ -1637,6 +1637,24 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
+            // Pre-hydrate Pinterest Advanced Matching hashed user data
+            $pinterestUserData = null;
+            if ($this->context->customer && Validate::isLoadedObject($this->context->customer)) {
+                $customerAddress = null;
+                if ($this->context->cart && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                    $customerAddress = new Address((int)$this->context->cart->id_address_delivery);
+                } elseif (!empty($this->context->customer->id)) {
+                    $addresses = $this->context->customer->getAddresses($this->context->language ? (int)$this->context->language->id : 1);
+                    if (!empty($addresses) && is_array($addresses)) {
+                        $firstAddr = reset($addresses);
+                        if (!empty($firstAddr['id_address'])) {
+                            $customerAddress = new Address((int)$firstAddr['id_address']);
+                        }
+                    }
+                }
+                $pinterestUserData = CustomerDataEngine::buildPinterestUserData($this->context->customer, $customerAddress);
+            }
+
             $this->context->smarty->assign([
                 'gtm_id' => $gtmId,
                 'sgtm_url' => $sgtmUrl,
@@ -1656,6 +1674,7 @@ class Ps_Gtm_DataLayer extends Module
                 'payment_options_map' => json_encode($paymentOptionsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'selected_carrier' => $selectedCarrierName,
                 'cart_coupon' => $cartCoupon,
+                'pinterest_user_data' => !empty($pinterestUserData) ? json_encode($pinterestUserData, JSON_UNESCAPED_SLASHES) : null,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => !empty($initialPayloads) ? json_encode((count($initialPayloads) === 1 ? $initialPayloads[0] : $initialPayloads), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);

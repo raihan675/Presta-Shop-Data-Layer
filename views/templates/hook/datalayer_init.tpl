@@ -79,6 +79,15 @@
   {if isset($cart_coupon)}
   window.psGtmConfig.coupon = '{$cart_coupon|escape:'javascript':'UTF-8'}';
   {/if}
+  {if !empty($pinterest_user_data)}
+  try {
+    window.psGtmConfig.pinterestUserData = {$pinterest_user_data nofilter};
+  } catch(e) {
+    window.psGtmConfig.pinterestUserData = null;
+  }
+  {else}
+  window.psGtmConfig.pinterestUserData = null;
+  {/if}
   {if isset($page_context)}
   try {
     window.psGtmConfig.pageContext = {$page_context nofilter};

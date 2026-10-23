@@ -173,7 +173,6 @@ class PayloadBuilder
         $googleItems = [];
         $pinterestProdIds = [];
         $pinterestLineItems = [];
-        $pinterestContents = [];
         $totalQuantity = 0;
 
         foreach ($items as $it) {
@@ -231,16 +230,6 @@ class PayloadBuilder
                 'product_brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
                 'product_variant' => isset($it['item_variant']) ? (string)$it['item_variant'] : '',
                 'product_variant_id' => (isset($it['variant_id']) && (string)$it['variant_id'] !== '0') ? (string)$it['variant_id'] : '',
-            ];
-
-            // Pinterest Conversions API (CAPI v5) official contents schema
-            $pinterestContents[] = [
-                'id' => $catId,
-                'item_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
-                'item_price' => $price,
-                'quantity' => $qty,
-                'item_category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
-                'item_brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
             ];
         }
 
@@ -423,25 +412,22 @@ class PayloadBuilder
             case 'view_search_results':
                 $pinterestEventName = 'Search';
                 break;
+            case 'begin_checkout':
+                $pinterestEventName = 'InitiateCheckout';
+                break;
+            case 'add_payment_info':
+                $pinterestEventName = 'AddPaymentInfo';
+                break;
+            case 'add_to_wishlist':
+                $pinterestEventName = 'AddToWishList';
+                break;
             case 'remove_from_cart':
                 $pinterestEventName = 'Custom';
                 $pinterestCustomName = 'RemoveFromCart';
                 break;
-            case 'add_to_wishlist':
-                $pinterestEventName = 'Custom';
-                $pinterestCustomName = 'AddWishList';
-                break;
-            case 'begin_checkout':
-                $pinterestEventName = 'Custom';
-                $pinterestCustomName = 'InitiateCheckout';
-                break;
             case 'add_shipping_info':
                 $pinterestEventName = 'Custom';
                 $pinterestCustomName = 'AddShippingInfo';
-                break;
-            case 'add_payment_info':
-                $pinterestEventName = 'Custom';
-                $pinterestCustomName = 'AddPaymentInfo';
                 break;
             default:
                 $pinterestEventName = 'Custom';
@@ -456,7 +442,6 @@ class PayloadBuilder
             'order_quantity' => ($totalQuantity > 0) ? $totalQuantity : 1,
             'product_ids' => $pinterestProdIds,
             'line_items' => $pinterestLineItems,
-            'contents' => $pinterestContents,
         ];
         if (!empty($pinterestCustomName)) {
             $pinterest['custom_event_name'] = $pinterestCustomName;
@@ -473,6 +458,23 @@ class PayloadBuilder
         }
         if (!empty($options['property'])) {
             $pinterest['property'] = (string)$options['property'];
+        }
+        if (!empty($options['pinterest_user_data']) && is_array($options['pinterest_user_data'])) {
+            $pinterest['user_data'] = $options['pinterest_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $hashedUserData = CustomerDataEngine::hashPinterestUserData($options['user_data']);
+            if (!empty($hashedUserData)) {
+                $pinterest['user_data'] = $hashedUserData;
+            }
+        } elseif (isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $pUserData = CustomerDataEngine::buildPinterestUserData($this->context->customer, $addr);
+            if (!empty($pUserData)) {
+                $pinterest['user_data'] = $pUserData;
+            }
         }
 
         $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
@@ -1204,6 +1206,8 @@ class PayloadBuilder
         $orderReference = !empty($order->reference) ? (string)$order->reference : (string)$order->id;
         $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value, [
             'order_id' => $orderReference,
+            'user_data' => $userData,
+            'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
         ]);
 
         $purchasePayload = [

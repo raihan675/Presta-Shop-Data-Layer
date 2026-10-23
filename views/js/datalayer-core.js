@@ -263,7 +263,6 @@
     var googleItems = [];
     var pinterestProdIds = [];
     var pinterestLineItems = [];
-    var pinterestContents = [];
     var totalNumItems = 0;
 
     for (var i = 0; i < items.length; i++) {
@@ -321,16 +320,6 @@
         product_brand: String(it.item_brand || ''),
         product_variant: String(it.item_variant || ''),
         product_variant_id: (it.variant_id !== undefined && it.variant_id !== null && String(it.variant_id) !== '0') ? String(it.variant_id) : ''
-      });
-
-      // Pinterest Conversions API (CAPI v5) official contents schema
-      pinterestContents.push({
-        id: catId,
-        item_name: String(it.item_name || ''),
-        item_price: itemPrice,
-        quantity: itemQty,
-        item_category: String(it.item_category || ''),
-        item_brand: String(it.item_brand || '')
       });
     }
 
@@ -474,21 +463,18 @@
       pinterestEventName = 'Checkout';
     } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
       pinterestEventName = 'Search';
+    } else if (canonicalEventName === 'begin_checkout') {
+      pinterestEventName = 'InitiateCheckout';
+    } else if (canonicalEventName === 'add_payment_info') {
+      pinterestEventName = 'AddPaymentInfo';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      pinterestEventName = 'AddToWishList';
     } else if (canonicalEventName === 'remove_from_cart') {
       pinterestEventName = 'Custom';
       pinterestCustomName = 'RemoveFromCart';
-    } else if (canonicalEventName === 'add_to_wishlist') {
-      pinterestEventName = 'Custom';
-      pinterestCustomName = 'AddWishList';
-    } else if (canonicalEventName === 'begin_checkout') {
-      pinterestEventName = 'Custom';
-      pinterestCustomName = 'InitiateCheckout';
     } else if (canonicalEventName === 'add_shipping_info') {
       pinterestEventName = 'Custom';
       pinterestCustomName = 'AddShippingInfo';
-    } else if (canonicalEventName === 'add_payment_info') {
-      pinterestEventName = 'Custom';
-      pinterestCustomName = 'AddPaymentInfo';
     } else {
       pinterestEventName = 'Custom';
       pinterestCustomName = canonicalEventName;
@@ -500,8 +486,7 @@
       value: val,
       order_quantity: (totalNumItems > 0) ? totalNumItems : 1,
       product_ids: pinterestProdIds,
-      line_items: pinterestLineItems,
-      contents: pinterestContents
+      line_items: pinterestLineItems
     };
 
     if (pinterestCustomName) {
@@ -519,6 +504,12 @@
     }
     if (options.property) {
       pinterestNamespace.property = String(options.property);
+    }
+
+    var pUserData = options.pinterestUserData || options.pinterest_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.pinterestUserData ? window.psGtmConfig.pinterestUserData : null);
+    if (pUserData && typeof pUserData === 'object' && Object.keys(pUserData).length > 0) {
+      pinterestNamespace.user_data = pUserData;
     }
 
     var advSettings = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.advertisingSettings) ? window.psGtmConfig.advertisingSettings : null;

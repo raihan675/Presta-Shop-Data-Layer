@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.16.0] - 2026-10-23
+
+### Added
+- **Pinterest Enhanced / Advanced Matching (`pinterest.user_data`)**:
+  - Implemented authoritative customer extraction and SHA-256 hashing for Pinterest Advanced Matching parameters:
+    - `em`: Lowercase, trimmed email SHA-256 hashed.
+    - `ph`: Digits only phone number including country code SHA-256 hashed.
+    - `fn`: Lowercase first name SHA-256 hashed.
+    - `ln`: Lowercase last name SHA-256 hashed.
+    - `ct`: Lowercase city without spaces SHA-256 hashed.
+    - `st`: Lowercase 2-letter state code SHA-256 hashed.
+    - `zp`: Lowercase postal code without spaces SHA-256 hashed.
+    - `country`: Lowercase 2-letter ISO country code SHA-256 hashed.
+  - Pre-hydrated server-side on storefront page loads for authenticated customer sessions (`window.psGtmConfig.pinterestUserData`) and populated during checkout and purchase for maximum Event Quality Score (EQS) on Pinterest Ads Manager.
+
+### Changed
+- **Pinterest Official Standard Events Alignment**:
+  - Upgraded `begin_checkout` to official Pinterest standard event code `'InitiateCheckout'`.
+  - Upgraded `add_payment_info` to official Pinterest standard event code `'AddPaymentInfo'`.
+  - Upgraded `add_to_wishlist` to official Pinterest standard event code `'AddToWishList'`.
+  - Removed obsolete custom event wrapping and suppressed redundant `custom_event_name` on standard events.
+- **Pinterest Namespace Schema Optimization**:
+  - Omitted redundant `contents` array across server-side and client-side payload builders in favor of official Pinterest Web Tag `line_items` (`product_id`, `product_name`, `product_price`, `product_quantity`, `product_category`, `product_brand`, `product_variant`, `product_variant_id`).
+  - Omitted server-side GTM (`sGTM`) parameter names (`capi_event_name`, `event_id`) to keep the dataLayer lightweight and clean.
+
+---
+
 ## [1.15.0] - 2026-10-23
 
 ### Added

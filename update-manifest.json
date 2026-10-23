@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.15.0",
+    "latest_version":  "1.16.0",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.15.0/ps_gtm_datalayer.zip",
-    "checksum":  "2fe210979509642150234220ce8c00c056efc082a88d66e88517835cc3fe3dec",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.16.0/ps_gtm_datalayer.zip",
+    "checksum":  "3c286486301db4348a05a545029087cb61994de5ab09046d9f00e560bc091207",
     "release_type":  "minor",
-    "release_notes":  "1. Redesigned Event-Level Platform Routing Matrix into modern platform-based expandable accordion panels for Meta, Google Ads, TikTok, and Pinterest.\n2. Integrated platform master switches, status badges, and live event counters directly into platform headers.\n3. Preserved event selections when disabling platforms.\n4. Added platform-scoped bulk actions (Enable all / Disable all) and global toolbar controls."
+    "release_notes":  "1. Upgraded Pinterest ecommerce data layer: InitiateCheckout, AddPaymentInfo, and AddToWishList official standard events.\n2. Streamlined Pinterest parameters: strictly official line_items, removed redundant contents array and sGTM event_id / capi_event_name.\n3. Added pinterest.user_data for Pinterest Enhanced Matching with SHA-256 hashed customer identifiers (em, ph, fn, ln, ct, st, zp, country).\n4. Pre-hydrated pinterest.user_data server-side for logged-in storefront sessions and order confirmation."
 }

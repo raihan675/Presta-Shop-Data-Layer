@@ -17,17 +17,17 @@ The module supports all core ecommerce actions across the full customer funnel w
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
 | **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. On search pages, carries `item_list_id: 'search_results'`, `ecomm_pagetype: 'searchresults'`, and avoids duplicate category signals. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` or `searchresults` pagetype), `meta`/`pinterest`/`tiktok` on standard categories |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `search_string`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
 | **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
 | **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
-| **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
+| **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads` |
 | **6** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **7** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`Custom: InitiateCheckout`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`Custom: AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
+| **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
 
 ---
 
@@ -57,10 +57,10 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `meta.currency` & `meta.value`: Normalized monetary value.
 * `meta.search_string`: Search query string on search results.
 
-### 2. Pinterest Ads (Pinterest Tag & Conversions API)
-* `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'Checkout'`, `'Search'`, or `'Custom'`).
-* `pinterest.custom_event_name`: Custom event label when applicable (`'InitiateCheckout'`, `'RemoveFromCart'`, `'AddWishList'`, `'AddShippingInfo'`, `'AddPaymentInfo'`).
-* `pinterest.line_items`: Array of product items matching Pinterest Web Tag specifications:
+### 2. Pinterest Ads (Pinterest Tag & Enhanced Matching)
+* `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddToWishList'`, `'Checkout'`, `'Search'`, or `'Custom'`).
+* `pinterest.custom_event_name`: Custom event label when applicable (e.g. `'AddShippingInfo'`, `'RemoveFromCart'`).
+* `pinterest.line_items`: Official item array matching Pinterest Web Tag specifications:
   ```json
   [
     {
@@ -75,24 +75,20 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
     }
   ]
   ```
-* `pinterest.contents`: Array of product items matching Pinterest Conversions API (CAPI v5) specifications:
-  ```json
-  [
-    {
-      "id": "68_299",
-      "item_name": "Trink und Snack Tasse",
-      "item_price": 13.00,
-      "quantity": 2,
-      "item_category": "Trinkbecher",
-      "item_brand": "Dooky"
-    }
-  ]
-  ```
+* `pinterest.user_data`: SHA-256 hashed customer identifiers for Pinterest Enhanced / Advanced Matching:
+  - `em`: Lowercase, trimmed email (SHA-256)
+  - `ph`: Digits only phone number with country code (SHA-256)
+  - `fn`: Lowercase first name (SHA-256)
+  - `ln`: Lowercase last name (SHA-256)
+  - `ct`: Lowercase city without spaces (SHA-256)
+  - `st`: Lowercase 2-letter state code (SHA-256)
+  - `zp`: Lowercase postal code without spaces (SHA-256)
+  - `country`: Lowercase 2-letter ISO country code (SHA-256)
 * `pinterest.product_ids`: Top-level array of product catalog IDs.
 * `pinterest.order_quantity`: Total item quantity in the event.
-* `pinterest.order_id`: Authoritative Order Reference for `Checkout` (used for 48-hour Tag & CAPI deduplication).
+* `pinterest.order_id`: Authoritative Order Reference for `Checkout` transaction tracking.
 * `pinterest.search_query`: Search query string captured on `view_search_results` / `Search`.
-* `pinterest.property`: Contextual metadata (carrier name for `AddShippingInfo`, payment method for `AddPaymentInfo`).
+* `pinterest.property`: Contextual metadata (carrier name for `AddShippingInfo`).
 * `pinterest.currency` & `pinterest.value`: Exact monetary figures.
 
 ### 3. TikTok (Pixel & Events API)
@@ -148,10 +144,10 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - meta.order_id}}` | `meta.order_id` | Meta Pixel / CAPI `event_id` / transaction deduplication |
 | `{{dlv - pinterest.event_name}}` | `pinterest.event_name` | Pinterest Tag Event (`pintrk`) |
 | `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag `line_items` parameter |
-| `{{dlv - pinterest.contents}}` | `pinterest.contents` | Pinterest Conversions API (CAPI v5) `contents` parameter |
+| `{{dlv - pinterest.user_data}}` | `pinterest.user_data` | Pinterest Tag Enhanced Matching (`em`, `ph`, `fn`, `ln`, `ct`, `st`, `zp`, `country`) |
 | `{{dlv - pinterest.product_ids}}` | `pinterest.product_ids` | Pinterest Tag `product_ids` |
-| `{{dlv - pinterest.order_quantity}}` | `pinterest.order_quantity` | Pinterest Tag & CAPI `order_quantity` |
-| `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag & CAPI `order_id` (Deduplication) |
+| `{{dlv - pinterest.order_quantity}}` | `pinterest.order_quantity` | Pinterest Tag `order_quantity` |
+| `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag `order_id` |
 | `{{dlv - tiktok.event_name}}` | `tiktok.event_name` | TikTok Pixel Event Name (`ttq.track(...)`) |
 | `{{dlv - tiktok.contents}}` | `tiktok.contents` | TikTok Pixel / Events API `contents` array |
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |

@@ -116,15 +116,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       product_variant: 'Farbe: Stahlblau',
       product_variant_id: '299'
     });
-    assert.strictEqual(payload.pinterest.contents.length, 1);
-    assert.deepStrictEqual(payload.pinterest.contents[0], {
-      id: '68_299',
-      item_name: 'Trink und Snack Tasse',
-      item_price: 13.00,
-      quantity: 1,
-      item_category: 'Trinkbecher',
-      item_brand: 'Dooky'
-    }, 'Pinterest contents must contain official CAPI parameters');
+    assert.strictEqual(payload.pinterest.contents, undefined, 'Pinterest contents must be omitted in favor of official line_items');
   });
 
   it('2. Product 2 (Sonnenblenden fürs Auto): Exact view_item payload for Simple Product without combinations', function () {
@@ -610,12 +602,12 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.custom_event_name, 'RemoveFromCart');
 
-    // 5. begin_checkout -> Custom (InitiateCheckout)
+    // 5. begin_checkout -> InitiateCheckout
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
-    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.event_name, 'InitiateCheckout');
     assert.strictEqual(p.capi_event_name, undefined);
-    assert.strictEqual(p.custom_event_name, 'InitiateCheckout');
+    assert.strictEqual(p.custom_event_name, undefined);
 
     // 6. add_shipping_info -> Custom (AddShippingInfo) with property
     EDL.pushEvent('add_shipping_info', { currency: 'EUR', value: 26.00, shipping_tier: 'DHL Express', items: [item1] });
@@ -624,14 +616,20 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.custom_event_name, 'AddShippingInfo');
     assert.strictEqual(p.property, 'DHL Express');
 
-    // 7. add_payment_info -> Custom (AddPaymentInfo) with property
+    // 7. add_payment_info -> AddPaymentInfo with property
     EDL.pushEvent('add_payment_info', { currency: 'EUR', value: 26.00, payment_type: 'Credit Card', items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
-    assert.strictEqual(p.event_name, 'Custom');
-    assert.strictEqual(p.custom_event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.custom_event_name, undefined);
     assert.strictEqual(p.property, 'Credit Card');
 
-    // 8. purchase -> Checkout with order_id
+    // 8. add_to_wishlist -> AddToWishList
+    EDL.pushEvent('add_to_wishlist', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'AddToWishList');
+    assert.strictEqual(p.custom_event_name, undefined);
+
+    // 9. purchase -> Checkout with order_id
     EDL.pushEvent('purchase', { transaction_id: 'ORD-9988', currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'Checkout');
@@ -641,8 +639,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.line_items[0].product_id, '68_299');
     assert.strictEqual(p.line_items[0].product_name, 'Trink und Snack Tasse');
     assert.strictEqual(p.line_items[0].product_variant, 'Farbe: Stahlblau');
-    assert.strictEqual(p.contents[0].id, '68_299');
-    assert.strictEqual(p.contents[0].item_name, 'Trink und Snack Tasse');
+    assert.strictEqual(p.contents, undefined, 'Pinterest contents must be omitted');
   });
 
   it('14. Pinterest Ads: Catalog ID Strategy parity (composite vs reference_sku vs id_product)', function () {
@@ -850,8 +847,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.deepStrictEqual(payload.pinterest.product_ids, ['68_299']);
     assert.strictEqual(payload.pinterest.line_items.length, 1);
     assert.strictEqual(payload.pinterest.line_items[0].product_id, '68_299');
-    assert.strictEqual(payload.pinterest.contents.length, 1);
-    assert.strictEqual(payload.pinterest.contents[0].id, '68_299');
+    assert.strictEqual(payload.pinterest.contents, undefined, 'Pinterest contents must be omitted');
 
     // GOOGLE ADS REMARKETING MUST BE STRICTLY EXCLUDED
     assert.strictEqual(payload.google_ads, undefined, 'Google Ads Dynamic Remarketing must be strictly excluded from view_search_results');
@@ -1002,6 +998,76 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // 5. Verify accordion bodies are collapsed by default
     assert.ok(phpCode.includes('.ps-gtm-card-body {\n                display: none;'), 'Platform accordion bodies must be collapsed (display: none) by default');
+  });
+
+  it('22. Pinterest Ads: Enhanced Matching user_data mapping and official standard events parity', function () {
+    const crypto = require('crypto');
+    function sha256(val) {
+      return crypto.createHash('sha256').update(val).digest('hex');
+    }
+
+    const item = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 1
+    };
+
+    const mockPinterestUserData = {
+      em: sha256('customer@example.com'),
+      ph: sha256('14155552671'),
+      fn: sha256('john'),
+      ln: sha256('doe'),
+      ct: sha256('sanfrancisco'),
+      st: sha256('ca'),
+      zp: sha256('94105'),
+      country: sha256('us')
+    };
+
+    // Test passing pinterestUserData via window.psGtmConfig
+    global.window.psGtmConfig.pinterestUserData = mockPinterestUserData;
+
+    EDL.pushEvent('purchase', {
+      transaction_id: 'ORD-7744',
+      currency: 'USD',
+      value: 13.00,
+      items: [item]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.pinterest, 'pinterest namespace must exist on purchase');
+    assert.strictEqual(payload.pinterest.event_name, 'Checkout');
+    assert.strictEqual(payload.pinterest.order_id, 'ORD-7744');
+    assert.strictEqual(payload.pinterest.currency, 'USD');
+    assert.strictEqual(payload.pinterest.value, 13.00);
+    assert.strictEqual(payload.pinterest.contents, undefined, 'contents array must not be present');
+    assert.strictEqual(payload.pinterest.event_id, undefined, 'event_id must not be present');
+    assert.strictEqual(payload.pinterest.capi_event_name, undefined, 'capi_event_name must not be present');
+
+    // Advanced Matching user_data
+    assert.ok(payload.pinterest.user_data, 'pinterest.user_data must be present for Enhanced Matching');
+    assert.strictEqual(payload.pinterest.user_data.em, mockPinterestUserData.em);
+    assert.strictEqual(payload.pinterest.user_data.ph, mockPinterestUserData.ph);
+    assert.strictEqual(payload.pinterest.user_data.fn, mockPinterestUserData.fn);
+    assert.strictEqual(payload.pinterest.user_data.ln, mockPinterestUserData.ln);
+    assert.strictEqual(payload.pinterest.user_data.ct, mockPinterestUserData.ct);
+    assert.strictEqual(payload.pinterest.user_data.st, mockPinterestUserData.st);
+    assert.strictEqual(payload.pinterest.user_data.zp, mockPinterestUserData.zp);
+    assert.strictEqual(payload.pinterest.user_data.country, mockPinterestUserData.country);
+
+    // Verify CustomerDataEngine PHP backend code implements the static helpers
+    const fs = require('fs');
+    const path = require('path');
+    const engineCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'CustomerDataEngine.php'), 'utf8');
+    assert.ok(engineCode.includes('public static function buildPinterestUserData'), 'buildPinterestUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function hashPinterestUserData'), 'hashPinterestUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function hashPinterestField'), 'hashPinterestField method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes("hash('sha256', $clean)"), 'SHA-256 hashing must be performed in hashPinterestField');
   });
 
 });
