@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.12.1';
+        $this->version = '1.13.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -33,8 +33,8 @@ class Ps_Gtm_DataLayer extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, TikTok & Google Ads');
-        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, TikTok, and Google Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
+        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok & Google Ads');
+        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, Pinterest, TikTok, and Google Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
         // Keep ps_module database version table synchronized with active version
@@ -80,9 +80,11 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_ADV_META_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($allEvents))
             && Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($allEvents))
-            && Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($allEvents));
+            && Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($allEvents))
+            && Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($allEvents));
     }
 
     public function uninstall()
@@ -98,9 +100,11 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_ADV_META_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_GADS_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_PINTEREST_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_META_EVENTS')
             && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_EVENTS')
-            && Configuration::deleteByName('PS_GTM_ADV_GADS_EVENTS');
+            && Configuration::deleteByName('PS_GTM_ADV_GADS_EVENTS')
+            && Configuration::deleteByName('PS_GTM_ADV_PINTEREST_EVENTS');
     }
 
     public function getContent()
@@ -185,15 +189,18 @@ class Ps_Gtm_DataLayer extends Module
                 $advMeta = Tools::getValue('PS_GTM_ADV_META_ENABLED') ? '1' : '0';
                 $advTiktok = Tools::getValue('PS_GTM_ADV_TIKTOK_ENABLED') ? '1' : '0';
                 $advGads = Tools::getValue('PS_GTM_ADV_GADS_ENABLED') ? '1' : '0';
+                $advPinterest = Tools::getValue('PS_GTM_ADV_PINTEREST_ENABLED') ? '1' : '0';
 
                 Configuration::updateValue('PS_GTM_ADV_MASTER_ENABLED', $advMaster);
                 Configuration::updateValue('PS_GTM_ADV_META_ENABLED', $advMeta);
                 Configuration::updateValue('PS_GTM_ADV_TIKTOK_ENABLED', $advTiktok);
                 Configuration::updateValue('PS_GTM_ADV_GADS_ENABLED', $advGads);
+                Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', $advPinterest);
 
                 $metaEvts = [];
                 $tiktokEvts = [];
                 $gadsEvts = [];
+                $pinterestEvts = [];
                 foreach (array_keys(self::getSupportedEvents()) as $evtName) {
                     if (Tools::getValue('adv_meta_' . $evtName)) {
                         $metaEvts[] = $evtName;
@@ -204,10 +211,14 @@ class Ps_Gtm_DataLayer extends Module
                     if (Tools::getValue('adv_gads_' . $evtName)) {
                         $gadsEvts[] = $evtName;
                     }
+                    if (Tools::getValue('adv_pinterest_' . $evtName)) {
+                        $pinterestEvts[] = $evtName;
+                    }
                 }
                 Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($metaEvts));
                 Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($tiktokEvts));
                 Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($gadsEvts));
+                Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($pinterestEvts));
 
                 $output .= $this->displayConfirmation($this->l('Advertising platform dataLayer settings successfully saved.'));
             }
@@ -402,6 +413,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_TIKTOK_ENABLED' => Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_GADS_ENABLED' => Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_PINTEREST_ENABLED' => Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_MATRIX_TABLE' => $this->renderAdvertisingMatrixTable(),
             ],
             'languages' => $this->context->controller->getLanguages(),
@@ -500,15 +512,15 @@ class Ps_Gtm_DataLayer extends Module
                     'title' => $this->l('Advertising Platform Data Layer Settings'),
                     'icon' => 'icon-bullhorn',
                 ],
-                'description' => $this->l('Configure dynamic catalog-matching and remarketing payloads for Meta Pixel/CAPI, TikTok Events API, and Google Ads Dynamic Remarketing. Toggle platforms globally or customize exact event routing via the interactive matrix below.'),
+                'description' => $this->l('Configure dynamic catalog-matching and remarketing payloads for Meta Pixel/CAPI, Pinterest Tag/CAPI, TikTok Events API, and Google Ads Dynamic Remarketing. Toggle platforms globally or customize exact event routing via the interactive matrix below.'),
                 'input' => [
                     [
                         'type' => 'switch',
                         'label' => $this->l('Enable Advertising DataLayers (Master Switch)'),
                         'name' => 'PS_GTM_ADV_MASTER_ENABLED',
-                        'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, tiktok, google_ads) are suppressed from the dataLayer across all events.'),
+                        'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, tiktok, google_ads, pinterest) are suppressed from the dataLayer across all events.'),
                         'is_bool' => true,
-                        'desc' => $this->l('Master switch to enable or disable Meta, TikTok, and Google Ads namespaces across all events.'),
+                        'desc' => $this->l('Master switch to enable or disable Meta, Pinterest, TikTok, and Google Ads namespaces across all events.'),
                         'values' => [
                             ['id' => 'adv_master_on', 'value' => 1, 'label' => $this->l('Enabled')],
                             ['id' => 'adv_master_off', 'value' => 0, 'label' => $this->l('Disabled')],
@@ -524,6 +536,18 @@ class Ps_Gtm_DataLayer extends Module
                         'values' => [
                             ['id' => 'adv_meta_on', 'value' => 1, 'label' => $this->l('Enabled')],
                             ['id' => 'adv_meta_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Pinterest Tag & Conversions API (CAPI)'),
+                        'name' => 'PS_GTM_ADV_PINTEREST_ENABLED',
+                        'hint' => $this->l('Exposes the "pinterest" object payload with line_items, product_ids, value, currency, order_quantity, and catalog matching IDs for Pinterest Tag and Conversions API.'),
+                        'is_bool' => true,
+                        'desc' => $this->l('Outputs the "pinterest" namespace formatted for Pinterest Tag and Pinterest CAPI.'),
+                        'values' => [
+                            ['id' => 'adv_pinterest_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'adv_pinterest_off', 'value' => 0, 'label' => $this->l('Disabled')],
                         ],
                     ],
                     [
@@ -574,7 +598,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Viewing category, search results, brand/manufacturer, or catalog listing',
                 'meta_spec' => 'content_type: product_group, content_ids: [parent_ids], contents, currency, value',
                 'tiktok_spec' => 'content_type: product_group, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: ViewCategory, CAPI: view_category, category_name, line_items, value, currency',
             ],
             'select_item' => [
                 'name' => 'select_item',
@@ -582,7 +607,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Clicking on a product link or miniature card from any listing',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
-                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
             ],
             'view_item' => [
                 'name' => 'view_item',
@@ -590,7 +616,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Product detail page view and combination/variant switching',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
-                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
             ],
             'add_to_cart' => [
                 'name' => 'add_to_cart',
@@ -598,7 +625,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Adding a product or combination to the shopping cart',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: AddToCart, CAPI: add_to_cart, line_items: [{product_id, ...}], value, currency, order_quantity',
             ],
             'remove_from_cart' => [
                 'name' => 'remove_from_cart',
@@ -606,7 +634,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Removing an item or decrementing line item quantity in the cart',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Custom (RemoveFromCart), CAPI: custom, line_items, value, currency, order_quantity',
             ],
             'view_cart' => [
                 'name' => 'view_cart',
@@ -614,7 +643,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Visiting the shopping cart summary page (/cart)',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: PageVisit, CAPI: page_visit, line_items, value, currency, order_quantity',
             ],
             'begin_checkout' => [
                 'name' => 'begin_checkout',
@@ -622,7 +652,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Proceeding to checkout funnel step 1 (/order)',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_ids], num_items, contents, currency, value',
                 'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Custom (InitiateCheckout), CAPI: custom, line_items, value, currency, order_quantity',
             ],
             'add_shipping_info' => [
                 'name' => 'add_shipping_info',
@@ -630,7 +661,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Selecting a carrier or delivery method in checkout step 3',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Custom (AddShippingInfo), CAPI: custom, line_items, value, currency, property',
             ],
             'add_payment_info' => [
                 'name' => 'add_payment_info',
@@ -638,7 +670,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Selecting a payment gateway or option in checkout step 4',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_ids], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Custom (AddPaymentInfo), CAPI: custom, line_items, value, currency, property',
             ],
             'purchase' => [
                 'name' => 'purchase',
@@ -646,7 +679,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Order completed with transaction details, order_totals, and user_data',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_ids], num_items, contents, currency, value',
                 'tiktok_spec' => 'content_type: product, contents: [items], currency, value',
-                'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Checkout, CAPI: checkout, order_id, value, currency, order_quantity, line_items',
             ],
             'add_to_wishlist' => [
                 'name' => 'add_to_wishlist',
@@ -654,7 +688,8 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Adding an item to wishlist/favorites via ps_wishlist or blockwishlist',
                 'meta_spec' => 'content_type: product, content_ids: [catalog_id], contents, currency, value',
                 'tiktok_spec' => 'content_type: product, content_id, contents: [item], currency, value',
-                'gads_spec' => 'ecomm_pagetype: other, ecomm_prodid: catalog_id, ecomm_totalvalue'
+                'gads_spec' => 'ecomm_pagetype: other, ecomm_prodid: catalog_id, ecomm_totalvalue',
+                'pinterest_spec' => 'pintrk: Custom (AddWishList), CAPI: custom, line_items, value, currency',
             ],
         ];
     }
@@ -665,16 +700,19 @@ class Ps_Gtm_DataLayer extends Module
         $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
         $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
         $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
+        $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
 
         $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys($events);
         $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys($events);
         $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys($events);
+        $pinterestEvents = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys($events);
 
         if (!is_array($metaEvents)) $metaEvents = array_keys($events);
         if (!is_array($tiktokEvents)) $tiktokEvents = array_keys($events);
         if (!is_array($gadsEvents)) $gadsEvents = array_keys($events);
+        if (!is_array($pinterestEvents)) $pinterestEvents = array_keys($events);
 
-        $html = '<div id="ps-gtm-adv-matrix-container" style="max-width: 950px; margin-top: 5px;">';
+        $html = '<div id="ps-gtm-adv-matrix-container" style="max-width: 1050px; margin-top: 5px;">';
         $html .= '<input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1" />';
 
         // Convenience controls bar
@@ -683,6 +721,9 @@ class Ps_Gtm_DataLayer extends Module
         $html .= '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
         $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Meta') . '</button>';
         $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'meta\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
+        $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'pinterest\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All Pinterest') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'pinterest\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
         $html .= '<span style="border-left: 1px solid #ccc; margin: 0 4px;"></span>';
         $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', true)"><i class="icon-check" style="color:#27ae60;"></i> ' . $this->l('All TikTok') . '</button>';
         $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmSetColumn(\'tiktok\', false)"><i class="icon-times" style="color:#e74c3c;"></i> ' . $this->l('None') . '</button>';
@@ -702,10 +743,11 @@ class Ps_Gtm_DataLayer extends Module
         $html .= '<tr style="background:#f1f2f6;">';
         $html .= '<th style="width: 35px; text-align: center;">#</th>';
         $html .= '<th>' . $this->l('Ecommerce Event') . '</th>';
-        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-facebook" style="color: #1877f2;"></i> ' . $this->l('Meta Pixel / CAPI') . '</th>';
-        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-music" style="color: #000;"></i> ' . $this->l('TikTok Events API') . '</th>';
-        $html .= '<th style="width: 170px; text-align: center;"><i class="icon-google" style="color: #ea4335;"></i> ' . $this->l('Google Ads Remarketing') . '</th>';
-        $html .= '<th style="width: 110px; text-align: center;">' . $this->l('Row Actions') . '</th>';
+        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-facebook" style="color: #1877f2;"></i> ' . $this->l('Meta Pixel / CAPI') . '</th>';
+        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-pinterest" style="color: #bd081c;"></i> ' . $this->l('Pinterest Tag / CAPI') . '</th>';
+        $html .= '<th style="width: 150px; text-align: center;"><i class="icon-music" style="color: #000;"></i> ' . $this->l('TikTok Events API') . '</th>';
+        $html .= '<th style="width: 160px; text-align: center;"><i class="icon-google" style="color: #ea4335;"></i> ' . $this->l('Google Ads Remarketing') . '</th>';
+        $html .= '<th style="width: 100px; text-align: center;">' . $this->l('Row Actions') . '</th>';
         $html .= '</tr>';
         $html .= '</thead>';
         $html .= '<tbody>';
@@ -713,6 +755,7 @@ class Ps_Gtm_DataLayer extends Module
         $rowIdx = 1;
         foreach ($events as $k => $e) {
             $isMeta = in_array($k, $metaEvents);
+            $isPinterest = in_array($k, $pinterestEvents);
             $isTiktok = in_array($k, $tiktokEvents);
             $isGads = in_array($k, $gadsEvents);
 
@@ -728,10 +771,11 @@ class Ps_Gtm_DataLayer extends Module
             // Tooltip trigger
             $html .= '<div class="ps-gtm-info-popover-trigger" style="cursor: pointer; padding: 4px 8px; color: #3498db; background: #ebf5fb; border-radius: 4px; font-size: 11px; margin-left: 10px; white-space: nowrap;">';
             $html .= '<i class="icon-info-sign"></i> ' . $this->l('Specs');
-            $html .= '<div class="ps-gtm-info-popover-body" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 6px; width: 380px; background: #ffffff; border: 1px solid #3498db; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 12px 14px; z-index: 99999; text-align: left;">';
+            $html .= '<div class="ps-gtm-info-popover-body" style="display: none; position: absolute; left: 0; top: 100%; margin-top: 6px; width: 420px; background: #ffffff; border: 1px solid #3498db; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 12px 14px; z-index: 99999; text-align: left;">';
             $html .= '<strong style="color: #2980b9; font-size: 12px;">' . htmlspecialchars($e['name']) . ' ' . $this->l('Platform Namespaces') . '</strong>';
             $html .= '<div style="margin-top: 6px; font-size: 11px; color: #2c3e50; line-height: 1.4;">';
             $html .= '<div style="margin-bottom: 4px;"><strong>Meta:</strong> <code>' . htmlspecialchars($e['meta_spec']) . '</code></div>';
+            $html .= '<div style="margin-bottom: 4px;"><strong>Pinterest:</strong> <code>' . htmlspecialchars($e['pinterest_spec']) . '</code></div>';
             $html .= '<div style="margin-bottom: 4px;"><strong>TikTok:</strong> <code>' . htmlspecialchars($e['tiktok_spec']) . '</code></div>';
             $html .= '<div><strong>Google Ads:</strong> <code>' . htmlspecialchars($e['gads_spec']) . '</code></div>';
             $html .= '</div>';
@@ -744,6 +788,11 @@ class Ps_Gtm_DataLayer extends Module
             // Meta Checkbox
             $html .= '<td style="text-align: center; vertical-align: middle;">';
             $html .= '<input type="checkbox" name="adv_meta_' . $k . '" class="ps-gtm-cb ps-gtm-col-meta ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isMeta ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
+            $html .= '</td>';
+
+            // Pinterest Checkbox
+            $html .= '<td style="text-align: center; vertical-align: middle;">';
+            $html .= '<input type="checkbox" name="adv_pinterest_' . $k . '" class="ps-gtm-cb ps-gtm-col-pinterest ps-gtm-row-' . $rowIdx . '" value="1" ' . ($isPinterest ? 'checked="checked"' : '') . ' style="transform: scale(1.3); cursor: pointer;" />';
             $html .= '</td>';
 
             // TikTok Checkbox
@@ -1206,23 +1255,28 @@ class Ps_Gtm_DataLayer extends Module
             $advMeta = Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0';
             $advTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0';
             $advGads = Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0';
+            $advPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0';
 
             $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
             $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
             $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
+            $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
 
             $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys(self::getSupportedEvents());
             $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys(self::getSupportedEvents());
             $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys(self::getSupportedEvents());
+            $pinterestEvents = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys(self::getSupportedEvents());
 
             $advSettings = [
                 'master_enabled' => (bool)$advMaster,
                 'meta_enabled' => (bool)$advMeta,
                 'tiktok_enabled' => (bool)$advTiktok,
                 'gads_enabled' => (bool)$advGads,
+                'pinterest_enabled' => (bool)$advPinterest,
                 'meta_events' => is_array($metaEvents) ? $metaEvents : array_keys(self::getSupportedEvents()),
                 'tiktok_events' => is_array($tiktokEvents) ? $tiktokEvents : array_keys(self::getSupportedEvents()),
                 'gads_events' => is_array($gadsEvents) ? $gadsEvents : array_keys(self::getSupportedEvents()),
+                'pinterest_events' => is_array($pinterestEvents) ? $pinterestEvents : array_keys(self::getSupportedEvents()),
             ];
 
             // Pre-hydrate authoritative carrier names directly from database model (Zero DOM)
@@ -1387,7 +1441,8 @@ class Ps_Gtm_DataLayer extends Module
                     ecommerce: null,
                     meta: null,
                     tiktok: null,
-                    google_ads: null
+                    google_ads: null,
+                    pinterest: null
                 });
                 window.dataLayer.push(' . json_encode($purchasePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ');
             </script>';

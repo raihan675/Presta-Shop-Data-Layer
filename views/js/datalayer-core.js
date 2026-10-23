@@ -261,6 +261,8 @@
     var tiktokContents = [];
     var googleProdIds = [];
     var googleItems = [];
+    var pinterestProdIds = [];
+    var pinterestLineItems = [];
     var totalNumItems = 0;
 
     for (var i = 0; i < items.length; i++) {
@@ -301,6 +303,20 @@
         price: itemPrice,
         quantity: itemQty
       });
+
+      if (pinterestProdIds.indexOf(catId) === -1) {
+        pinterestProdIds.push(catId);
+      }
+      pinterestLineItems.push({
+        product_id: catId,
+        product_name: String(it.item_name || ''),
+        product_price: itemPrice,
+        product_quantity: itemQty,
+        product_category: String(it.item_category || ''),
+        product_brand: String(it.item_brand || ''),
+        product_variant: String(it.item_variant || ''),
+        product_variant_id: (it.variant_id !== undefined && it.variant_id !== null && String(it.variant_id) !== '0') ? String(it.variant_id) : ''
+      });
     }
 
     var metaNamespace = {
@@ -334,6 +350,79 @@
       googleAdsNamespace.ecomm_category = String(options.categoryName);
     }
 
+    // Pinterest Event Mapping and Schema Resolution
+    var pinterestEventName = 'Custom';
+    var pinterestCapiName = 'custom';
+    var pinterestCustomName = null;
+
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
+      pinterestEventName = 'PageVisit';
+      pinterestCapiName = 'page_visit';
+    } else if (canonicalEventName === 'view_item_list') {
+      pinterestEventName = 'ViewCategory';
+      pinterestCapiName = 'view_category';
+    } else if (canonicalEventName === 'add_to_cart') {
+      pinterestEventName = 'AddToCart';
+      pinterestCapiName = 'add_to_cart';
+    } else if (canonicalEventName === 'purchase') {
+      pinterestEventName = 'Checkout';
+      pinterestCapiName = 'checkout';
+    } else if (canonicalEventName === 'search') {
+      pinterestEventName = 'Search';
+      pinterestCapiName = 'search';
+    } else if (canonicalEventName === 'remove_from_cart') {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = 'RemoveFromCart';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = 'AddWishList';
+    } else if (canonicalEventName === 'begin_checkout') {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = 'InitiateCheckout';
+    } else if (canonicalEventName === 'add_shipping_info') {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = 'AddShippingInfo';
+    } else if (canonicalEventName === 'add_payment_info') {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = 'AddPaymentInfo';
+    } else {
+      pinterestEventName = 'Custom';
+      pinterestCapiName = 'custom';
+      pinterestCustomName = canonicalEventName;
+    }
+
+    var pinterestNamespace = {
+      event_name: pinterestEventName,
+      capi_event_name: pinterestCapiName,
+      currency: curr,
+      value: val,
+      order_quantity: (totalNumItems > 0) ? totalNumItems : 1,
+      product_ids: pinterestProdIds,
+      line_items: pinterestLineItems
+    };
+
+    if (pinterestCustomName) {
+      pinterestNamespace.custom_event_name = pinterestCustomName;
+    }
+    if (options.orderId) {
+      pinterestNamespace.order_id = String(options.orderId);
+    }
+    if (options.searchTerm) {
+      pinterestNamespace.search_query = String(options.searchTerm);
+    }
+    if (options.categoryName) {
+      pinterestNamespace.category_name = String(options.categoryName);
+      pinterestNamespace.product_category = String(options.categoryName);
+    }
+    if (options.property) {
+      pinterestNamespace.property = String(options.property);
+    }
+
     var advSettings = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.advertisingSettings) ? window.psGtmConfig.advertisingSettings : null;
 
     var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
@@ -344,10 +433,12 @@
     var metaEnabled = advSettings ? (advSettings.meta_enabled !== false && advSettings.meta_enabled !== 0 && advSettings.meta_enabled !== '0') : true;
     var tiktokEnabled = advSettings ? (advSettings.tiktok_enabled !== false && advSettings.tiktok_enabled !== 0 && advSettings.tiktok_enabled !== '0') : true;
     var gadsEnabled = advSettings ? (advSettings.gads_enabled !== false && advSettings.gads_enabled !== 0 && advSettings.gads_enabled !== '0') : true;
+    var pinterestEnabled = advSettings ? (advSettings.pinterest_enabled !== false && advSettings.pinterest_enabled !== 0 && advSettings.pinterest_enabled !== '0') : true;
 
     var metaEvents = (advSettings && Array.isArray(advSettings.meta_events)) ? advSettings.meta_events : null;
     var tiktokEvents = (advSettings && Array.isArray(advSettings.tiktok_events)) ? advSettings.tiktok_events : null;
     var gadsEvents = (advSettings && Array.isArray(advSettings.gads_events)) ? advSettings.gads_events : null;
+    var pinterestEvents = (advSettings && Array.isArray(advSettings.pinterest_events)) ? advSettings.pinterest_events : null;
 
     var result = {};
     if (metaEnabled && (!metaEvents || metaEvents.indexOf(canonicalEventName) !== -1)) {
@@ -358,6 +449,9 @@
     }
     if (gadsEnabled && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
       result.google_ads = googleAdsNamespace;
+    }
+    if (pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {
+      result.pinterest = pinterestNamespace;
     }
 
     return result;
@@ -383,7 +477,10 @@
     var platformNamespaces = buildPlatformNamespaces(canonicalEventName, items, currency, totalValue, {
       listId: ecommerceData.item_list_id || '',
       listName: ecommerceData.item_list_name || '',
-      categoryName: (items[0] && items[0].item_category) ? items[0].item_category : ''
+      categoryName: (items[0] && items[0].item_category) ? items[0].item_category : '',
+      orderId: ecommerceData.transaction_id || '',
+      searchTerm: ecommerceData.search_term || '',
+      property: ecommerceData.shipping_tier || ecommerceData.payment_type || ''
     });
 
     var canonicalPayload = {
@@ -401,11 +498,15 @@
     if (platformNamespaces.google_ads) {
       canonicalPayload.google_ads = platformNamespaces.google_ads;
     }
+    if (platformNamespaces.pinterest) {
+      canonicalPayload.pinterest = platformNamespaces.pinterest;
+    }
 
     if (additionalNamespaces && typeof additionalNamespaces === 'object') {
       if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta || {}, additionalNamespaces.meta);
       if (additionalNamespaces.tiktok) canonicalPayload.tiktok = Object.assign({}, canonicalPayload.tiktok || {}, additionalNamespaces.tiktok);
       if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads || {}, additionalNamespaces.google_ads);
+      if (additionalNamespaces.pinterest) canonicalPayload.pinterest = Object.assign({}, canonicalPayload.pinterest || {}, additionalNamespaces.pinterest);
       if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
     }
 
@@ -419,7 +520,8 @@
         ecommerce: null,
         meta: null,
         tiktok: null,
-        google_ads: null
+        google_ads: null,
+        pinterest: null
       });
       window.dataLayer.push(canonicalPayload);
     }

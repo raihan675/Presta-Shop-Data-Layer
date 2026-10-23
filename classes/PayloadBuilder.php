@@ -71,7 +71,7 @@ class PayloadBuilder
 
     /**
      * Universal Advertising Platform Namespace Builder:
-     * Generates exact, catalog-matching payload parameters for Meta, TikTok, and Google Ads Dynamic Remarketing.
+     * Generates exact, catalog-matching payload parameters for Meta, TikTok, Google Ads, and Pinterest.
      *
      * @param string $canonicalEvent
      * @param array $items
@@ -107,6 +107,8 @@ class PayloadBuilder
         $tiktokContents = [];
         $googleProdIds = [];
         $googleItems = [];
+        $pinterestProdIds = [];
+        $pinterestLineItems = [];
         $totalQuantity = 0;
 
         foreach ($items as $it) {
@@ -147,6 +149,20 @@ class PayloadBuilder
                 'price' => $price,
                 'quantity' => $qty,
             ];
+
+            if (!in_array($catId, $pinterestProdIds)) {
+                $pinterestProdIds[] = $catId;
+            }
+            $pinterestLineItems[] = [
+                'product_id' => $catId,
+                'product_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'product_price' => $price,
+                'product_quantity' => $qty,
+                'product_category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
+                'product_brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
+                'product_variant' => isset($it['item_variant']) ? (string)$it['item_variant'] : '',
+                'product_variant_id' => (isset($it['variant_id']) && (string)$it['variant_id'] !== '0') ? (string)$it['variant_id'] : '',
+            ];
         }
 
         $meta = [
@@ -180,6 +196,92 @@ class PayloadBuilder
             $googleAds['ecomm_category'] = (string)$options['category_name'];
         }
 
+        // Pinterest Event Name and Schema Resolution
+        $pinterestEventName = 'Custom';
+        $pinterestCapiName = 'custom';
+        $pinterestCustomName = null;
+
+        switch ($canonicalEvent) {
+            case 'view_item':
+            case 'select_item':
+            case 'view_cart':
+                $pinterestEventName = 'PageVisit';
+                $pinterestCapiName = 'page_visit';
+                break;
+            case 'view_item_list':
+                $pinterestEventName = 'ViewCategory';
+                $pinterestCapiName = 'view_category';
+                break;
+            case 'add_to_cart':
+                $pinterestEventName = 'AddToCart';
+                $pinterestCapiName = 'add_to_cart';
+                break;
+            case 'purchase':
+                $pinterestEventName = 'Checkout';
+                $pinterestCapiName = 'checkout';
+                break;
+            case 'search':
+                $pinterestEventName = 'Search';
+                $pinterestCapiName = 'search';
+                break;
+            case 'remove_from_cart':
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = 'RemoveFromCart';
+                break;
+            case 'add_to_wishlist':
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = 'AddWishList';
+                break;
+            case 'begin_checkout':
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = 'InitiateCheckout';
+                break;
+            case 'add_shipping_info':
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = 'AddShippingInfo';
+                break;
+            case 'add_payment_info':
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = 'AddPaymentInfo';
+                break;
+            default:
+                $pinterestEventName = 'Custom';
+                $pinterestCapiName = 'custom';
+                $pinterestCustomName = $canonicalEvent;
+                break;
+        }
+
+        $pinterest = [
+            'event_name' => $pinterestEventName,
+            'capi_event_name' => $pinterestCapiName,
+            'currency' => $currencyCode,
+            'value' => $val,
+            'order_quantity' => ($totalQuantity > 0) ? $totalQuantity : 1,
+            'product_ids' => $pinterestProdIds,
+            'line_items' => $pinterestLineItems,
+        ];
+        if (!empty($pinterestCustomName)) {
+            $pinterest['custom_event_name'] = $pinterestCustomName;
+        }
+        if (!empty($options['order_id'])) {
+            $pinterest['order_id'] = (string)$options['order_id'];
+        }
+        if (!empty($options['search_term'])) {
+            $pinterest['search_query'] = (string)$options['search_term'];
+        }
+        if (!empty($options['category_name'])) {
+            $pinterest['category_name'] = (string)$options['category_name'];
+            $pinterest['product_category'] = (string)$options['category_name'];
+        }
+        if (!empty($options['property'])) {
+            $pinterest['property'] = (string)$options['property'];
+        }
+
         $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
         if (!$masterEnabled) {
             return [];
@@ -188,6 +290,7 @@ class PayloadBuilder
         $metaEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0') : true;
         $tiktokEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0') : true;
         $gadsEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0') : true;
+        $pinterestEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') : true;
 
         $metaEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_META_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_META_EVENTS'), true)
@@ -197,6 +300,9 @@ class PayloadBuilder
             : null;
         $gadsEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_GADS_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_GADS_EVENTS'), true)
+            : null;
+        $pinterestEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS'), true)
             : null;
 
         $result = [];
@@ -208,6 +314,9 @@ class PayloadBuilder
         }
         if ($gadsEnabled && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
             $result['google_ads'] = $googleAds;
+        }
+        if ($pinterestEnabled && (empty($pinterestEvents) || !is_array($pinterestEvents) || in_array($canonicalEvent, $pinterestEvents))) {
+            $result['pinterest'] = $pinterest;
         }
 
         return $result;
@@ -486,6 +595,7 @@ class PayloadBuilder
             'list_id' => $listId,
             'list_name' => $listName,
             'category_name' => ($controller === 'category') ? $listName : '',
+            'search_term' => ($controller === 'search') ? (Tools::getValue('s') ?: Tools::getValue('search_query')) : '',
         ]);
 
         return array_merge([
@@ -646,7 +756,9 @@ class PayloadBuilder
             }
         }
 
-        $platformNamespaces = $this->buildPlatformNamespaces('add_shipping_info', $items, $currencyCode, $totalValue);
+        $platformNamespaces = $this->buildPlatformNamespaces('add_shipping_info', $items, $currencyCode, $totalValue, [
+            'property' => !empty($ecommerce['shipping_tier']) ? (string)$ecommerce['shipping_tier'] : '',
+        ]);
 
         return array_merge([
             'event' => $this->getEventName('add_shipping_info'),
@@ -701,7 +813,9 @@ class PayloadBuilder
             }
         }
 
-        $platformNamespaces = $this->buildPlatformNamespaces('add_payment_info', $items, $currencyCode, $totalValue);
+        $platformNamespaces = $this->buildPlatformNamespaces('add_payment_info', $items, $currencyCode, $totalValue, [
+            'property' => !empty($ecommerce['payment_type']) ? (string)$ecommerce['payment_type'] : '',
+        ]);
 
         return array_merge([
             'event' => $this->getEventName('add_payment_info'),
@@ -789,7 +903,10 @@ class PayloadBuilder
             $coupon = (string)$cartRules[0]['name'];
         }
 
-        $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value);
+        $orderReference = !empty($order->reference) ? (string)$order->reference : (string)$order->id;
+        $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value, [
+            'order_id' => $orderReference,
+        ]);
 
         $purchasePayload = [
             'event' => $this->getEventName('purchase'),
@@ -824,6 +941,9 @@ class PayloadBuilder
         }
         if (isset($platformNamespaces['google_ads'])) {
             $purchasePayload['google_ads'] = $platformNamespaces['google_ads'];
+        }
+        if (isset($platformNamespaces['pinterest'])) {
+            $purchasePayload['pinterest'] = $platformNamespaces['pinterest'];
         }
 
         return $purchasePayload;

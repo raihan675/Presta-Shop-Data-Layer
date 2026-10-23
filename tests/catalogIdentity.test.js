@@ -1222,7 +1222,8 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
         ecommerce: null,
         meta: null,
         tiktok: null,
-        google_ads: null
+        google_ads: null,
+        pinterest: null
       });
     });
 

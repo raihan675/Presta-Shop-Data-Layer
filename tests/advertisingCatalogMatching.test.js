@@ -79,6 +79,24 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.google_ads.items[0].google_business_vertical, 'retail');
     assert.strictEqual(payload.google_ads.items[0].price, 13.00);
     assert.strictEqual(payload.google_ads.items[0].quantity, 1);
+
+    // Pinterest Tag & Conversions API namespace
+    assert.ok(payload.pinterest, 'pinterest namespace must exist');
+    assert.strictEqual(payload.pinterest.event_name, 'PageVisit');
+    assert.strictEqual(payload.pinterest.capi_event_name, 'page_visit');
+    assert.strictEqual(payload.pinterest.currency, 'EUR');
+    assert.strictEqual(payload.pinterest.value, 13.00);
+    assert.strictEqual(payload.pinterest.order_quantity, 1);
+    assert.deepStrictEqual(payload.pinterest.product_ids, ['68_299']);
+    assert.strictEqual(payload.pinterest.line_items.length, 1);
+    assert.strictEqual(payload.pinterest.line_items[0].product_id, '68_299');
+    assert.strictEqual(payload.pinterest.line_items[0].product_name, 'Trink und Snack Tasse');
+    assert.strictEqual(payload.pinterest.line_items[0].product_price, 13.00);
+    assert.strictEqual(payload.pinterest.line_items[0].product_quantity, 1);
+    assert.strictEqual(payload.pinterest.line_items[0].product_category, 'Trinkbecher');
+    assert.strictEqual(payload.pinterest.line_items[0].product_brand, 'Dooky');
+    assert.strictEqual(payload.pinterest.line_items[0].product_variant, 'Farbe: Stahlblau');
+    assert.strictEqual(payload.pinterest.line_items[0].product_variant_id, '299');
   });
 
   it('2. Product 2 (Sonnenblenden fürs Auto): Exact view_item payload for Simple Product without combinations', function () {
@@ -398,7 +416,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       master_enabled: false,
       meta_enabled: true,
       tiktok_enabled: true,
-      gads_enabled: true
+      gads_enabled: true,
+      pinterest_enabled: true
     };
 
     const item = {
@@ -420,6 +439,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.meta, undefined);
     assert.strictEqual(payload.tiktok, undefined);
     assert.strictEqual(payload.google_ads, undefined);
+    assert.strictEqual(payload.pinterest, undefined);
   });
 
   it('11. Advertising Settings: Individual platform switches toggle specific namespaces', function () {
@@ -427,7 +447,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       master_enabled: true,
       meta_enabled: true,
       tiktok_enabled: false,
-      gads_enabled: false
+      gads_enabled: false,
+      pinterest_enabled: true
     };
 
     const item = {
@@ -449,6 +470,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(payload.meta !== undefined);
     assert.strictEqual(payload.tiktok, undefined);
     assert.strictEqual(payload.google_ads, undefined);
+    assert.ok(payload.pinterest !== undefined);
   });
 
   it('12. Advertising Settings: Event routing matrix activates platforms selectively per event', function () {
@@ -457,9 +479,11 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       meta_enabled: true,
       tiktok_enabled: true,
       gads_enabled: true,
+      pinterest_enabled: true,
       meta_events: ['purchase', 'add_to_cart'],
       tiktok_events: ['purchase'],
-      gads_events: ['view_item', 'purchase']
+      gads_events: ['view_item', 'purchase'],
+      pinterest_events: ['add_to_cart', 'purchase']
     };
 
     const item = {
@@ -480,8 +504,9 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.meta, undefined);
     assert.strictEqual(payload.tiktok, undefined);
     assert.ok(payload.google_ads !== undefined);
+    assert.strictEqual(payload.pinterest, undefined);
 
-    // On add_to_cart: only meta should be included
+    // On add_to_cart: meta and pinterest should be included
     EDL.pushEvent('add_to_cart', {
       currency: 'EUR',
       value: 13.00,
@@ -491,8 +516,9 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(payload.meta !== undefined);
     assert.strictEqual(payload.tiktok, undefined);
     assert.strictEqual(payload.google_ads, undefined);
+    assert.ok(payload.pinterest !== undefined);
 
-    // On purchase: all three should be included
+    // On purchase: all four should be included
     EDL.pushEvent('purchase', {
       currency: 'EUR',
       value: 13.00,
@@ -502,6 +528,132 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(payload.meta !== undefined);
     assert.ok(payload.tiktok !== undefined);
     assert.ok(payload.google_ads !== undefined);
+    assert.ok(payload.pinterest !== undefined);
+  });
+
+  it('13. Pinterest Ads: Full schema verification across standard and custom ecommerce events', function () {
+    const item1 = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 2
+    };
+
+    // 1. view_item -> PageVisit
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 26.00, items: [item1] });
+    let p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'PageVisit');
+    assert.strictEqual(p.capi_event_name, 'page_visit');
+    assert.strictEqual(p.currency, 'EUR');
+    assert.strictEqual(p.value, 26.00);
+    assert.strictEqual(p.order_quantity, 2);
+    assert.deepStrictEqual(p.product_ids, ['68_299']);
+
+    // 2. view_item_list -> ViewCategory
+    EDL.pushEvent('view_item_list', { currency: 'EUR', value: 26.00, item_list_name: 'Trinkbecher', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'ViewCategory');
+    assert.strictEqual(p.capi_event_name, 'view_category');
+    assert.strictEqual(p.category_name, 'Trinkbecher');
+
+    // 3. add_to_cart -> AddToCart
+    EDL.pushEvent('add_to_cart', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'AddToCart');
+    assert.strictEqual(p.capi_event_name, 'add_to_cart');
+    assert.strictEqual(p.order_quantity, 2);
+
+    // 4. remove_from_cart -> Custom (RemoveFromCart)
+    EDL.pushEvent('remove_from_cart', { currency: 'EUR', value: 13.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.capi_event_name, 'custom');
+    assert.strictEqual(p.custom_event_name, 'RemoveFromCart');
+
+    // 5. begin_checkout -> Custom (InitiateCheckout)
+    EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.capi_event_name, 'custom');
+    assert.strictEqual(p.custom_event_name, 'InitiateCheckout');
+
+    // 6. add_shipping_info -> Custom (AddShippingInfo) with property
+    EDL.pushEvent('add_shipping_info', { currency: 'EUR', value: 26.00, shipping_tier: 'DHL Express', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.custom_event_name, 'AddShippingInfo');
+    assert.strictEqual(p.property, 'DHL Express');
+
+    // 7. add_payment_info -> Custom (AddPaymentInfo) with property
+    EDL.pushEvent('add_payment_info', { currency: 'EUR', value: 26.00, payment_type: 'Credit Card', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Custom');
+    assert.strictEqual(p.custom_event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.property, 'Credit Card');
+
+    // 8. purchase -> Checkout with order_id
+    EDL.pushEvent('purchase', { transaction_id: 'ORD-9988', currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.strictEqual(p.event_name, 'Checkout');
+    assert.strictEqual(p.capi_event_name, 'checkout');
+    assert.strictEqual(p.order_id, 'ORD-9988');
+    assert.strictEqual(p.order_quantity, 2);
+    assert.strictEqual(p.line_items[0].product_id, '68_299');
+    assert.strictEqual(p.line_items[0].product_name, 'Trink und Snack Tasse');
+    assert.strictEqual(p.line_items[0].product_variant, 'Farbe: Stahlblau');
+  });
+
+  it('14. Pinterest Ads: Catalog ID Strategy parity (composite vs reference_sku vs id_product)', function () {
+    const item = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 1
+    };
+
+    // composite strategy
+    global.window.psGtmConfig.catalogIdStrategy = 'composite';
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    let p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.deepStrictEqual(p.product_ids, ['68_299']);
+    assert.strictEqual(p.line_items[0].product_id, '68_299');
+
+    // reference_sku strategy
+    global.window.psGtmConfig.catalogIdStrategy = 'reference_sku';
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.deepStrictEqual(p.product_ids, ['BHK125-B']);
+    assert.strictEqual(p.line_items[0].product_id, 'BHK125-B');
+
+    // id_product strategy
+    global.window.psGtmConfig.catalogIdStrategy = 'id_product';
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
+    assert.deepStrictEqual(p.product_ids, ['68']);
+    assert.strictEqual(p.line_items[0].product_id, '68');
+  });
+
+  it('15. Pinterest Ads: DataLayer purge resets pinterest object between consecutive events', function () {
+    const item = { item_id: '1033', item_name: 'Sonnenblenden fürs Auto', price: 9.99, quantity: 1 };
+    
+    // Push an event
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 9.99, items: [item] });
+    
+    // Inspect dataLayer history: previous push before final payload must be purge push with pinterest: null
+    const len = global.window.dataLayer.length;
+    const purgePush = global.window.dataLayer[len - 2];
+    assert.strictEqual(purgePush.ecommerce, null);
+    assert.strictEqual(purgePush.meta, null);
+    assert.strictEqual(purgePush.tiktok, null);
+    assert.strictEqual(purgePush.google_ads, null);
+    assert.strictEqual(purgePush.pinterest, null);
   });
 
 });

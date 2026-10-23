@@ -228,7 +228,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.12.1', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.13.0', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // -------------------------------------------------------------
 // CHECK 7: Upgrade Script Function Signature
@@ -271,6 +271,16 @@ if (fs.existsSync(upgrade1121Path)) {
   report('Upgrade function upgrade_module_1_12_1 properly declared', hasUpgradeFunction121 && returnsTrue121, 'Missing or invalid function signature in upgrade-1.12.1.php');
 } else {
   report('Upgrade script upgrade-1.12.1.php exists', false, 'Missing upgrade-1.12.1.php');
+}
+
+const upgrade1130Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.13.0.php');
+if (fs.existsSync(upgrade1130Path)) {
+  const upCode130 = fs.readFileSync(upgrade1130Path, 'utf8');
+  const hasUpgradeFunction130 = upCode130.includes('function upgrade_module_1_13_0($module)');
+  const returnsTrue130 = upCode130.includes('return true;');
+  report('Upgrade function upgrade_module_1_13_0 properly declared', hasUpgradeFunction130 && returnsTrue130, 'Missing or invalid function signature in upgrade-1.13.0.php');
+} else {
+  report('Upgrade script upgrade-1.13.0.php exists', false, 'Missing upgrade-1.13.0.php');
 }
 
 // -------------------------------------------------------------
