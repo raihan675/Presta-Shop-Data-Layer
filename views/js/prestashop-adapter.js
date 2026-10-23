@@ -250,11 +250,11 @@
     return {
       productId: String(prodId || '').trim(),
       productAttributeId: (attrId && String(attrId) !== '0' && parseInt(attrId, 10) > 0) ? String(attrId).trim() : '',
-      quantity: qty > 0 ? qty : 1
+      quantity: (qty && parseInt(qty, 10) > 0) ? parseInt(qty, 10) : null
     };
   }
 
-  function dispatchDirectRemoveFromCart(idProduct, idProductAttribute, quantity) {
+  function dispatchDirectRemoveFromCart(idProduct, idProductAttribute, explicitQuantity) {
     if (!idProduct) return;
     var normAttr = (idProductAttribute && String(idProductAttribute) !== '0' && parseInt(idProductAttribute, 10) > 0)
       ? String(idProductAttribute).trim()
@@ -269,7 +269,17 @@
     lastRemoveSignature = key;
     lastRemoveTime = now;
 
-    var removeQty = (quantity && parseInt(quantity, 10) > 0) ? parseInt(quantity, 10) : (cartQuantities[key] || 1);
+    // Authoritative in-cart quantity resolution:
+    // When a line item is removed/deleted, all existing units of that item in the cart are removed.
+    var inCartQty = parseInt(cartQuantities[key], 10) ||
+                    (cartProductsData[key] && parseInt(cartProductsData[key].quantity, 10)) ||
+                    (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.cartProducts && parseInt(window.psGtmConfig.cartProducts[key], 10)) ||
+                    (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.cartProductsData && window.psGtmConfig.cartProductsData[key] && parseInt(window.psGtmConfig.cartProductsData[key].quantity, 10)) ||
+                    0;
+
+    var removeQty = inCartQty > 0
+      ? inCartQty
+      : ((explicitQuantity && parseInt(explicitQuantity, 10) > 0) ? parseInt(explicitQuantity, 10) : 1);
     var currencyCode = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
     var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined)
       ? parseInt(window.psGtmConfig.currencyPrecision, 10)
@@ -1011,7 +1021,7 @@
 
       var idProd = '';
       var idAttr = '';
-      var qty = 1;
+      var rowQty = 0;
 
       // 1. Extract from anchor href
       if (anchor && anchor.href) {
@@ -1036,24 +1046,29 @@
       }
 
       // 3. Inspect parent cart item / row container
-      if (!idProd) {
-        var parentRow = removeTrigger.closest('.cart-item, .cart-line-product, [data-id-product], [data-product-id], tr, li');
-        if (parentRow) {
+      var parentRow = removeTrigger.closest('.cart-item, .cart-line-product, [data-id-product], [data-product-id], tr, li');
+      if (parentRow) {
+        if (!idProd) {
           idProd = parentRow.getAttribute('data-id-product') ||
                    parentRow.getAttribute('data-product-id') ||
                    parentRow.getAttribute('data-id_product') ||
                    (parentRow.dataset && (parentRow.dataset.idProduct || parentRow.dataset.productId));
-          if (!idAttr) {
-            idAttr = parentRow.getAttribute('data-id-product-attribute') ||
-                     parentRow.getAttribute('data-product-attribute-id') ||
-                     parentRow.getAttribute('data-id_product_attribute') ||
-                     (parentRow.dataset && (parentRow.dataset.idProductAttribute || parentRow.dataset.productAttributeId));
-          }
+        }
+        if (!idAttr) {
+          idAttr = parentRow.getAttribute('data-id-product-attribute') ||
+                   parentRow.getAttribute('data-product-attribute-id') ||
+                   parentRow.getAttribute('data-id_product_attribute') ||
+                   (parentRow.dataset && (parentRow.dataset.idProductAttribute || parentRow.dataset.productAttributeId));
+        }
+
+        var qtyInput = parentRow.querySelector('input.js-cart-line-product-quantity, input[name="product-quantity-spin"], input.cart-line-product-quantity, input[type="number"], .product-quantity, [data-quantity]');
+        if (qtyInput) {
+          rowQty = parseInt(qtyInput.value || qtyInput.getAttribute('value') || qtyInput.getAttribute('data-quantity') || qtyInput.innerText || qtyInput.textContent, 10) || 0;
         }
       }
 
       if (idProd) {
-        dispatchDirectRemoveFromCart(idProd, idAttr, qty);
+        dispatchDirectRemoveFromCart(idProd, idAttr, (rowQty > 0 ? rowQty : null));
       }
     }, true);
 

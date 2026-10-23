@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.18.0",
+    "latest_version":  "1.18.1",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.0/ps_gtm_datalayer.zip",
-    "checksum":  "2c50f5cfbc36fea5c5c2b47e64e58dccedfdef83aca10864954f75b566bcd20e",
-    "release_type":  "minor",
-    "release_notes":  "1. Added Meta Advanced Matching user_data mapping with SHA-256 hashed parameters (em, ph, fn, ln, ct, st, zp, country).\n2. Reclassified Meta view_cart event mapping to Custom (custom_event_name: \u0027ViewCart\u0027).\n3. Pre-hydrated metaUserData across storefront sessions.\n4. Strictly omitted external_id and cookies per privacy specification."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.1/ps_gtm_datalayer.zip",
+    "checksum":  "be23d05fcdb798c8191dcd5abe5fff90d90e77844a2d07cc675046795ce1c96a",
+    "release_type":  "patch",
+    "release_notes":  "1. Fixed remove_from_cart multi-quantity resolution to accurately capture the full line item quantity (e.g. 3 units) instead of defaulting to 1.\n2. Guaranteed multi-quantity pricing reconciliation across GA4, Meta, Pinterest, TikTok, and Google Ads.\n3. Enhanced cart DOM line inspection and in-memory delta synchronization."
 }

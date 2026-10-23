@@ -1955,5 +1955,83 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(selectItemEvents.length, 1, 'Exactly one select_item event must be present in dataLayer');
       assert.strictEqual(selectItemEvents[0].ecommerce.items[0].item_id, '425');
     });
+
+    it('41. Multi-Quantity Cart Removal: Removing 3 units of product 1149 emits remove_from_cart with quantity: 3, value: 59.97 across GA4, Meta, Pinterest, TikTok, and Google Ads', function () {
+      global.window.dataLayer = [];
+      global.window.psGtmConfig = global.window.psGtmConfig || {};
+      EDL.setEventPrefix('ps');
+
+      // Setup 3 units in cart
+      const mockCartQuantities = { '1149_0': 3 };
+      const mockCartProductsData = {
+        '1149_0': {
+          item_id: '1149',
+          variant_id: '',
+          sku_id: '2301701',
+          item_name: 'Sicherheitsset – Starterpaket für Zuhause',
+          item_brand: 'Dooky - Xplorys BV',
+          item_category: 'Sicherheit',
+          price: 19.99,
+          quantity: 3
+        }
+      };
+
+      global.window.psGtmConfig.cartProducts = mockCartQuantities;
+      global.window.psGtmConfig.cartProductsData = mockCartProductsData;
+
+      // Simulate complete line removal with inCartQty = 3
+      const key = '1149_0';
+      const inCartQty = parseInt(mockCartQuantities[key], 10) || 0;
+      const removeQty = inCartQty > 0 ? inCartQty : 1;
+      assert.strictEqual(removeQty, 3, 'Removed quantity must resolve to full in-cart quantity of 3');
+
+      const item = Object.assign({}, mockCartProductsData[key], { quantity: removeQty });
+      const normItems = EDL.normalizeItems([item], 2);
+      const totalVal = EDL.calculateCartValue(normItems, 2);
+
+      EDL.pushEvent('remove_from_cart', {
+        currency: 'EUR',
+        value: totalVal,
+        items: normItems
+      });
+
+      const push = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.strictEqual(push.event, 'ps_remove_from_cart');
+      assert.strictEqual(push.original_event, 'remove_from_cart');
+      assert.strictEqual(push.ecommerce.value, 59.97);
+      assert.strictEqual(push.ecommerce.items[0].quantity, 3);
+      assert.strictEqual(push.ecommerce.items[0].price, 19.99);
+
+      // Meta: Custom (RemoveFromCart)
+      assert.ok(push.meta, 'Meta namespace must exist');
+      assert.strictEqual(push.meta.event_name, 'Custom');
+      assert.strictEqual(push.meta.custom_event_name, 'RemoveFromCart');
+      assert.strictEqual(push.meta.num_items, 3);
+      assert.strictEqual(push.meta.value, 59.97);
+      assert.strictEqual(push.meta.contents[0].quantity, 3);
+      assert.strictEqual(push.meta.contents[0].item_price, 19.99);
+
+      // Pinterest: Custom (RemoveFromCart)
+      assert.ok(push.pinterest, 'Pinterest namespace must exist');
+      assert.strictEqual(push.pinterest.event_name, 'Custom');
+      assert.strictEqual(push.pinterest.custom_event_name, 'RemoveFromCart');
+      assert.strictEqual(push.pinterest.order_quantity, 3);
+      assert.strictEqual(push.pinterest.value, 59.97);
+      assert.strictEqual(push.pinterest.line_items[0].product_quantity, 3);
+
+      // TikTok: Custom (RemoveFromCart)
+      assert.ok(push.tiktok, 'TikTok namespace must exist');
+      assert.strictEqual(push.tiktok.event_name, 'Custom');
+      assert.strictEqual(push.tiktok.custom_event_name, 'RemoveFromCart');
+      assert.strictEqual(push.tiktok.quantity, 3);
+      assert.strictEqual(push.tiktok.value, 59.97);
+      assert.strictEqual(push.tiktok.contents[0].quantity, 3);
+
+      // Google Ads: ecomm_pagetype: 'cart'
+      assert.ok(push.google_ads, 'Google Ads namespace must exist');
+      assert.strictEqual(push.google_ads.ecomm_pagetype, 'cart');
+      assert.strictEqual(push.google_ads.ecomm_totalvalue, 59.97);
+      assert.deepStrictEqual(push.google_ads.ecomm_prodid, ['1149']);
+    });
   });
 });

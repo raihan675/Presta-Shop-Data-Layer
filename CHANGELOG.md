@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.18.1] - 2026-10-23
+
+### Fixed
+- **Multi-Quantity Cart Item Removal Resolution**:
+  - Fixed an issue where removing a multi-quantity item (e.g. 3 units) from the cart recorded `quantity: 1` instead of `3` in the `remove_from_cart` event.
+  - Re-engineered `dispatchDirectRemoveFromCart` and `extractCartParamsFromUrlOrBody` to prioritize authoritative in-memory cart quantities (`cartQuantities[key]`), cart line item DOM inputs, and delta reconciliation rather than defaulting to `1`.
+  - Guaranteed full mathematical financial reconciliation (`value: unit_price * full_quantity`) across all advertising platforms simultaneously:
+    - **GA4**: `items[0].quantity = 3`, `value = 3 * price`
+    - **Meta Pixel & CAPI**: `meta.num_items = 3`, `meta.contents[0].quantity = 3`, `meta.value = 3 * price`
+    - **Pinterest Tag & API**: `pinterest.order_quantity = 3`, `pinterest.line_items[0].product_quantity = 3`, `pinterest.value = 3 * price`
+    - **TikTok Pixel & Events API**: `tiktok.quantity = 3`, `tiktok.contents[0].quantity = 3`, `tiktok.value = 3 * price`
+    - **Google Ads Dynamic Remarketing**: `google_ads.ecomm_totalvalue = 3 * price`, `google_ads.items[0].quantity = 3`
+
+---
+
 ## [1.18.0] - 2026-10-23
 
 ### Added
