@@ -26,14 +26,14 @@ class Ps_Gtm_DataLayer extends Module
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
         $this->version = '1.12.1';
-        $this->author = 'Analytics Engineer';
+        $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
         $this->bootstrap = true;
 
         parent::__construct();
 
-        $this->displayName = $this->l('Enterprise GA4, Meta, TikTok & Google Ads DataLayer');
+        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, TikTok & Google Ads');
         $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, TikTok, and Google Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
@@ -120,7 +120,7 @@ class Ps_Gtm_DataLayer extends Module
         if (Tools::getValue('module_updated')) {
             $updatedVer = Tools::getValue('new_version', $this->version);
             $output .= $this->displayConfirmation(sprintf(
-                $this->l('Enterprise GA4, Meta, TikTok & Google Ads DataLayer successfully updated to version %s! All your settings were preserved.'),
+                $this->l('E-Commerce DataLayer: GA4, Meta, TikTok & Google Ads successfully updated to version %s! All your settings were preserved.'),
                 htmlspecialchars($updatedVer)
             ));
         }
