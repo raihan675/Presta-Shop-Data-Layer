@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.2",
+    "latest_version":  "1.14.3",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.2/ps_gtm_datalayer.zip",
-    "checksum":  "4ccc63e2b754248e890fb07a81fa1a0afe813100d703e55457cb263aac1ca5f7",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.3/ps_gtm_datalayer.zip",
+    "checksum":  "f09c10afaa2148db48519fb099ebd53f01f102a7e0b070f9080adac6296816af",
     "release_type":  "patch",
-    "release_notes":  "1. Expanded search results detection to third-party themes and modules (Warehouse iqitsearch, Leo Search, Jolisearch, PM AdvancedSearch4).\n2. Added multi-parameter search keyword extraction (s, search_query, q, query, tag).\n3. Added client-side search discovery and third-party theme safety net in prestashop-adapter.js.\n4. Verified 1-click update support and cleared Smarty caches."
+    "release_notes":  "1. Resolved search results dual-event sequencing and deduplication between view_search_results and view_item_list.\n2. Suppressed duplicate items array on view_search_results ecommerce payload, preventing double list impressions in GA4.\n3. Strictly isolated search listings on view_item_list, eliminating false ViewCategory / ViewContent emissions on Meta, TikTok, and Pinterest.\n4. Optimized search backend to load catalog results in a single query and share them between search events.\n5. Maintained Google Ads Dynamic Remarketing ecomm_pagetype: searchresults on listing impression event."
 }

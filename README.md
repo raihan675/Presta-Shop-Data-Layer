@@ -16,8 +16,8 @@ The module supports all core ecommerce actions across the full customer funnel w
 
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
-| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. | `ecommerce`, `meta` (`product_group`), `pinterest` (`ViewCategory`), `tiktok` (`product_group`), `google_ads` (`category` pagetype) |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...`). Captures authoritative `search_term` and `search_results_count` directly from PrestaShop core `Search::find`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
+| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. On search pages, carries `item_list_id: 'search_results'`, `ecomm_pagetype: 'searchresults'`, and avoids duplicate category signals. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` or `searchresults` pagetype), `meta`/`pinterest`/`tiktok` on standard categories |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
 | **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
 | **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
 | **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
@@ -129,7 +129,9 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `google_ads.items`: Array of Google Tag item objects with `google_business_vertical: 'retail'`.
 
 > [!NOTE]
-> **Custom Search Architecture**: Google Ads Dynamic Remarketing is excluded from `view_search_results` per custom remarketing architecture, while standard `category` / `searchresults` pagetype remains active on `view_item_list`.
+> **Search Architecture & Dual-Event Role Separation**:
+> * `view_search_results`: Communicates search intent and query parameters (`search_term`, `search_results_count`) to GA4 Site Search reports, and triggers authoritative `Search` tracking across Meta, TikTok, and Pinterest. To prevent double item impressions in GA4, product items are cleanly delegated to `view_item_list`.
+> * `view_item_list`: Communicates product catalog impressions (`item_list_id: 'search_results'`, `item_list_name: 'Search: <query>'`, `items: [...]`) to GA4 Monetization Item List reports, and triggers Google Ads Dynamic Remarketing with `ecomm_pagetype: 'searchresults'`. On search listings, false `ViewCategory` / `ViewContent` emissions are strictly suppressed for Meta, TikTok, and Pinterest.
 
 ---
 

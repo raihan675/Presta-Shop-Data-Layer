@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.3] - 2026-10-23
+
+### Fixed
+- **Search Results Dual-Event Semantic Isolation & Payload Deduping**:
+  - **Eliminated Duplicate Item Impressions in GA4**: Sourced GA4 `view_search_results` strictly as a search query intent event (`search_term`, `search_results_count`) without repeating the full 24-product `ecommerce.items` array that belongs to `view_item_list`, preventing double list impression counts in Google Analytics 4.
+  - **Strict Advertising Namespace Isolation on Search Listings**: Fixed `view_item_list` on search results pages (`searchresults`) so it strictly excludes false `ViewCategory` (Meta Pixel), `ViewCategory` (Pinterest Tag), and `ViewContent` (TikTok Pixel) emissions. The authoritative `Search` event dispatched with `view_search_results` now stands alone for social ad platforms without category pollution.
+  - **Single-Query Search Optimization**: PrestaShop's `Search::find` catalog results are now loaded once on the search page and shared between `view_search_results` and `view_item_list`, cutting backend database query load in half.
+  - **Google Ads Dynamic Remarketing Parity**: Maintained `ecomm_pagetype: 'searchresults'`, product ID arrays, and total search value cleanly on the listing impression event `view_item_list`.
+
+---
+
 ## [1.14.2] - 2026-10-23
 
 ### Fixed

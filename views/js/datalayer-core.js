@@ -537,17 +537,19 @@
     var gadsEvents = (advSettings && Array.isArray(advSettings.gads_events)) ? advSettings.gads_events : null;
     var pinterestEvents = (advSettings && Array.isArray(advSettings.pinterest_events)) ? advSettings.pinterest_events : null;
 
+    var isSearchListing = (canonicalEventName === 'view_item_list' && (pageType === 'searchresults' || (options && options.listId && String(options.listId).indexOf('search') !== -1)));
+
     var result = {};
-    if (metaEnabled && (!metaEvents || metaEvents.indexOf(canonicalEventName) !== -1)) {
+    if (!isSearchListing && metaEnabled && (!metaEvents || metaEvents.indexOf(canonicalEventName) !== -1)) {
       result.meta = metaNamespace;
     }
-    if (tiktokEnabled && (!tiktokEvents || tiktokEvents.indexOf(canonicalEventName) !== -1)) {
+    if (!isSearchListing && tiktokEnabled && (!tiktokEvents || tiktokEvents.indexOf(canonicalEventName) !== -1)) {
       result.tiktok = tiktokNamespace;
     }
     if (gadsEnabled && canonicalEventName !== 'view_search_results' && canonicalEventName !== 'search' && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
       result.google_ads = googleAdsNamespace;
     }
-    if (pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {
+    if (!isSearchListing && pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {
       result.pinterest = pinterestNamespace;
     }
 

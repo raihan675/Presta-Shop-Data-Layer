@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.14.2';
+        $this->version = '1.14.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1169,7 +1169,10 @@ class Ps_Gtm_DataLayer extends Module
             if ($isSearch) {
                 $searchQuery = PayloadBuilder::getSearchQuery();
                 if ($searchQuery !== '') {
-                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery);
+                    $searchItems = (!empty($serverPayload['ecommerce']['items']) && is_array($serverPayload['ecommerce']['items']))
+                        ? $serverPayload['ecommerce']['items']
+                        : [];
+                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery, null, $searchItems, false);
                     if ($searchPayload) {
                         $initialPayloads[] = $searchPayload;
                     }

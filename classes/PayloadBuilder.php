@@ -497,17 +497,19 @@ class PayloadBuilder
             ? json_decode(Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS'), true)
             : null;
 
+        $isSearchListing = ($canonicalEvent === 'view_item_list' && $pageType === 'searchresults');
+
         $result = [];
-        if ($metaEnabled && (empty($metaEvents) || !is_array($metaEvents) || in_array($canonicalEvent, $metaEvents))) {
+        if (!$isSearchListing && $metaEnabled && (empty($metaEvents) || !is_array($metaEvents) || in_array($canonicalEvent, $metaEvents))) {
             $result['meta'] = $meta;
         }
-        if ($tiktokEnabled && (empty($tiktokEvents) || !is_array($tiktokEvents) || in_array($canonicalEvent, $tiktokEvents))) {
+        if (!$isSearchListing && $tiktokEnabled && (empty($tiktokEvents) || !is_array($tiktokEvents) || in_array($canonicalEvent, $tiktokEvents))) {
             $result['tiktok'] = $tiktok;
         }
         if ($gadsEnabled && !in_array($canonicalEvent, ['view_search_results', 'search']) && (empty($gadsEvents) || !is_array($gadsEvents) || in_array($canonicalEvent, $gadsEvents))) {
             $result['google_ads'] = $googleAds;
         }
-        if ($pinterestEnabled && (empty($pinterestEvents) || !is_array($pinterestEvents) || in_array($canonicalEvent, $pinterestEvents))) {
+        if (!$isSearchListing && $pinterestEnabled && (empty($pinterestEvents) || !is_array($pinterestEvents) || in_array($canonicalEvent, $pinterestEvents))) {
             $result['pinterest'] = $pinterest;
         }
 
@@ -819,7 +821,7 @@ class PayloadBuilder
      * @param array $items
      * @return array|null
      */
-    public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [])
+    public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [], $includeEcommerceItems = false)
     {
         $query = ($searchTerm !== null && trim((string)$searchTerm) !== '')
             ? trim((string)$searchTerm)
@@ -882,16 +884,20 @@ class PayloadBuilder
             'list_name' => 'Search: ' . $query,
         ]);
 
+        $ecommerceData = [
+            'currency' => $currencyCode,
+            'search_term' => $query,
+        ];
+        if ($includeEcommerceItems && !empty($items)) {
+            $ecommerceData['items'] = $items;
+        }
+
         return array_merge([
             'event' => $this->getEventName('view_search_results'),
             'original_event' => 'view_search_results',
             'search_term' => $query,
             'search_results_count' => (int)$totalResultsCount,
-            'ecommerce' => [
-                'currency' => $currencyCode,
-                'search_term' => $query,
-                'items' => $items,
-            ],
+            'ecommerce' => $ecommerceData,
         ], $platformNamespaces);
     }
 

@@ -902,4 +902,64 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.google_ads, undefined);
   });
 
+  it('19. Search Results Listing view_item_list isolation: Emits Google Ads Dynamic Remarketing (ecomm_pagetype: searchresults) and strictly excludes false ViewCategory / ViewContent on Meta, TikTok, and Pinterest', function () {
+    EDL.setEventPrefix('ps');
+
+    const searchListingItems = [
+      {
+        item_id: '1066',
+        variant_id: '',
+        sku_id: '00081211300000',
+        item_name: 'Chicco Natural Feeling Glas-Babyflasche',
+        item_brand: 'Chicco',
+        item_category: 'Babyflasche',
+        price: 12.99,
+        quantity: 1,
+        index: 1,
+        item_list_id: 'search_results',
+        item_list_name: 'Search: baby'
+      },
+      {
+        item_id: '1186',
+        variant_id: '',
+        sku_id: '6501101',
+        item_name: 'Miffy – Baby-Gehörschutz Weiß',
+        item_brand: 'Dooky',
+        item_category: 'Gehörschutz',
+        price: 24.99,
+        quantity: 1,
+        index: 2,
+        item_list_id: 'search_results',
+        item_list_name: 'Search: baby'
+      }
+    ];
+
+    EDL.pushEvent('view_item_list', {
+      item_list_id: 'search_results',
+      item_list_name: 'Search: baby',
+      currency: 'EUR',
+      value: 37.98,
+      items: searchListingItems
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+
+    assert.strictEqual(payload.event, 'ps_view_item_list');
+    assert.strictEqual(payload.original_event, 'view_item_list');
+    assert.strictEqual(payload.ecommerce.item_list_id, 'search_results');
+    assert.strictEqual(payload.ecommerce.item_list_name, 'Search: baby');
+    assert.strictEqual(payload.ecommerce.items.length, 2);
+
+    // Google Ads Remarketing for search results
+    assert.ok(payload.google_ads, 'Google Ads namespace must exist on search listing view_item_list');
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'searchresults');
+    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['1066', '1186']);
+    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 37.98);
+
+    // Strict Advertising Isolation: Meta, TikTok, Pinterest MUST NOT fire false ViewCategory/ViewContent on search listings
+    assert.strictEqual(payload.meta, undefined, 'Meta ViewCategory must be strictly suppressed on search results listing');
+    assert.strictEqual(payload.tiktok, undefined, 'TikTok ViewContent must be strictly suppressed on search results listing');
+    assert.strictEqual(payload.pinterest, undefined, 'Pinterest ViewCategory must be strictly suppressed on search results listing');
+  });
+
 });
