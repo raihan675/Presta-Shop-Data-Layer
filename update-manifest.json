@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.4",
+    "latest_version":  "1.14.5",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.4/ps_gtm_datalayer.zip",
-    "checksum":  "26fbfe96a59776b9d1d32d8606c370df5e524cf07f748efefa3636e55946cd84",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.5/ps_gtm_datalayer.zip",
+    "checksum":  "cd2df77d4966ea912f79b032048f9064c20abfe972d5a3de2f4bd5f48200d23b",
     "release_type":  "patch",
-    "release_notes":  "1. Fixed select_item double-firing on Quick View and product cards.\n2. Implemented synchronous click debouncing in handleSelectItem before asynchronous product resolution.\n3. Isolated Quick View selectors (.js-quick-view-iqit, data-link-action=quickview) from generic listing click listener.\n4. Added single-instance adapter re-entrancy guard to prevent duplicate event listener bindings."
+    "release_notes":  "1. TikTok Events Schema Alignment: Added standard search_string parameter to tiktok advertising object on Search / view_search_results events.\n2. Preserved query parameter as legacy alias for backwards compatibility.\n3. Updated README guidelines and GTM variable mappings."
 }

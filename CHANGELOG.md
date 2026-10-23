@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.5] - 2026-10-23
+
+### Changed
+- **TikTok Events Schema Alignment with Official Parameters**:
+  - **Standard Parameter Alignment**: Added official `search_string` parameter to the `tiktok` advertising namespace on search events (`view_search_results` / `search`), directly aligning with TikTok's standard event specifications.
+  - **Backwards Compatibility**: Retained `query` parameter as a legacy alias so existing Google Tag Manager containers and custom templates continue to function seamlessly without breaking changes.
+  - **Documentation & GTM Variable Mappings**: Updated module `README.md` guidelines, events matrix, and GTM variable mapping table to reflect both `{{dlv - tiktok.search_string}}` and `{{dlv - tiktok.query}}`.
+
+---
+
 ## [1.14.4] - 2026-10-23
 
 ### Fixed

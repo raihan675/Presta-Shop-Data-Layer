@@ -437,6 +437,7 @@
       tiktokNamespace.order_id = String(options.orderId);
     }
     if (options.searchTerm) {
+      tiktokNamespace.search_string = String(options.searchTerm);
       tiktokNamespace.query = String(options.searchTerm);
     }
     if (options.categoryName) {

@@ -17,7 +17,7 @@ The module supports all core ecommerce actions across the full customer funnel w
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
 | **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. On search pages, carries `item_list_id: 'search_results'`, `ecomm_pagetype: 'searchresults'`, and avoids duplicate category signals. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` or `searchresults` pagetype), `meta`/`pinterest`/`tiktok` on standard categories |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `search_string`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
 | **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
 | **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
 | **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
@@ -118,7 +118,7 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   ```
 * `tiktok.quantity`: Total item count across all line items.
 * `tiktok.order_id`: Authoritative Order Reference for `CompletePayment` (used for Pixel & Events API deduplication).
-* `tiktok.query`: Search query string on search results.
+* `tiktok.search_string` & `tiktok.query`: Search query keyword string on search results (`search_string` is TikTok official standard).
 * `tiktok.currency` & `tiktok.value`: Normalized monetary value.
 
 ### 4. Google Ads Dynamic Remarketing (Retail Vertical)
@@ -167,7 +167,8 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - search_results_count}}` | `search_results_count` | Total Number of Search Results Found |
 | `{{dlv - meta.search_string}}` | `meta.search_string` | Meta Search Tag (`search_string`) |
 | `{{dlv - pinterest.search_query}}` | `pinterest.search_query` | Pinterest Search Tag (`search_query`) |
-| `{{dlv - tiktok.query}}` | `tiktok.query` | TikTok Search Tag (`query`) |
+| `{{dlv - tiktok.search_string}}` | `tiktok.search_string` | TikTok Search Tag official standard (`search_string`) |
+| `{{dlv - tiktok.query}}` | `tiktok.query` | TikTok Search Tag legacy alias (`query`) |
 
 ---
 

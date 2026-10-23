@@ -377,6 +377,7 @@ class PayloadBuilder
             $tiktok['order_id'] = (string)$options['order_id'];
         }
         if (!empty($options['search_term'])) {
+            $tiktok['search_string'] = (string)$options['search_term'];
             $tiktok['query'] = (string)$options['search_term'];
         }
         if (!empty($options['category_name'])) {

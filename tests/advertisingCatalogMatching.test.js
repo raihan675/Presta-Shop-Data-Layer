@@ -834,6 +834,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     // TikTok Events API namespace
     assert.ok(payload.tiktok, 'tiktok namespace must exist on view_search_results');
     assert.strictEqual(payload.tiktok.event_name, 'Search');
+    assert.strictEqual(payload.tiktok.search_string, 'Trinkbecher blau');
     assert.strictEqual(payload.tiktok.query, 'Trinkbecher blau');
     assert.strictEqual(payload.tiktok.content_id, '68_299');
     assert.deepStrictEqual(payload.tiktok.content_ids, ['68_299']);
@@ -896,6 +897,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.meta.event_name, 'Search');
     assert.strictEqual(payload.meta.search_string, 'baby');
     assert.strictEqual(payload.tiktok.event_name, 'Search');
+    assert.strictEqual(payload.tiktok.search_string, 'baby');
     assert.strictEqual(payload.tiktok.query, 'baby');
     assert.strictEqual(payload.pinterest.event_name, 'Search');
     assert.strictEqual(payload.pinterest.search_query, 'baby');
