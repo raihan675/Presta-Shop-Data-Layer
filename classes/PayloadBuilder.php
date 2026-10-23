@@ -129,6 +129,10 @@ class PayloadBuilder
                 'id' => $metaId,
                 'quantity' => $qty,
                 'item_price' => $price,
+                'title' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'item_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
+                'category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
             ];
 
             $ttId = $isList ? (string)$it['item_id'] : $catId;
@@ -136,6 +140,8 @@ class PayloadBuilder
                 'content_id' => $ttId,
                 'content_type' => 'product',
                 'content_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'content_category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
+                'brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
                 'quantity' => $qty,
                 'price' => $price,
             ];
@@ -165,25 +171,172 @@ class PayloadBuilder
             ];
         }
 
+        // Meta Event Name Resolution
+        $metaEventName = 'Custom';
+        $metaCapiName = 'Custom';
+        $metaCustomName = null;
+
+        switch ($canonicalEvent) {
+            case 'view_item':
+            case 'select_item':
+            case 'view_cart':
+                $metaEventName = 'ViewContent';
+                $metaCapiName = 'ViewContent';
+                break;
+            case 'view_item_list':
+                $metaEventName = 'ViewCategory';
+                $metaCapiName = 'ViewCategory';
+                break;
+            case 'add_to_cart':
+                $metaEventName = 'AddToCart';
+                $metaCapiName = 'AddToCart';
+                break;
+            case 'purchase':
+                $metaEventName = 'Purchase';
+                $metaCapiName = 'Purchase';
+                break;
+            case 'search':
+                $metaEventName = 'Search';
+                $metaCapiName = 'Search';
+                break;
+            case 'add_to_wishlist':
+                $metaEventName = 'AddToWishlist';
+                $metaCapiName = 'AddToWishlist';
+                break;
+            case 'begin_checkout':
+                $metaEventName = 'InitiateCheckout';
+                $metaCapiName = 'InitiateCheckout';
+                break;
+            case 'add_shipping_info':
+                $metaEventName = 'AddShippingInfo';
+                $metaCapiName = 'AddShippingInfo';
+                break;
+            case 'add_payment_info':
+                $metaEventName = 'AddPaymentInfo';
+                $metaCapiName = 'AddPaymentInfo';
+                break;
+            case 'remove_from_cart':
+                $metaEventName = 'Custom';
+                $metaCapiName = 'Custom';
+                $metaCustomName = 'RemoveFromCart';
+                break;
+            default:
+                $metaEventName = 'Custom';
+                $metaCapiName = 'Custom';
+                $metaCustomName = $canonicalEvent;
+                break;
+        }
+
         $meta = [
+            'event_name' => $metaEventName,
+            'capi_event_name' => $metaCapiName,
             'content_type' => $isList ? 'product_group' : 'product',
             'content_ids' => $metaContentIds,
             'contents' => $metaContents,
             'currency' => $currencyCode,
             'value' => $val,
+            'num_items' => ($totalQuantity > 0) ? $totalQuantity : 1,
         ];
-        if ($totalQuantity > 0 && in_array($canonicalEvent, ['begin_checkout', 'purchase'])) {
-            $meta['num_items'] = $totalQuantity;
+        if (!empty($metaCustomName)) {
+            $meta['custom_event_name'] = $metaCustomName;
+        }
+        if (!empty($options['order_id'])) {
+            $meta['order_id'] = (string)$options['order_id'];
+        }
+        if (!empty($options['search_term'])) {
+            $meta['search_string'] = (string)$options['search_term'];
+        }
+        if (!empty($options['category_name'])) {
+            $meta['content_category'] = (string)$options['category_name'];
+        }
+        if ($isSingleProduct && !empty($items[0]['item_name'])) {
+            $meta['content_name'] = (string)$items[0]['item_name'];
+            if (empty($meta['content_category']) && !empty($items[0]['item_category'])) {
+                $meta['content_category'] = (string)$items[0]['item_category'];
+            }
+        }
+
+        // TikTok Event Name Resolution
+        $tiktokEventName = 'Custom';
+        $tiktokCapiName = 'Custom';
+        $tiktokCustomName = null;
+
+        switch ($canonicalEvent) {
+            case 'view_item':
+            case 'select_item':
+            case 'view_cart':
+            case 'view_item_list':
+                $tiktokEventName = 'ViewContent';
+                $tiktokCapiName = 'ViewContent';
+                break;
+            case 'add_to_cart':
+                $tiktokEventName = 'AddToCart';
+                $tiktokCapiName = 'AddToCart';
+                break;
+            case 'purchase':
+                $tiktokEventName = 'CompletePayment';
+                $tiktokCapiName = 'CompletePayment';
+                break;
+            case 'search':
+                $tiktokEventName = 'Search';
+                $tiktokCapiName = 'Search';
+                break;
+            case 'add_to_wishlist':
+                $tiktokEventName = 'AddToWishlist';
+                $tiktokCapiName = 'AddToWishlist';
+                break;
+            case 'begin_checkout':
+                $tiktokEventName = 'InitiateCheckout';
+                $tiktokCapiName = 'InitiateCheckout';
+                break;
+            case 'add_shipping_info':
+                $tiktokEventName = 'AddShippingInfo';
+                $tiktokCapiName = 'AddShippingInfo';
+                break;
+            case 'add_payment_info':
+                $tiktokEventName = 'AddPaymentInfo';
+                $tiktokCapiName = 'AddPaymentInfo';
+                break;
+            case 'remove_from_cart':
+                $tiktokEventName = 'Custom';
+                $tiktokCapiName = 'Custom';
+                $tiktokCustomName = 'RemoveFromCart';
+                break;
+            default:
+                $tiktokEventName = 'Custom';
+                $tiktokCapiName = 'Custom';
+                $tiktokCustomName = $canonicalEvent;
+                break;
         }
 
         $tiktok = [
+            'event_name' => $tiktokEventName,
+            'capi_event_name' => $tiktokCapiName,
             'content_type' => $isList ? 'product_group' : 'product',
+            'content_id' => !empty($metaContentIds) ? $metaContentIds[0] : '',
+            'content_ids' => $metaContentIds,
             'contents' => $tiktokContents,
             'currency' => $currencyCode,
             'value' => $val,
+            'quantity' => ($totalQuantity > 0) ? $totalQuantity : 1,
         ];
-        if (!empty($metaContentIds)) {
-            $tiktok['content_id'] = $metaContentIds[0];
+        if (!empty($tiktokCustomName)) {
+            $tiktok['custom_event_name'] = $tiktokCustomName;
+        }
+        if (!empty($options['order_id'])) {
+            $tiktok['order_id'] = (string)$options['order_id'];
+        }
+        if (!empty($options['search_term'])) {
+            $tiktok['query'] = (string)$options['search_term'];
+        }
+        if (!empty($options['category_name'])) {
+            $tiktok['content_category'] = (string)$options['category_name'];
+        }
+        if ($isSingleProduct && !empty($items[0]['item_name'])) {
+            $tiktok['content_name'] = (string)$items[0]['item_name'];
+            if (empty($tiktok['content_category']) && !empty($items[0]['item_category'])) {
+                $tiktok['content_category'] = (string)$items[0]['item_category'];
+            }
         }
 
         $googleAds = [

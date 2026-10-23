@@ -282,7 +282,11 @@
       metaContents.push({
         id: metaId,
         quantity: itemQty,
-        item_price: itemPrice
+        item_price: itemPrice,
+        title: String(it.item_name || ''),
+        item_name: String(it.item_name || ''),
+        brand: String(it.item_brand || ''),
+        category: String(it.item_category || '')
       });
 
       var ttId = isList ? String(it.item_id) : catId;
@@ -290,6 +294,8 @@
         content_id: ttId,
         content_type: 'product',
         content_name: String(it.item_name || ''),
+        content_category: String(it.item_category || ''),
+        brand: String(it.item_brand || ''),
         quantity: itemQty,
         price: itemPrice
       });
@@ -319,25 +325,144 @@
       });
     }
 
+    // Meta Event Name Resolution
+    var metaEventName = 'Custom';
+    var metaCapiName = 'Custom';
+    var metaCustomName = null;
+
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
+      metaEventName = 'ViewContent';
+      metaCapiName = 'ViewContent';
+    } else if (canonicalEventName === 'view_item_list') {
+      metaEventName = 'ViewCategory';
+      metaCapiName = 'ViewCategory';
+    } else if (canonicalEventName === 'add_to_cart') {
+      metaEventName = 'AddToCart';
+      metaCapiName = 'AddToCart';
+    } else if (canonicalEventName === 'purchase') {
+      metaEventName = 'Purchase';
+      metaCapiName = 'Purchase';
+    } else if (canonicalEventName === 'search') {
+      metaEventName = 'Search';
+      metaCapiName = 'Search';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      metaEventName = 'AddToWishlist';
+      metaCapiName = 'AddToWishlist';
+    } else if (canonicalEventName === 'begin_checkout') {
+      metaEventName = 'InitiateCheckout';
+      metaCapiName = 'InitiateCheckout';
+    } else if (canonicalEventName === 'add_shipping_info') {
+      metaEventName = 'AddShippingInfo';
+      metaCapiName = 'AddShippingInfo';
+    } else if (canonicalEventName === 'add_payment_info') {
+      metaEventName = 'AddPaymentInfo';
+      metaCapiName = 'AddPaymentInfo';
+    } else if (canonicalEventName === 'remove_from_cart') {
+      metaEventName = 'Custom';
+      metaCapiName = 'Custom';
+      metaCustomName = 'RemoveFromCart';
+    } else {
+      metaEventName = 'Custom';
+      metaCapiName = 'Custom';
+      metaCustomName = canonicalEventName;
+    }
+
     var metaNamespace = {
+      event_name: metaEventName,
+      capi_event_name: metaCapiName,
       content_type: isList ? 'product_group' : 'product',
       content_ids: metaContentIds,
       contents: metaContents,
       currency: curr,
-      value: val
+      value: val,
+      num_items: (totalNumItems > 0) ? totalNumItems : 1
     };
-    if (totalNumItems > 0 && (canonicalEventName === 'begin_checkout' || canonicalEventName === 'purchase')) {
-      metaNamespace.num_items = totalNumItems;
+    if (metaCustomName) {
+      metaNamespace.custom_event_name = metaCustomName;
+    }
+    if (options.orderId) {
+      metaNamespace.order_id = String(options.orderId);
+    }
+    if (options.searchTerm) {
+      metaNamespace.search_string = String(options.searchTerm);
+    }
+    if (options.categoryName) {
+      metaNamespace.content_category = String(options.categoryName);
+    }
+    if (isSingleProduct && items[0] && items[0].item_name) {
+      metaNamespace.content_name = String(items[0].item_name);
+      if (!metaNamespace.content_category && items[0].item_category) {
+        metaNamespace.content_category = String(items[0].item_category);
+      }
+    }
+
+    // TikTok Event Name Resolution
+    var tiktokEventName = 'Custom';
+    var tiktokCapiName = 'Custom';
+    var tiktokCustomName = null;
+
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart' || canonicalEventName === 'view_item_list') {
+      tiktokEventName = 'ViewContent';
+      tiktokCapiName = 'ViewContent';
+    } else if (canonicalEventName === 'add_to_cart') {
+      tiktokEventName = 'AddToCart';
+      tiktokCapiName = 'AddToCart';
+    } else if (canonicalEventName === 'purchase') {
+      tiktokEventName = 'CompletePayment';
+      tiktokCapiName = 'CompletePayment';
+    } else if (canonicalEventName === 'search') {
+      tiktokEventName = 'Search';
+      tiktokCapiName = 'Search';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      tiktokEventName = 'AddToWishlist';
+      tiktokCapiName = 'AddToWishlist';
+    } else if (canonicalEventName === 'begin_checkout') {
+      tiktokEventName = 'InitiateCheckout';
+      tiktokCapiName = 'InitiateCheckout';
+    } else if (canonicalEventName === 'add_shipping_info') {
+      tiktokEventName = 'AddShippingInfo';
+      tiktokCapiName = 'AddShippingInfo';
+    } else if (canonicalEventName === 'add_payment_info') {
+      tiktokEventName = 'AddPaymentInfo';
+      tiktokCapiName = 'AddPaymentInfo';
+    } else if (canonicalEventName === 'remove_from_cart') {
+      tiktokEventName = 'Custom';
+      tiktokCapiName = 'Custom';
+      tiktokCustomName = 'RemoveFromCart';
+    } else {
+      tiktokEventName = 'Custom';
+      tiktokCapiName = 'Custom';
+      tiktokCustomName = canonicalEventName;
     }
 
     var tiktokNamespace = {
+      event_name: tiktokEventName,
+      capi_event_name: tiktokCapiName,
       content_type: isList ? 'product_group' : 'product',
+      content_id: (metaContentIds.length > 0) ? metaContentIds[0] : '',
+      content_ids: metaContentIds,
       contents: tiktokContents,
       currency: curr,
-      value: val
+      value: val,
+      quantity: (totalNumItems > 0) ? totalNumItems : 1
     };
-    if (metaContentIds.length > 0) {
-      tiktokNamespace.content_id = metaContentIds[0];
+    if (tiktokCustomName) {
+      tiktokNamespace.custom_event_name = tiktokCustomName;
+    }
+    if (options.orderId) {
+      tiktokNamespace.order_id = String(options.orderId);
+    }
+    if (options.searchTerm) {
+      tiktokNamespace.query = String(options.searchTerm);
+    }
+    if (options.categoryName) {
+      tiktokNamespace.content_category = String(options.categoryName);
+    }
+    if (isSingleProduct && items[0] && items[0].item_name) {
+      tiktokNamespace.content_name = String(items[0].item_name);
+      if (!tiktokNamespace.content_category && items[0].item_category) {
+        tiktokNamespace.content_category = String(items[0].item_category);
+      }
     }
 
     var googleAdsNamespace = {

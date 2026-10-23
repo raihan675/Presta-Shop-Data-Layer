@@ -35,11 +35,31 @@ The module supports all core ecommerce actions across the full customer funnel w
 To eliminate brittle client-side custom JavaScript variables in GTM, every event pushes ready-to-use platform schemas directly alongside GA4:
 
 ### 1. Meta (Facebook/Instagram Pixel & Conversions API)
+* `meta.event_name`: Meta standard event (`'ViewContent'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'Purchase'`, `'AddToWishlist'`, `'Search'`, or `'Custom'`).
+* `meta.capi_event_name`: Meta Conversions API event name (`'ViewContent'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'Purchase'`, `'AddToWishlist'`, `'Search'`, or custom).
+* `meta.custom_event_name`: Custom event label when applicable (e.g., `'RemoveFromCart'`).
 * `meta.content_type`: `'product'` (PDP, cart, checkout, purchase) or `'product_group'` (category listings).
+* `meta.content_name`: Product name or listing category name.
+* `meta.content_category`: Product primary category.
 * `meta.content_ids`: Array of strings matching the catalog item ID (`retailer_id` in Meta Commerce Manager).
-* `meta.contents`: Array of line items with `{ id, quantity, item_price }`.
+* `meta.contents`: Array of line items matching Meta catalog specifications:
+  ```json
+  [
+    {
+      "id": "68_299",
+      "quantity": 2,
+      "item_price": 13.00,
+      "title": "Trink und Snack Tasse",
+      "item_name": "Trink und Snack Tasse",
+      "brand": "Dooky",
+      "category": "Trinkbecher"
+    }
+  ]
+  ```
 * `meta.num_items`: Total unit count on checkout and purchase.
+* `meta.order_id`: Authoritative Order Reference for `Purchase` (used for Browser Tag & CAPI deduplication).
 * `meta.currency` & `meta.value`: Normalized monetary value.
+* `meta.search_string`: Search query string on search results.
 
 ### 2. Pinterest Ads (Pinterest Tag & Conversions API)
 * `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'Checkout'`, `'Search'`, or `'Custom'`).
@@ -67,9 +87,31 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `pinterest.currency` & `pinterest.value`: Exact monetary figures.
 
 ### 3. TikTok (Pixel & Events API)
+* `tiktok.event_name`: TikTok Pixel standard event (`'ViewContent'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'CompletePayment'`, `'AddToWishlist'`, `'Search'`, or `'Custom'`).
+* `tiktok.capi_event_name`: TikTok Events API event name (`'ViewContent'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'CompletePayment'`, `'AddToWishlist'`, `'Search'`, or custom).
+* `tiktok.custom_event_name`: Custom event label when applicable (e.g., `'RemoveFromCart'`).
 * `tiktok.content_type`: `'product'` or `'product_group'`.
+* `tiktok.content_name`: Product name or listing category name.
+* `tiktok.content_category`: Product category.
 * `tiktok.content_id`: Top-level catalog SKU ID.
-* `tiktok.contents`: Array of line items with `{ content_id, content_type, content_name, quantity, price }`.
+* `tiktok.content_ids`: Array of strings matching catalog item IDs.
+* `tiktok.contents`: Array of line items matching TikTok Events API specifications:
+  ```json
+  [
+    {
+      "content_id": "68_299",
+      "content_type": "product",
+      "content_name": "Trink und Snack Tasse",
+      "content_category": "Trinkbecher",
+      "brand": "Dooky",
+      "quantity": 2,
+      "price": 13.00
+    }
+  ]
+  ```
+* `tiktok.quantity`: Total item count across all line items.
+* `tiktok.order_id`: Authoritative Order Reference for `CompletePayment` (used for Pixel & Events API deduplication).
+* `tiktok.query`: Search query string on search results.
 * `tiktok.currency` & `tiktok.value`: Normalized monetary value.
 
 ### 4. Google Ads Dynamic Remarketing (Retail Vertical)
@@ -87,18 +129,24 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 
 | GTM Variable Name | Data Layer Variable Path | Target Tag / Usage |
 | :--- | :--- | :--- |
+| `{{dlv - meta.event_name}}` | `meta.event_name` | Meta Pixel Event Name (`fbq('track', ...)`) |
+| `{{dlv - meta.capi_event_name}}` | `meta.capi_event_name` | Meta CAPI Event Name |
 | `{{dlv - meta.content_ids}}` | `meta.content_ids` | Meta Pixel `content_ids` |
 | `{{dlv - meta.content_type}}` | `meta.content_type` | Meta Pixel `content_type` (`product` / `product_group`) |
 | `{{dlv - meta.contents}}` | `meta.contents` | Meta Pixel / CAPI line-item breakdown |
+| `{{dlv - meta.order_id}}` | `meta.order_id` | Meta Pixel / CAPI `event_id` / transaction deduplication |
 | `{{dlv - pinterest.event_name}}` | `pinterest.event_name` | Pinterest Tag Event (`pintrk`) |
 | `{{dlv - pinterest.capi_event_name}}` | `pinterest.capi_event_name` | Pinterest Conversions API Event |
 | `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag & CAPI `line_items` parameter |
 | `{{dlv - pinterest.product_ids}}` | `pinterest.product_ids` | Pinterest Tag `product_ids` |
 | `{{dlv - pinterest.order_quantity}}` | `pinterest.order_quantity` | Pinterest Tag & CAPI `order_quantity` |
 | `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag & CAPI `order_id` (Deduplication) |
+| `{{dlv - tiktok.event_name}}` | `tiktok.event_name` | TikTok Pixel Event Name (`ttq.track(...)`) |
+| `{{dlv - tiktok.capi_event_name}}` | `tiktok.capi_event_name` | TikTok Events API Event Name |
 | `{{dlv - tiktok.contents}}` | `tiktok.contents` | TikTok Pixel / Events API `contents` array |
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |
 | `{{dlv - tiktok.content_id}}` | `tiktok.content_id` | TikTok Pixel `content_id` |
+| `{{dlv - tiktok.order_id}}` | `tiktok.order_id` | TikTok Pixel / Events API `event_id` / deduplication |
 | `{{dlv - google_ads.ecomm_prodid}}` | `google_ads.ecomm_prodid` | Google Ads Dynamic Remarketing: **Product ID** |
 | `{{dlv - google_ads.ecomm_pagetype}}` | `google_ads.ecomm_pagetype` | Google Ads Dynamic Remarketing: **Page Type** |
 | `{{dlv - google_ads.ecomm_totalvalue}}` | `google_ads.ecomm_totalvalue` | Google Ads Dynamic Remarketing: **Total Value** |

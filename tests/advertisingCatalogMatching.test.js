@@ -50,10 +50,15 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // Meta Pixel & CAPI namespace
     assert.ok(payload.meta, 'meta namespace must exist');
+    assert.strictEqual(payload.meta.event_name, 'ViewContent');
+    assert.strictEqual(payload.meta.capi_event_name, 'ViewContent');
     assert.strictEqual(payload.meta.content_type, 'product');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299'], 'Meta content_ids must match catalog item ID');
+    assert.strictEqual(payload.meta.content_name, 'Trink und Snack Tasse');
+    assert.strictEqual(payload.meta.content_category, 'Trinkbecher');
     assert.strictEqual(payload.meta.currency, 'EUR');
     assert.strictEqual(payload.meta.value, 13.00);
+    assert.strictEqual(payload.meta.num_items, 1);
     assert.strictEqual(payload.meta.contents.length, 1);
     assert.strictEqual(payload.meta.contents[0].id, '68_299');
     assert.strictEqual(payload.meta.contents[0].quantity, 1);
@@ -61,12 +66,20 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // TikTok Pixel & Events API namespace
     assert.ok(payload.tiktok, 'tiktok namespace must exist');
+    assert.strictEqual(payload.tiktok.event_name, 'ViewContent');
+    assert.strictEqual(payload.tiktok.capi_event_name, 'ViewContent');
     assert.strictEqual(payload.tiktok.content_type, 'product');
     assert.strictEqual(payload.tiktok.content_id, '68_299');
+    assert.deepStrictEqual(payload.tiktok.content_ids, ['68_299']);
+    assert.strictEqual(payload.tiktok.content_name, 'Trink und Snack Tasse');
+    assert.strictEqual(payload.tiktok.content_category, 'Trinkbecher');
     assert.strictEqual(payload.tiktok.currency, 'EUR');
     assert.strictEqual(payload.tiktok.value, 13.00);
+    assert.strictEqual(payload.tiktok.quantity, 1);
     assert.strictEqual(payload.tiktok.contents[0].content_id, '68_299');
     assert.strictEqual(payload.tiktok.contents[0].content_name, 'Trink und Snack Tasse');
+    assert.strictEqual(payload.tiktok.contents[0].content_category, 'Trinkbecher');
+    assert.strictEqual(payload.tiktok.contents[0].brand, 'Dooky');
     assert.strictEqual(payload.tiktok.contents[0].quantity, 1);
     assert.strictEqual(payload.tiktok.contents[0].price, 13.00);
 
@@ -306,13 +319,20 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.ecommerce.transaction_id, '1250');
 
     // Meta
+    assert.strictEqual(payload.meta.event_name, 'Purchase');
+    assert.strictEqual(payload.meta.capi_event_name, 'Purchase');
+    assert.strictEqual(payload.meta.order_id, '1250');
     assert.strictEqual(payload.meta.content_type, 'product');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299', '1033']);
     assert.strictEqual(payload.meta.num_items, 3);
     assert.strictEqual(payload.meta.value, 35.99);
 
     // TikTok
+    assert.strictEqual(payload.tiktok.event_name, 'CompletePayment');
+    assert.strictEqual(payload.tiktok.capi_event_name, 'CompletePayment');
+    assert.strictEqual(payload.tiktok.order_id, '1250');
     assert.strictEqual(payload.tiktok.content_type, 'product');
+    assert.strictEqual(payload.tiktok.quantity, 3);
     assert.strictEqual(payload.tiktok.contents.length, 2);
     assert.strictEqual(payload.tiktok.value, 35.99);
 
@@ -654,6 +674,94 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(purgePush.tiktok, null);
     assert.strictEqual(purgePush.google_ads, null);
     assert.strictEqual(purgePush.pinterest, null);
+  });
+
+  it('16. Meta & TikTok: Full schema verification across all standard and custom ecommerce events', function () {
+    const item1 = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 2
+    };
+
+    // 1. view_item -> Meta: ViewContent, TikTok: ViewContent
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 26.00, items: [item1] });
+    let p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'ViewContent');
+    assert.strictEqual(p.meta.capi_event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.capi_event_name, 'ViewContent');
+
+    // 2. view_item_list -> Meta: ViewCategory, TikTok: ViewContent
+    EDL.pushEvent('view_item_list', { currency: 'EUR', value: 26.00, item_list_name: 'Trinkbecher', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'ViewCategory');
+    assert.strictEqual(p.meta.capi_event_name, 'ViewCategory');
+    assert.strictEqual(p.tiktok.event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.capi_event_name, 'ViewContent');
+
+    // 3. add_to_cart -> Meta: AddToCart, TikTok: AddToCart
+    EDL.pushEvent('add_to_cart', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'AddToCart');
+    assert.strictEqual(p.meta.capi_event_name, 'AddToCart');
+    assert.strictEqual(p.tiktok.event_name, 'AddToCart');
+    assert.strictEqual(p.tiktok.capi_event_name, 'AddToCart');
+
+    // 4. remove_from_cart -> Meta: Custom (RemoveFromCart), TikTok: Custom (RemoveFromCart)
+    EDL.pushEvent('remove_from_cart', { currency: 'EUR', value: 13.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'Custom');
+    assert.strictEqual(p.meta.custom_event_name, 'RemoveFromCart');
+    assert.strictEqual(p.tiktok.event_name, 'Custom');
+    assert.strictEqual(p.tiktok.custom_event_name, 'RemoveFromCart');
+
+    // 5. begin_checkout -> Meta: InitiateCheckout, TikTok: InitiateCheckout
+    EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'InitiateCheckout');
+    assert.strictEqual(p.meta.capi_event_name, 'InitiateCheckout');
+    assert.strictEqual(p.tiktok.event_name, 'InitiateCheckout');
+    assert.strictEqual(p.tiktok.capi_event_name, 'InitiateCheckout');
+
+    // 6. add_shipping_info -> Meta: AddShippingInfo, TikTok: AddShippingInfo
+    EDL.pushEvent('add_shipping_info', { currency: 'EUR', value: 26.00, shipping_tier: 'DHL Express', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'AddShippingInfo');
+    assert.strictEqual(p.meta.capi_event_name, 'AddShippingInfo');
+    assert.strictEqual(p.tiktok.event_name, 'AddShippingInfo');
+    assert.strictEqual(p.tiktok.capi_event_name, 'AddShippingInfo');
+
+    // 7. add_payment_info -> Meta: AddPaymentInfo, TikTok: AddPaymentInfo
+    EDL.pushEvent('add_payment_info', { currency: 'EUR', value: 26.00, payment_type: 'Credit Card', items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.meta.capi_event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.tiktok.event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.tiktok.capi_event_name, 'AddPaymentInfo');
+
+    // 8. add_to_wishlist -> Meta: AddToWishlist, TikTok: AddToWishlist
+    EDL.pushEvent('add_to_wishlist', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'AddToWishlist');
+    assert.strictEqual(p.meta.capi_event_name, 'AddToWishlist');
+    assert.strictEqual(p.tiktok.event_name, 'AddToWishlist');
+    assert.strictEqual(p.tiktok.capi_event_name, 'AddToWishlist');
+
+    // 9. purchase -> Meta: Purchase, TikTok: CompletePayment
+    EDL.pushEvent('purchase', { transaction_id: 'ORD-5544', currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'Purchase');
+    assert.strictEqual(p.meta.capi_event_name, 'Purchase');
+    assert.strictEqual(p.meta.order_id, 'ORD-5544');
+    assert.strictEqual(p.tiktok.event_name, 'CompletePayment');
+    assert.strictEqual(p.tiktok.capi_event_name, 'CompletePayment');
+    assert.strictEqual(p.tiktok.order_id, 'ORD-5544');
   });
 
 });
