@@ -240,7 +240,9 @@
     var isSingleProduct = (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'add_to_wishlist') && items.length === 1;
 
     var pageType = 'other';
-    if (canonicalEventName === 'view_item_list') {
+    if (canonicalEventName === 'view_search_results' || canonicalEventName === 'search') {
+      pageType = 'searchresults';
+    } else if (canonicalEventName === 'view_item_list') {
       pageType = (options.listId && String(options.listId).indexOf('search') !== -1) ? 'searchresults' : 'category';
     } else if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'add_to_wishlist') {
       pageType = 'product';
@@ -633,7 +635,7 @@
     if (!isSearchListing && tiktokEnabled && (!tiktokEvents || tiktokEvents.indexOf(canonicalEventName) !== -1)) {
       result.tiktok = tiktokNamespace;
     }
-    if (gadsEnabled && canonicalEventName !== 'view_search_results' && canonicalEventName !== 'search' && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
+    if (gadsEnabled && (!gadsEvents || gadsEvents.indexOf(canonicalEventName) !== -1)) {
       result.google_ads = googleAdsNamespace;
     }
     if (!isSearchListing && pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {

@@ -156,7 +156,9 @@ class PayloadBuilder
         $isSingleProduct = in_array($canonicalEvent, ['view_item', 'select_item', 'add_to_wishlist']) && count($items) === 1;
 
         $pageType = 'other';
-        if ($canonicalEvent === 'view_item_list') {
+        if ($canonicalEvent === 'view_search_results' || $canonicalEvent === 'search') {
+            $pageType = 'searchresults';
+        } elseif ($canonicalEvent === 'view_item_list') {
             $pageType = (!empty($options['list_id']) && strpos((string)$options['list_id'], 'search') !== false) ? 'searchresults' : 'category';
         } elseif ($canonicalEvent === 'view_item' || $canonicalEvent === 'select_item') {
             $pageType = 'product';
@@ -653,7 +655,7 @@ class PayloadBuilder
         }
 
         $isGadsActive = ($gadsEvents === null) ? true : (is_array($gadsEvents) && in_array($canonicalEvent, $gadsEvents));
-        if ($gadsEnabled && !in_array($canonicalEvent, ['view_search_results', 'search']) && $isGadsActive) {
+        if ($gadsEnabled && $isGadsActive) {
             $result['google_ads'] = $googleAds;
         }
 

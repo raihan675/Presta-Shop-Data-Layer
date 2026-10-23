@@ -832,7 +832,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.tiktok.order_id, 'ORD-5544');
   });
 
-  it('17. view_search_results: GA4 search schema, Meta Search (search_string), TikTok Search (query), Pinterest Search (search_query), and strictly NO Google Ads', function () {
+  it('17. view_search_results: GA4 search schema, Meta Search (search_string), TikTok Search (query), Pinterest Search (search_query), and Google Ads Dynamic Remarketing', function () {
     EDL.setEventPrefix('raihan');
 
     const searchItem = {
@@ -903,8 +903,20 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.pinterest.line_items[0].product_id, '68_299');
     assert.strictEqual(payload.pinterest.contents, undefined, 'Pinterest contents must be omitted');
 
-    // GOOGLE ADS REMARKETING MUST BE STRICTLY EXCLUDED
-    assert.strictEqual(payload.google_ads, undefined, 'Google Ads Dynamic Remarketing must be strictly excluded from view_search_results');
+    // Google Ads namespace on view_search_results
+    assert.ok(payload.google_ads, 'google_ads namespace must exist on view_search_results');
+    assert.strictEqual(payload.google_ads.event_name, 'view_search_results');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.event_name, 'view_search_results');
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.ecomm_pagetype, 'searchresults');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
+    assert.strictEqual(payload.google_ads.dynamic_remarketing.search_term, 'Trinkbecher blau');
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
+      { id: '68_299', google_business_vertical: 'retail' }
+    ]);
+    assert.ok(payload.google_ads.conversion_data, 'conversion_data must exist on view_search_results');
+    assert.deepStrictEqual(payload.google_ads.conversion_data.items, [
+      { id: '68_299', quantity: 1, price: 13.00 }
+    ]);
   });
 
   it('18. Third-party theme search controllers (Warehouse/iqitsearch, Leo Search): Emits view_search_results with proper prefix and search parameters', function () {
@@ -951,7 +963,14 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.query, 'baby');
     assert.strictEqual(payload.pinterest.event_name, 'Search');
     assert.strictEqual(payload.pinterest.search_query, 'baby');
-    assert.strictEqual(payload.google_ads, undefined);
+    assert.ok(payload.google_ads, 'google_ads namespace must exist on view_search_results');
+    assert.strictEqual(payload.google_ads.ecomm_pagetype, 'searchresults');
+    assert.deepStrictEqual(payload.google_ads.ecomm_prodid, ['1066', '1186']);
+    assert.strictEqual(payload.google_ads.ecomm_totalvalue, 31.92);
+    assert.deepStrictEqual(payload.google_ads.dynamic_remarketing.items, [
+      { id: '1066', google_business_vertical: 'retail' },
+      { id: '1186', google_business_vertical: 'retail' }
+    ]);
   });
 
   it('19. Search Results Listing view_item_list isolation: Emits Google Ads Dynamic Remarketing (ecomm_pagetype: searchresults) and strictly excludes false ViewCategory / ViewContent on Meta, TikTok, and Pinterest', function () {
@@ -1038,8 +1057,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(phpCode.includes('id="master_\' . $pKey . \'"'), 'master_$pKey master toggle switch must exist');
     assert.ok(phpCode.includes('id="chevron_\' . $pKey . \'"'), 'chevron_$pKey accordion chevron must exist');
 
-    // 3. Verify Google Ads Dynamic Remarketing on view_search_results is marked Excluded
-    assert.ok(phpCode.includes("($pKey === 'gads' && $evtK === 'view_search_results')"), 'Google Ads on view_search_results must be specifically excluded');
+    // 3. Verify Google Ads Dynamic Remarketing on view_search_results has active specification
+    assert.ok(phpCode.includes("'gads_spec' => 'event: view_search_results, ecomm_pagetype: searchresults, ecomm_prodid: [ids], search_term, items'"), 'Google Ads on view_search_results must have active specification');
 
     // 4. Verify interactive JavaScript functions are defined
     assert.ok(phpCode.includes('function psGtmToggleAccordion(platformKey)'), 'psGtmToggleAccordion function must be present');

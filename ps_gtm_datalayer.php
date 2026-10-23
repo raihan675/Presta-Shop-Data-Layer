@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.19.1';
+        $this->version = '1.19.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -565,7 +565,7 @@ class Ps_Gtm_DataLayer extends Module
                 'desc' => 'Customer viewing on-site search results with search keyword and matching products',
                 'meta_spec' => 'fbq: Search, CAPI: Search, search_string, content_ids, contents',
                 'tiktok_spec' => 'ttq: Search, Events API: Search, query, content_ids, contents',
-                'gads_spec' => 'Excluded (Custom remarketing rule)',
+                'gads_spec' => 'event: view_search_results, ecomm_pagetype: searchresults, ecomm_prodid: [ids], search_term, items',
                 'pinterest_spec' => 'pintrk: Search, search_query, line_items, product_ids',
             ],
             'select_item' => [
@@ -904,12 +904,9 @@ class Ps_Gtm_DataLayer extends Module
 
         // Render Platform Accordion Panels
         foreach ($platforms as $pKey => $p) {
-            $totalSupportedEvents = ($pKey === 'gads') ? (count($events) - 1) : count($events);
+            $totalSupportedEvents = count($events);
             $activeCount = 0;
             foreach ($events as $evtK => $evtV) {
-                if ($pKey === 'gads' && $evtK === 'view_search_results') {
-                    continue;
-                }
                 if (in_array($evtK, $p['active_events'])) {
                     $activeCount++;
                 }
@@ -987,21 +984,16 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<tbody>';
 
             foreach ($events as $evtK => $e) {
-                $isExcluded = ($pKey === 'gads' && $evtK === 'view_search_results');
                 $isChecked = in_array($evtK, $p['active_events']);
 
                 $html .= '<tr>';
 
                 // Status Column
                 $html .= '<td style="text-align: center;">';
-                if ($isExcluded) {
-                    $html .= '<span class="label label-default" style="background:#eaeded; color:#7f8c8d; font-size: 10px; font-weight: normal; padding: 3px 6px;">' . $this->l('Excluded') . '</span>';
-                } else {
-                    $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
-                    $html .= '<input type="checkbox" name="adv_' . $pKey . '_' . $evtK . '" class="ps-gtm-evt-cb ps-gtm-evt-' . $pKey . '" data-platform="' . $pKey . '" value="1" ' . ($isChecked ? 'checked="checked"' : '') . ' onchange="psGtmOnEventToggle(\'' . $pKey . '\')">';
-                    $html .= '<span class="ps-gtm-slider"></span>';
-                    $html .= '</label>';
-                }
+                $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
+                $html .= '<input type="checkbox" name="adv_' . $pKey . '_' . $evtK . '" class="ps-gtm-evt-cb ps-gtm-evt-' . $pKey . '" data-platform="' . $pKey . '" value="1" ' . ($isChecked ? 'checked="checked"' : '') . ' onchange="psGtmOnEventToggle(\'' . $pKey . '\')">';
+                $html .= '<span class="ps-gtm-slider"></span>';
+                $html .= '</label>';
                 $html .= '</td>';
 
                 // Event Info Column
@@ -1013,16 +1005,10 @@ class Ps_Gtm_DataLayer extends Module
 
                 // Specification Column
                 $html .= '<td>';
-                if ($isExcluded) {
-                    $html .= '<div style="font-size: 11px; color: #7f8c8d; line-height: 1.4;">';
-                    $html .= '<em>' . $this->l('Excluded per custom remarketing architecture. Search result listing impressions are tracked via view_item_list (ecomm_pagetype: searchresults).') . '</em>';
-                    $html .= '</div>';
-                } else {
-                    $spec = isset($e[$p['spec_key']]) ? $e[$p['spec_key']] : '';
-                    $html .= '<div style="font-size: 11px; color: #2c3e50; font-family: monospace; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; line-height: 1.4;">';
-                    $html .= htmlspecialchars($spec);
-                    $html .= '</div>';
-                }
+                $spec = isset($e[$p['spec_key']]) ? $e[$p['spec_key']] : '';
+                $html .= '<div style="font-size: 11px; color: #2c3e50; font-family: monospace; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; line-height: 1.4;">';
+                $html .= htmlspecialchars($spec);
+                $html .= '</div>';
                 $html .= '</td>';
 
                 $html .= '</tr>';

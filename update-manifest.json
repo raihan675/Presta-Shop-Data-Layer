@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.19.1",
-    "release_date":  "2026-10-23",
+    "latest_version":  "1.19.2",
+    "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.19.1/ps_gtm_datalayer.zip",
-    "checksum":  "fb91d1031d7f5dc25747b69a3fa538e11fc2e18c36dbbbdedaebeba189634db9",
-    "release_type":  "patch",
-    "release_notes":  "1. Extended Google Ads Cart Data items array (conversion_data.items \u0026 cart_data.items with id, quantity, price) across all standard ecommerce events including add_to_cart, view_cart, and view_item.\n2. Both dynamic_remarketing and conversion_data items arrays are now populated and kept strictly separate."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.19.2/ps_gtm_datalayer.zip",
+    "checksum":  "1ae8782e01478d19b159f3c4676a9424fdfa58ecbe4b30e72adbf203e7357122",
+    "release_type":  "minor",
+    "release_notes":  "1. Enabled Google Ads Dynamic Remarketing and Cart Data on view_search_results (ecomm_pagetype: \u0027searchresults\u0027, search_term, items array with google_business_vertical: \u0027retail\u0027).\n2. Enabled active toggle for Google Ads on view_search_results in the Back Office Advertising Matrix."
 }

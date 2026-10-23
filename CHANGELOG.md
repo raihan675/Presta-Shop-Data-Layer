@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.19.2] - 2026-10-24
+
+### Added
+- **Google Ads Dynamic Remarketing and Cart Data for `view_search_results`**:
+  - Activated Google Ads dynamic remarketing on `view_search_results` with `ecomm_pagetype: 'searchresults'`, authoritative `ecomm_prodid` array, search query `search_term`, total matching value `ecomm_totalvalue`, and retail dynamic remarketing `items` (`google_business_vertical: 'retail'`).
+  - Added cart data items array (`conversion_data.items` and `cart_data.items`) containing search catalog item IDs, quantities, and prices.
+  - Enabled active toggle in the PrestaShop Back Office Advertising Event Routing Matrix for Google Ads on `view_search_results`.
+
+---
+
 ## [1.19.1] - 2026-10-23
 
 ### Fixed
