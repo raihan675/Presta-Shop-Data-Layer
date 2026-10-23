@@ -25,7 +25,8 @@ Critical Requirement: Before publishing, packaging, or deploying any code change
 Whenever ANY change, fix, or feature is made to the module, autonomously complete the following release pipeline without requiring additional instructions:
 
 1. **Version Alignment & Upgrade Migration**:
-   - Increment semantic version (e.g. `1.13.1` -> `1.13.2`) in:
+   - Update `README.md` guidelines, events table, and GTM variable mappings whenever new events or parameters are introduced.
+   - Increment semantic version (e.g. `1.14.0` -> `1.14.1`) in:
      - `ps_gtm_datalayer.php` (`$this->version = 'X.Y.Z';`)
      - `config.xml` (`<version><![CDATA[X.Y.Z]]></version>`)
      - `update-manifest.json` (`latest_version`, `download_url`, `release_notes`)

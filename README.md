@@ -17,16 +17,17 @@ The module supports all core ecommerce actions across the full customer funnel w
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
 | **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. | `ecommerce`, `meta` (`product_group`), `pinterest` (`ViewCategory`), `tiktok` (`product_group`), `google_ads` (`category` pagetype) |
-| **2** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
-| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
-| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
-| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`Custom: InitiateCheckout`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`Custom: AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...`). Captures authoritative `search_term` and `search_results_count` directly from PrestaShop core `Search::find`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`, `contents`), `tiktok` (`Search`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
+| **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
+| **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
+| **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`Custom: AddWishList`), `tiktok`, `google_ads` |
+| **6** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **7** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`Custom: InitiateCheckout`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`Custom: AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
+| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
 
 ---
 
@@ -90,6 +91,7 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `pinterest.product_ids`: Top-level array of product catalog IDs.
 * `pinterest.order_quantity`: Total item quantity in the event.
 * `pinterest.order_id`: Authoritative Order Reference for `Checkout` (used for 48-hour Tag & CAPI deduplication).
+* `pinterest.search_query`: Search query string captured on `view_search_results` / `Search`.
 * `pinterest.property`: Contextual metadata (carrier name for `AddShippingInfo`, payment method for `AddPaymentInfo`).
 * `pinterest.currency` & `pinterest.value`: Exact monetary figures.
 
@@ -126,6 +128,9 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `google_ads.ecomm_category`: Category name for category listing pages.
 * `google_ads.items`: Array of Google Tag item objects with `google_business_vertical: 'retail'`.
 
+> [!NOTE]
+> **Custom Search Architecture**: Google Ads Dynamic Remarketing is excluded from `view_search_results` per custom remarketing architecture, while standard `category` / `searchresults` pagetype remains active on `view_item_list`.
+
 ---
 
 ## Google Tag Manager (GTM) Variable Mapping
@@ -156,6 +161,11 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - ecommerce.currency}}` | `ecommerce.currency` | All tags (Currency ISO) |
 | `{{dlv - ecommerce.value}}` | `ecommerce.value` | All tags (Event Revenue) |
 | `{{dlv - user_data}}` | `user_data` | Enhanced Conversions, Meta Advanced Matching, Pinterest User Data |
+| `{{dlv - search_term}}` | `search_term` | GA4 / Enhanced Measurement Search Query |
+| `{{dlv - search_results_count}}` | `search_results_count` | Total Number of Search Results Found |
+| `{{dlv - meta.search_string}}` | `meta.search_string` | Meta Search Tag (`search_string`) |
+| `{{dlv - pinterest.search_query}}` | `pinterest.search_query` | Pinterest Search Tag (`search_query`) |
+| `{{dlv - tiktok.query}}` | `tiktok.query` | TikTok Search Tag (`query`) |
 
 ---
 

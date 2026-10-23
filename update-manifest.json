@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.0",
+    "latest_version":  "1.14.1",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.0/ps_gtm_datalayer.zip",
-    "checksum":  "d6766cc279c5ac43a57401656177985262016b0ed918776c79b1a0ac8844f122",
-    "release_type":  "minor",
-    "release_notes":  "1. Added official GA4 view_search_results event tracking with search_term, search_results_count, and eCommerce items array.\n2. Added native Meta Pixel/CAPI Search event with search_string and catalog matching content_ids/contents.\n3. Added native TikTok Pixel/Events API Search event with query and catalog matching content_ids/contents.\n4. Added native Pinterest Tag/CAPI Search event with search_query, line_items, product_ids, and contents.\n5. Strictly excluded Google Ads Dynamic Remarketing from view_search_results payloads.\n6. Handled dual search view (view_search_results + view_item_list) seamlessly in DataLayer initialization."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.1/ps_gtm_datalayer.zip",
+    "checksum":  "63c63447d7f1668f663fef0bc62811e88bfb18cd7437a2ad033d29c47ebad6af",
+    "release_type":  "patch",
+    "release_notes":  "1. Updated README.md documentation with complete view_search_results event guidelines.\n2. Added GTM variable mapping table entries for search_term, search_results_count, meta.search_string, pinterest.search_query, and tiktok.query.\n3. Synchronized version and cleared Smarty caches."
 }

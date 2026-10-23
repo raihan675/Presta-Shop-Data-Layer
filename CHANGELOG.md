@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.1] - 2026-10-23
+
+### Documentation & Guidelines
+- **Comprehensive Documentation Updates in `README.md`**:
+  - Added `view_search_results` to the Supported E-Commerce Events table with authoritative database search sourcing.
+  - Documented `pinterest.search_query` under Pinterest Ads specifications.
+  - Added custom search remarketing architecture note under Google Ads Dynamic Remarketing.
+  - Added full Google Tag Manager Data Layer Variable (DLV) mapping table entries for `{{dlv - search_term}}`, `{{dlv - search_results_count}}`, `{{dlv - meta.search_string}}`, `{{dlv - pinterest.search_query}}`, and `{{dlv - tiktok.query}}`.
+
+---
+
 ## [1.14.0] - 2026-10-23
 
 ### Added
