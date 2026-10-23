@@ -7,6 +7,8 @@
   'use strict';
 
   if (!EDL) return;
+  if (window.__psGtmAdapterLoaded) return;
+  window.__psGtmAdapterLoaded = true;
 
   function syncConfig() {
     if (window.psGtmConfig && window.psGtmConfig.eventPrefix !== undefined) {
@@ -819,9 +821,11 @@
     function handleSelectItem(idProduct) {
       if (!idProduct) return;
       var now = new Date().getTime();
-      if (lastSelectedItemId === String(idProduct) && (now - lastSelectedItemTime < 1000)) {
-        return; // Debounce duplicate/rapid clicks
+      if (lastSelectedItemId === String(idProduct) && (now - lastSelectedItemTime < 1500)) {
+        return; // Debounce duplicate/rapid clicks within 1500ms
       }
+      lastSelectedItemId = String(idProduct);
+      lastSelectedItemTime = now;
 
       var list = window.psGtmConfig && window.psGtmConfig.currentList;
       var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
@@ -1068,7 +1072,8 @@
         '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
         '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
         '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
-        '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], .quick-view'
+        '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], ' +
+        '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"]'
       );
       if (isCartOrActionElement) {
         return;

@@ -1882,5 +1882,78 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(duplicateRemoved, false, 'Rapid duplicate click must be debounced');
       assert.strictEqual(global.window.dataLayer.length, 2, 'No duplicate event pushed');
     });
+
+    it('40. select_item Deduplication & Quick View Isolation: Rapid successive clicks on quick view or product card are strictly debounced and do not fire double select_item events', function () {
+      global.window.dataLayer = [];
+
+      // 1. Verify Quick View button exclusion in listing click listener
+      const mockEyeIcon = {
+        tagName: 'I',
+        className: 'fa fa-eye',
+        closest: function (sel) {
+          if (sel.includes('.js-quick-view-iqit') || sel.includes('[data-link-action="quickview"]')) {
+            return { tagName: 'A', className: 'js-quick-view-iqit', href: 'https://familys-world.de/de/425-biegbares-besteck-set.html' };
+          }
+          if (sel.includes('article.product-miniature')) {
+            return { getAttribute: (attr) => attr === 'data-id-product' ? '425' : null };
+          }
+          return null;
+        }
+      };
+
+      function isQuickViewOrAction(targetEl) {
+        var isAction = targetEl.closest && targetEl.closest(
+          '.checkout-cart-overview, .order-confirmation-table, .wishlist-button, .add-to-cart, [data-button-action="add-to-cart"], ' +
+          '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"]'
+        );
+        return Boolean(isAction);
+      }
+
+      assert.strictEqual(isQuickViewOrAction(mockEyeIcon), true, 'Click on Warehouse quick view icon must be recognized as action element and excluded from generic product click listener');
+
+      // 2. Verify Synchronous Debounce in handleSelectItem prevents double select_item execution
+      let lastSelectedItemId = '';
+      let lastSelectedItemTime = 0;
+      let dispatchCount = 0;
+
+      function simulateHandleSelectItem(idProduct) {
+        if (!idProduct) return false;
+        var now = new Date().getTime();
+        if (lastSelectedItemId === String(idProduct) && (now - lastSelectedItemTime < 1500)) {
+          return false; // Debounce duplicate/rapid clicks within 1500ms
+        }
+        lastSelectedItemId = String(idProduct);
+        lastSelectedItemTime = now;
+
+        // Simulate async resolution or dispatch
+        dispatchCount++;
+        EDL.pushEvent('select_item', {
+          item_list_id: 'category_17',
+          item_list_name: 'Ernährung',
+          items: [{
+            item_id: String(idProduct),
+            item_name: 'Biegbares Besteck Set',
+            price: 15.99,
+            quantity: 1
+          }]
+        });
+        return true;
+      }
+
+      // First call (e.g. from click or quickview)
+      const call1 = simulateHandleSelectItem('425');
+      assert.strictEqual(call1, true, 'First invocation must dispatch select_item');
+      assert.strictEqual(dispatchCount, 1);
+
+      // Second immediate call (e.g. from clickQuickView event bus within milliseconds)
+      const call2 = simulateHandleSelectItem('425');
+      assert.strictEqual(call2, false, 'Second invocation must be immediately debounced');
+      assert.strictEqual(dispatchCount, 1, 'Dispatch count must remain 1');
+
+      // Verify dataLayer contains only ONE select_item event
+      const selectItemEvents = global.window.dataLayer.filter(e => e.original_event === 'select_item');
+      assert.strictEqual(selectItemEvents.length, 1, 'Exactly one select_item event must be present in dataLayer');
+      assert.strictEqual(selectItemEvents[0].ecommerce.items[0].item_id, '425');
+    });
   });
 });

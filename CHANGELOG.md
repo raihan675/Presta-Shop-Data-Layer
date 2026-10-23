@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.4] - 2026-10-23
+
+### Fixed
+- **Strict `select_item` Event Deduplication & Quick View Isolation**:
+  - **Synchronous Click Debouncing**: Moved `lastSelectedItemId` and `lastSelectedItemTime` assignment to the entry of `handleSelectItem()`, preventing concurrent asynchronous resolution callbacks from dispatching duplicate `select_item` events during HTTP AJAX product resolution.
+  - **Quick View Selector Exclusion**: Expanded listing click event exclusions to include theme-specific Quick View button selectors (`.js-quick-view-iqit`, `.js-quick-view`, `[data-link-action="quickview"]`, `[data-link-action="quick-view"]`), preventing capture click listeners from executing in tandem with PrestaShop core `clickQuickView` event bus listeners.
+  - **Adapter Re-entrancy Protection**: Added `window.__psGtmAdapterLoaded` initialization guard in `prestashop-adapter.js` to guarantee single-instance DOM event listener binding.
+
+---
+
 ## [1.14.3] - 2026-10-23
 
 ### Fixed

@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.3",
+    "latest_version":  "1.14.4",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.3/ps_gtm_datalayer.zip",
-    "checksum":  "f09c10afaa2148db48519fb099ebd53f01f102a7e0b070f9080adac6296816af",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.4/ps_gtm_datalayer.zip",
+    "checksum":  "26fbfe96a59776b9d1d32d8606c370df5e524cf07f748efefa3636e55946cd84",
     "release_type":  "patch",
-    "release_notes":  "1. Resolved search results dual-event sequencing and deduplication between view_search_results and view_item_list.\n2. Suppressed duplicate items array on view_search_results ecommerce payload, preventing double list impressions in GA4.\n3. Strictly isolated search listings on view_item_list, eliminating false ViewCategory / ViewContent emissions on Meta, TikTok, and Pinterest.\n4. Optimized search backend to load catalog results in a single query and share them between search events.\n5. Maintained Google Ads Dynamic Remarketing ecomm_pagetype: searchresults on listing impression event."
+    "release_notes":  "1. Fixed select_item double-firing on Quick View and product cards.\n2. Implemented synchronous click debouncing in handleSelectItem before asynchronous product resolution.\n3. Isolated Quick View selectors (.js-quick-view-iqit, data-link-action=quickview) from generic listing click listener.\n4. Added single-instance adapter re-entrancy guard to prevent duplicate event listener bindings."
 }
