@@ -569,7 +569,8 @@ class PayloadBuilder
     public function buildPagePayload($controller, $params)
     {
         if (self::isSearchController($controller, $this->context)) {
-            return $this->buildViewItemListPayload('search');
+            $query = self::getSearchQuery();
+            return $this->buildViewSearchResultsPayload($query, null, [], true);
         }
 
         switch ($controller) {
@@ -577,7 +578,6 @@ class PayloadBuilder
                 return $this->buildViewItemPayload();
             case 'category':
             case 'manufacturer':
-            case 'search':
             case 'index':
             case 'prices-drop':
             case 'new-products':
@@ -799,32 +799,6 @@ class PayloadBuilder
                     }
                 }
             }
-        } elseif (self::isSearchController($controller, $this->context)) {
-            $query = self::getSearchQuery();
-            if ($query) {
-                $listId = 'search_results';
-                $listName = 'Search: ' . $query;
-                $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
-                $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
-                if (class_exists('Search') && method_exists('Search', 'find')) {
-                    $searchRes = Search::find($idLanguage, $query, $p, $n, 'position', 'desc');
-                    if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
-                        $idx = 1;
-                        foreach ($searchRes['result'] as $pItem) {
-                            $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
-                            if (!empty($pItem['manufacturer_name'])) {
-                                $productObj->manufacturer_name = $pItem['manufacturer_name'];
-                            }
-                            $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
-                            $item = $this->formatItem($productObj, 0, 1, $price);
-                            $item['index'] = $idx++;
-                            $item['item_list_id'] = $listId;
-                            $item['item_list_name'] = $listName;
-                            $items[] = $item;
-                        }
-                    }
-                }
-            }
         }
 
         if (empty($items)) {
@@ -845,7 +819,6 @@ class PayloadBuilder
             'list_id' => $listId,
             'list_name' => $listName,
             'category_name' => ($controller === 'category') ? $listName : '',
-            'search_term' => self::isSearchController($controller, $this->context) ? self::getSearchQuery() : '',
         ]);
 
         return array_merge([
@@ -869,9 +842,10 @@ class PayloadBuilder
      * @param string|null $searchTerm
      * @param int|null $resultsCount
      * @param array $items
+     * @param bool $includeEcommerceItems
      * @return array|null
      */
-    public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [], $includeEcommerceItems = false)
+    public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [], $includeEcommerceItems = true)
     {
         $query = ($searchTerm !== null && trim((string)$searchTerm) !== '')
             ? trim((string)$searchTerm)
@@ -903,8 +877,6 @@ class PayloadBuilder
                         $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
                         $item = $this->formatItem($productObj, 0, 1, $price);
                         $item['index'] = $idx++;
-                        $item['item_list_id'] = 'search_results';
-                        $item['item_list_name'] = 'Search: ' . $query;
                         $items[] = $item;
                     }
                 }
@@ -930,8 +902,6 @@ class PayloadBuilder
         $platformNamespaces = $this->buildPlatformNamespaces('view_search_results', $items, $currencyCode, $totalValue, [
             'search_term' => $query,
             'results_count' => $totalResultsCount,
-            'list_id' => 'search_results',
-            'list_name' => 'Search: ' . $query,
         ]);
 
         $ecommerceData = [

@@ -2033,5 +2033,63 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
       assert.strictEqual(push.google_ads.ecomm_totalvalue, 59.97);
       assert.deepStrictEqual(push.google_ads.ecomm_prodid, ['1149']);
     });
+
+    it('42. Search & List Separation: Search results emits strictly view_search_results (without view_item_list), Category emits strictly view_item_list, and select_item from search uses clean product identity', function () {
+      global.window.dataLayer = [];
+      EDL.setEventPrefix('ps');
+
+      // Test Search Action
+      EDL.pushEvent('view_search_results', {
+        search_term: 'baby',
+        search_results_count: 3,
+        currency: 'EUR',
+        items: [
+          { item_id: '1066', item_name: 'Babyflasche', price: 10.92, quantity: 1, item_category: 'Babyflasche' }
+        ]
+      });
+
+      const events = global.window.dataLayer.filter(e => e && e.event);
+      assert.strictEqual(events.length, 1);
+      assert.strictEqual(events[0].event, 'ps_view_search_results');
+      assert.strictEqual(events[0].original_event, 'view_search_results');
+      assert.strictEqual(events[0].search_term, 'baby');
+      assert.strictEqual(events[0].search_results_count, 3);
+      assert.strictEqual(events[0].ecommerce.search_term, 'baby');
+      assert.strictEqual(events[0].ecommerce.item_list_id, undefined, 'Must not contain synthetic list_id');
+      assert.strictEqual(events[0].ecommerce.item_list_name, undefined, 'Must not contain synthetic list_name');
+
+      // Test Category Action
+      global.window.dataLayer = [];
+      EDL.pushEvent('view_item_list', {
+        item_list_id: 'category_12',
+        item_list_name: 'Trinkbecher',
+        currency: 'EUR',
+        value: 13.00,
+        items: [
+          { item_id: '68', item_name: 'Trinkbecher', price: 13.00, quantity: 1, item_list_id: 'category_12', item_list_name: 'Trinkbecher' }
+        ]
+      });
+
+      const catEvents = global.window.dataLayer.filter(e => e && e.event);
+      assert.strictEqual(catEvents.length, 1);
+      assert.strictEqual(catEvents[0].event, 'ps_view_item_list');
+      assert.strictEqual(catEvents[0].ecommerce.item_list_id, 'category_12');
+      assert.strictEqual(catEvents[0].ecommerce.item_list_name, 'Trinkbecher');
+
+      // Test select_item when selecting from search results
+      global.window.dataLayer = [];
+      EDL.pushEvent('select_item', {
+        items: [
+          { item_id: '1066', item_name: 'Babyflasche', price: 10.92, quantity: 1, item_category: 'Babyflasche' }
+        ]
+      });
+
+      const selectEvents = global.window.dataLayer.filter(e => e && e.event);
+      assert.strictEqual(selectEvents.length, 1);
+      assert.strictEqual(selectEvents[0].event, 'ps_select_item');
+      assert.strictEqual(selectEvents[0].ecommerce.items[0].item_id, '1066');
+      assert.notStrictEqual(selectEvents[0].ecommerce.item_list_id, 'search_results');
+      assert.notStrictEqual(selectEvents[0].ecommerce.item_list_name, 'Search: baby');
+    });
   });
 });

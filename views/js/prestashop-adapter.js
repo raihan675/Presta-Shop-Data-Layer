@@ -849,6 +849,15 @@
           }
         }
       }
+      if (!matchedItem && window.psGtmConfig && window.psGtmConfig.searchResults && Array.isArray(window.psGtmConfig.searchResults.items)) {
+        var sItems = window.psGtmConfig.searchResults.items;
+        for (var si = 0; si < sItems.length; si++) {
+          if (String(sItems[si].item_id) === String(idProduct)) {
+            matchedItem = sItems[si];
+            break;
+          }
+        }
+      }
 
       // Tier 1: Current hydrated list
       var listId = (list && list.item_list_id) || (matchedItem && matchedItem.item_list_id) || '';
@@ -1413,10 +1422,7 @@
 
         if (window.psGtmConfig) {
           window.psGtmConfig.pageContext = window.psGtmConfig.pageContext || {};
-          if (!window.psGtmConfig.pageContext.list_id) {
-            window.psGtmConfig.pageContext.list_id = 'search_results';
-            window.psGtmConfig.pageContext.list_name = 'Search: ' + query;
-          }
+          window.psGtmConfig.pageContext.search_term = query;
         }
 
         var hasSearchEventPushed = false;
@@ -1431,7 +1437,7 @@
         }
 
         if (!hasSearchEventPushed && EDL && typeof EDL.pushEvent === 'function') {
-          var listItems = (window.psGtmConfig && window.psGtmConfig.currentList && window.psGtmConfig.currentList.items) || [];
+          var listItems = (window.psGtmConfig && window.psGtmConfig.searchResults && window.psGtmConfig.searchResults.items) || (window.psGtmConfig && window.psGtmConfig.currentList && window.psGtmConfig.currentList.items) || [];
           EDL.pushEvent('view_search_results', {
             search_term: query,
             search_results_count: listItems.length,

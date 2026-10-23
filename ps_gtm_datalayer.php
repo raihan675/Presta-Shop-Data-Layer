@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.18.1';
+        $this->version = '1.18.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1410,23 +1410,21 @@ class Ps_Gtm_DataLayer extends Module
             $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
             $isSearch = PayloadBuilder::isSearchController($controller, $this->context);
             $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
-            $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
             $initialPayloads = [];
             if ($isSearch) {
                 $searchQuery = PayloadBuilder::getSearchQuery();
                 if ($searchQuery !== '') {
-                    $searchItems = (!empty($serverPayload['ecommerce']['items']) && is_array($serverPayload['ecommerce']['items']))
-                        ? $serverPayload['ecommerce']['items']
-                        : [];
-                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery, null, $searchItems, false);
+                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery, null, [], true);
                     if ($searchPayload) {
                         $initialPayloads[] = $searchPayload;
                     }
                 }
-            }
-            if ($serverPayload) {
-                $initialPayloads[] = $serverPayload;
+            } else {
+                $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
+                if ($serverPayload) {
+                    $initialPayloads[] = $serverPayload;
+                }
             }
 
             // Pre-build combinations dictionary for PDP directly from database models
@@ -1476,8 +1474,9 @@ class Ps_Gtm_DataLayer extends Module
                 $pageContext['list_name'] = 'Cart Cross-Sell';
             } elseif ($isSearch) {
                 $searchQuery = PayloadBuilder::getSearchQuery();
-                $pageContext['list_id'] = 'search_results';
-                $pageContext['list_name'] = $searchQuery ? 'Search: ' . $searchQuery : 'Search Results';
+                $pageContext['list_id'] = '';
+                $pageContext['list_name'] = '';
+                $pageContext['search_term'] = $searchQuery;
             } elseif ($controller === 'prices-drop') {
                 $pageContext['list_id'] = 'on_sale';
                 $pageContext['list_name'] = 'On Sale Products';

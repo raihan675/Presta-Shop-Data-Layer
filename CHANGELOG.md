@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.18.2] - 2026-10-23
+
+### Fixed
+- **Strict Separation of Search vs Product-List Events**:
+  - Eliminated consecutive dual-event firing on search pages: executing an on-site search or visiting search results now fires strictly `view_search_results`, and no longer automatically fires an unintended `view_item_list` immediately after.
+  - Sourced `view_search_results` with authoritative search intent parameters (`search_term`, `search_results_count`) and catalog matching products (`items`) directly into GA4 and advertising namespaces (Meta `Search`, TikTok `Search`, Pinterest `Search`).
+  - Preserved `view_item_list` strictly for genuine product catalog listing contexts (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**) with authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`).
+  - Removed misleading synthetic strings (`item_list_id: "search_results"` and `item_list_name: "Search: <term>"`) from search results items and page contexts.
+  - Enhanced `select_item` to resolve product items from search results or categories cleanly without injecting synthetic search list IDs.
+
+---
+
 ## [1.18.1] - 2026-10-23
 
 ### Fixed

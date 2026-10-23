@@ -133,6 +133,17 @@
               items: p.ecommerce.items || []
             };
             window.psGtmConfig.currency = p.ecommerce.currency || 'EUR';
+          } else if (p.original_event === 'view_search_results' && p.ecommerce) {
+            window.psGtmConfig.searchResults = {
+              search_term: p.search_term || (p.ecommerce && p.ecommerce.search_term) || '',
+              items: p.ecommerce.items || []
+            };
+            window.psGtmConfig.currentList = {
+              item_list_id: '',
+              item_list_name: '',
+              items: p.ecommerce.items || []
+            };
+            window.psGtmConfig.currency = p.ecommerce.currency || 'EUR';
           }
           window.dataLayer.push({
             ecommerce: null,

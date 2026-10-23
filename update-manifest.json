@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.18.1",
+    "latest_version":  "1.18.2",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.1/ps_gtm_datalayer.zip",
-    "checksum":  "be23d05fcdb798c8191dcd5abe5fff90d90e77844a2d07cc675046795ce1c96a",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.2/ps_gtm_datalayer.zip",
+    "checksum":  "56780de42045c26706416e45cacdd20d8af098de68a92af70128611806ae8de2",
     "release_type":  "patch",
-    "release_notes":  "1. Fixed remove_from_cart multi-quantity resolution to accurately capture the full line item quantity (e.g. 3 units) instead of defaulting to 1.\n2. Guaranteed multi-quantity pricing reconciliation across GA4, Meta, Pinterest, TikTok, and Google Ads.\n3. Enhanced cart DOM line inspection and in-memory delta synchronization."
+    "release_notes":  "1. Separated view_search_results and view_item_list events strictly by actual user actions.\n2. Eliminated consecutive dual-event firing on search pages; only view_search_results fires on search actions.\n3. Preserved view_item_list strictly for genuine product listings (Category, Home Featured, Brand, On Sale, New Products, Best Sellers) with authentic list IDs and names.\n4. Cleaned up synthetic item_list_id (\u0027search_results\u0027) and item_list_name (\u0027Search: \u003cterm\u003e\u0027) parameters."
 }

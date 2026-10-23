@@ -16,8 +16,8 @@ The module supports all core ecommerce actions across the full customer funnel w
 
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
-| **1** | **`view_item_list`** | Visiting a **Category**, **Search Results**, or **Brand / Manufacturer** listing page. On search pages, carries `item_list_id: 'search_results'`, `ecomm_pagetype: 'searchresults'`, and avoids duplicate category signals. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` or `searchresults` pagetype), `meta`/`pinterest`/`tiktok` on standard categories |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme controllers). Captures search intent with authoritative `search_term` and `search_results_count`. | `ecommerce` (`search_term`, `search_results_count`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
+| **1** | **`view_item_list`** | Visiting a genuine product listing page (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**). Carries authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`). Never fires on search pages. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` pagetype), `meta` (`ViewCategory`), `pinterest` (`ViewCategory`), `tiktok` (`ViewContent`) |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme search controllers). Strictly represents search action with authoritative `search_term`, `search_results_count`, and returned `items`. Never triggers `view_item_list`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), *(Google Ads Remarketing excluded)* |
 | **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
 | **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
 | **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads` |
@@ -137,9 +137,9 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `google_ads.items`: Array of Google Tag item objects with `google_business_vertical: 'retail'`.
 
 > [!NOTE]
-> **Search Architecture & Dual-Event Role Separation**:
-> * `view_search_results`: Communicates search intent and query parameters (`search_term`, `search_results_count`) to GA4 Site Search reports, and triggers authoritative `Search` tracking across Meta, TikTok, and Pinterest. To prevent double item impressions in GA4, product items are cleanly delegated to `view_item_list`.
-> * `view_item_list`: Communicates product catalog impressions (`item_list_id: 'search_results'`, `item_list_name: 'Search: <query>'`, `items: [...]`) to GA4 Monetization Item List reports, and triggers Google Ads Dynamic Remarketing with `ecomm_pagetype: 'searchresults'`. On search listings, false `ViewCategory` / `ViewContent` emissions are strictly suppressed for Meta, TikTok, and Pinterest.
+> **Strict Event Separation: Search vs Product-List Tracking**:
+> * `view_search_results`: Strictly fires when a user performs a search action and views on-site search results. Communicates search intent and query parameters (`search_term`, `search_results_count`) alongside returned catalog `items` directly to GA4 Site Search reports, and triggers authoritative `Search` tracking across Meta, TikTok, and Pinterest.
+> * `view_item_list`: Strictly fires only when a user visits genuine product lists (Category, Home Featured, Brand, On Sale, New Products, Best Sellers) with authentic list IDs and names. A search page is never classified as a product list, and `view_item_list` never fires automatically following `view_search_results`.
 
 ---
 

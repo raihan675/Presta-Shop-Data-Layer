@@ -1210,4 +1210,95 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(engineCode.includes('public static function normalizeMetaPhone'), 'normalizeMetaPhone method must exist in CustomerDataEngine');
   });
 
+  it('25. Search vs Product-List Event Separation: view_search_results fires strictly for search without view_item_list, and view_item_list fires strictly for genuine listings', function () {
+    const fs = require('fs');
+    const path = require('path');
+
+    // 1. Reset dataLayer state
+    global.window.dataLayer = [];
+    EDL.setEventPrefix('ps');
+
+    const searchProduct = {
+      item_id: '1066',
+      sku_id: '00081211300000',
+      item_name: 'Chicco Natural Feeling Glas-Babyflasche',
+      item_brand: 'Chicco',
+      item_category: 'Babyflasche',
+      price: 10.92,
+      quantity: 1,
+      index: 1
+    };
+
+    // Scenario 1: User performs a search for "baby"
+    EDL.pushEvent('view_search_results', {
+      search_term: 'baby',
+      search_results_count: 5,
+      currency: 'EUR',
+      value: 10.92,
+      items: [searchProduct]
+    });
+
+    const pushedEvents = global.window.dataLayer.filter(p => p && p.event);
+    assert.strictEqual(pushedEvents.length, 1, 'Exactly one ecommerce event must be pushed to dataLayer on search');
+    const searchPayload = pushedEvents[0];
+
+    assert.strictEqual(searchPayload.event, 'ps_view_search_results');
+    assert.strictEqual(searchPayload.original_event, 'view_search_results');
+    assert.strictEqual(searchPayload.search_term, 'baby');
+    assert.strictEqual(searchPayload.search_results_count, 5);
+    assert.strictEqual(searchPayload.ecommerce.search_term, 'baby');
+    assert.strictEqual(searchPayload.ecommerce.items.length, 1);
+    assert.strictEqual(searchPayload.ecommerce.items[0].item_list_id, undefined, 'Search result items must not have synthetic item_list_id');
+    assert.strictEqual(searchPayload.ecommerce.items[0].item_list_name, undefined, 'Search result items must not have synthetic item_list_name');
+
+    // Scenario 2: User opens a category listing page
+    global.window.dataLayer = [];
+    const categoryProduct = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      price: 13.00,
+      quantity: 1,
+      index: 1,
+      item_list_id: 'category_12',
+      item_list_name: 'Trinkbecher'
+    };
+
+    EDL.pushEvent('view_item_list', {
+      item_list_id: 'category_12',
+      item_list_name: 'Trinkbecher',
+      currency: 'EUR',
+      value: 13.00,
+      items: [categoryProduct]
+    });
+
+    const categoryEvents = global.window.dataLayer.filter(p => p && p.event);
+    assert.strictEqual(categoryEvents.length, 1, 'Exactly one ecommerce event must be pushed on category page');
+    const listPayload = categoryEvents[0];
+
+    assert.strictEqual(listPayload.event, 'ps_view_item_list');
+    assert.strictEqual(listPayload.original_event, 'view_item_list');
+    assert.strictEqual(listPayload.ecommerce.item_list_id, 'category_12');
+    assert.strictEqual(listPayload.ecommerce.item_list_name, 'Trinkbecher');
+    assert.strictEqual(listPayload.meta.event_name, 'ViewCategory');
+    assert.strictEqual(listPayload.tiktok.event_name, 'ViewContent');
+    assert.strictEqual(listPayload.pinterest.event_name, 'ViewCategory');
+    assert.strictEqual(listPayload.google_ads.ecomm_pagetype, 'category');
+
+    // Scenario 3: Verify backend source architecture
+    const payloadBuilderCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'PayloadBuilder.php'), 'utf8');
+    const moduleMainCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8');
+
+    // PayloadBuilder must route search directly to buildViewSearchResultsPayload and not buildViewItemListPayload
+    assert.ok(payloadBuilderCode.includes("if (self::isSearchController($controller, $this->context)) {\n            $query = self::getSearchQuery();\n            return $this->buildViewSearchResultsPayload($query, null, [], true);\n        }"), 'buildPagePayload must directly return buildViewSearchResultsPayload on search controllers');
+    assert.ok(!payloadBuilderCode.includes("$listId = 'search_results';\n                $listName = 'Search: ' . $query;"), 'buildViewItemListPayload must not contain searchresults branches');
+
+    // ps_gtm_datalayer.php must not push both search and list payloads
+    assert.ok(!moduleMainCode.includes("$initialPayloads[] = $searchPayload;\n                    }\n                }\n            }\n            if ($serverPayload) {\n                $initialPayloads[] = $serverPayload;"), 'ps_gtm_datalayer.php must not push both searchPayload and serverPayload');
+    assert.ok(!moduleMainCode.includes("$pageContext['list_id'] = 'search_results';"), 'ps_gtm_datalayer.php must not assign list_id: search_results');
+  });
+
 });
