@@ -263,6 +263,7 @@
     var googleItems = [];
     var pinterestProdIds = [];
     var pinterestLineItems = [];
+    var pinterestContents = [];
     var totalNumItems = 0;
 
     for (var i = 0; i < items.length; i++) {
@@ -279,23 +280,20 @@
       if (metaContentIds.indexOf(metaId) === -1) {
         metaContentIds.push(metaId);
       }
+      // Meta official contents schema: id, quantity, item_price
       metaContents.push({
         id: metaId,
         quantity: itemQty,
-        item_price: itemPrice,
-        title: String(it.item_name || ''),
-        item_name: String(it.item_name || ''),
-        brand: String(it.item_brand || ''),
-        category: String(it.item_category || '')
+        item_price: itemPrice
       });
 
+      // TikTok official contents schema: content_id, content_type, content_name, content_category, quantity, price
       var ttId = isList ? String(it.item_id) : catId;
       tiktokContents.push({
         content_id: ttId,
         content_type: 'product',
         content_name: String(it.item_name || ''),
         content_category: String(it.item_category || ''),
-        brand: String(it.item_brand || ''),
         quantity: itemQty,
         price: itemPrice
       });
@@ -313,6 +311,7 @@
       if (pinterestProdIds.indexOf(catId) === -1) {
         pinterestProdIds.push(catId);
       }
+      // Pinterest Web Tag official line_items schema
       pinterestLineItems.push({
         product_id: catId,
         product_name: String(it.item_name || ''),
@@ -323,53 +322,50 @@
         product_variant: String(it.item_variant || ''),
         product_variant_id: (it.variant_id !== undefined && it.variant_id !== null && String(it.variant_id) !== '0') ? String(it.variant_id) : ''
       });
+
+      // Pinterest Conversions API (CAPI v5) official contents schema
+      pinterestContents.push({
+        id: catId,
+        item_name: String(it.item_name || ''),
+        item_price: itemPrice,
+        quantity: itemQty,
+        item_category: String(it.item_category || ''),
+        item_brand: String(it.item_brand || '')
+      });
     }
 
     // Meta Event Name Resolution
     var metaEventName = 'Custom';
-    var metaCapiName = 'Custom';
     var metaCustomName = null;
 
     if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
       metaEventName = 'ViewContent';
-      metaCapiName = 'ViewContent';
     } else if (canonicalEventName === 'view_item_list') {
       metaEventName = 'ViewCategory';
-      metaCapiName = 'ViewCategory';
     } else if (canonicalEventName === 'add_to_cart') {
       metaEventName = 'AddToCart';
-      metaCapiName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
       metaEventName = 'Purchase';
-      metaCapiName = 'Purchase';
     } else if (canonicalEventName === 'search') {
       metaEventName = 'Search';
-      metaCapiName = 'Search';
     } else if (canonicalEventName === 'add_to_wishlist') {
       metaEventName = 'AddToWishlist';
-      metaCapiName = 'AddToWishlist';
     } else if (canonicalEventName === 'begin_checkout') {
       metaEventName = 'InitiateCheckout';
-      metaCapiName = 'InitiateCheckout';
     } else if (canonicalEventName === 'add_shipping_info') {
       metaEventName = 'AddShippingInfo';
-      metaCapiName = 'AddShippingInfo';
     } else if (canonicalEventName === 'add_payment_info') {
       metaEventName = 'AddPaymentInfo';
-      metaCapiName = 'AddPaymentInfo';
     } else if (canonicalEventName === 'remove_from_cart') {
       metaEventName = 'Custom';
-      metaCapiName = 'Custom';
       metaCustomName = 'RemoveFromCart';
     } else {
       metaEventName = 'Custom';
-      metaCapiName = 'Custom';
       metaCustomName = canonicalEventName;
     }
 
     var metaNamespace = {
       event_name: metaEventName,
-      capi_event_name: metaCapiName,
       content_type: isList ? 'product_group' : 'product',
       content_ids: metaContentIds,
       contents: metaContents,
@@ -398,46 +394,34 @@
 
     // TikTok Event Name Resolution
     var tiktokEventName = 'Custom';
-    var tiktokCapiName = 'Custom';
     var tiktokCustomName = null;
 
     if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart' || canonicalEventName === 'view_item_list') {
       tiktokEventName = 'ViewContent';
-      tiktokCapiName = 'ViewContent';
     } else if (canonicalEventName === 'add_to_cart') {
       tiktokEventName = 'AddToCart';
-      tiktokCapiName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
       tiktokEventName = 'CompletePayment';
-      tiktokCapiName = 'CompletePayment';
     } else if (canonicalEventName === 'search') {
       tiktokEventName = 'Search';
-      tiktokCapiName = 'Search';
     } else if (canonicalEventName === 'add_to_wishlist') {
       tiktokEventName = 'AddToWishlist';
-      tiktokCapiName = 'AddToWishlist';
     } else if (canonicalEventName === 'begin_checkout') {
       tiktokEventName = 'InitiateCheckout';
-      tiktokCapiName = 'InitiateCheckout';
     } else if (canonicalEventName === 'add_shipping_info') {
       tiktokEventName = 'AddShippingInfo';
-      tiktokCapiName = 'AddShippingInfo';
     } else if (canonicalEventName === 'add_payment_info') {
       tiktokEventName = 'AddPaymentInfo';
-      tiktokCapiName = 'AddPaymentInfo';
     } else if (canonicalEventName === 'remove_from_cart') {
       tiktokEventName = 'Custom';
-      tiktokCapiName = 'Custom';
       tiktokCustomName = 'RemoveFromCart';
     } else {
       tiktokEventName = 'Custom';
-      tiktokCapiName = 'Custom';
       tiktokCustomName = canonicalEventName;
     }
 
     var tiktokNamespace = {
       event_name: tiktokEventName,
-      capi_event_name: tiktokCapiName,
       content_type: isList ? 'product_group' : 'product',
       content_id: (metaContentIds.length > 0) ? metaContentIds[0] : '',
       content_ids: metaContentIds,
@@ -477,58 +461,46 @@
 
     // Pinterest Event Mapping and Schema Resolution
     var pinterestEventName = 'Custom';
-    var pinterestCapiName = 'custom';
     var pinterestCustomName = null;
 
     if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
       pinterestEventName = 'PageVisit';
-      pinterestCapiName = 'page_visit';
     } else if (canonicalEventName === 'view_item_list') {
       pinterestEventName = 'ViewCategory';
-      pinterestCapiName = 'view_category';
     } else if (canonicalEventName === 'add_to_cart') {
       pinterestEventName = 'AddToCart';
-      pinterestCapiName = 'add_to_cart';
     } else if (canonicalEventName === 'purchase') {
       pinterestEventName = 'Checkout';
-      pinterestCapiName = 'checkout';
     } else if (canonicalEventName === 'search') {
       pinterestEventName = 'Search';
-      pinterestCapiName = 'search';
     } else if (canonicalEventName === 'remove_from_cart') {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = 'RemoveFromCart';
     } else if (canonicalEventName === 'add_to_wishlist') {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = 'AddWishList';
     } else if (canonicalEventName === 'begin_checkout') {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = 'InitiateCheckout';
     } else if (canonicalEventName === 'add_shipping_info') {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = 'AddShippingInfo';
     } else if (canonicalEventName === 'add_payment_info') {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = 'AddPaymentInfo';
     } else {
       pinterestEventName = 'Custom';
-      pinterestCapiName = 'custom';
       pinterestCustomName = canonicalEventName;
     }
 
     var pinterestNamespace = {
       event_name: pinterestEventName,
-      capi_event_name: pinterestCapiName,
       currency: curr,
       value: val,
       order_quantity: (totalNumItems > 0) ? totalNumItems : 1,
       product_ids: pinterestProdIds,
-      line_items: pinterestLineItems
+      line_items: pinterestLineItems,
+      contents: pinterestContents
     };
 
     if (pinterestCustomName) {

@@ -36,23 +36,18 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 
 ### 1. Meta (Facebook/Instagram Pixel & Conversions API)
 * `meta.event_name`: Meta standard event (`'ViewContent'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'Purchase'`, `'AddToWishlist'`, `'Search'`, or `'Custom'`).
-* `meta.capi_event_name`: Meta Conversions API event name (`'ViewContent'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'Purchase'`, `'AddToWishlist'`, `'Search'`, or custom).
 * `meta.custom_event_name`: Custom event label when applicable (e.g., `'RemoveFromCart'`).
 * `meta.content_type`: `'product'` (PDP, cart, checkout, purchase) or `'product_group'` (category listings).
 * `meta.content_name`: Product name or listing category name.
 * `meta.content_category`: Product primary category.
 * `meta.content_ids`: Array of strings matching the catalog item ID (`retailer_id` in Meta Commerce Manager).
-* `meta.contents`: Array of line items matching Meta catalog specifications:
+* `meta.contents`: Array of line items matching Meta official catalog specifications (`id`, `quantity`, `item_price`):
   ```json
   [
     {
       "id": "68_299",
       "quantity": 2,
-      "item_price": 13.00,
-      "title": "Trink und Snack Tasse",
-      "item_name": "Trink und Snack Tasse",
-      "brand": "Dooky",
-      "category": "Trinkbecher"
+      "item_price": 13.00
     }
   ]
   ```
@@ -63,9 +58,8 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 
 ### 2. Pinterest Ads (Pinterest Tag & Conversions API)
 * `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'Checkout'`, `'Search'`, or `'Custom'`).
-* `pinterest.capi_event_name`: Pinterest Conversions API event name (`'page_visit'`, `'view_category'`, `'add_to_cart'`, `'checkout'`, `'search'`, `'custom'`).
 * `pinterest.custom_event_name`: Custom event label when applicable (`'InitiateCheckout'`, `'RemoveFromCart'`, `'AddWishList'`, `'AddShippingInfo'`, `'AddPaymentInfo'`).
-* `pinterest.line_items`: Array of product items matching Pinterest Catalog specifications:
+* `pinterest.line_items`: Array of product items matching Pinterest Web Tag specifications:
   ```json
   [
     {
@@ -80,6 +74,19 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
     }
   ]
   ```
+* `pinterest.contents`: Array of product items matching Pinterest Conversions API (CAPI v5) specifications:
+  ```json
+  [
+    {
+      "id": "68_299",
+      "item_name": "Trink und Snack Tasse",
+      "item_price": 13.00,
+      "quantity": 2,
+      "item_category": "Trinkbecher",
+      "item_brand": "Dooky"
+    }
+  ]
+  ```
 * `pinterest.product_ids`: Top-level array of product catalog IDs.
 * `pinterest.order_quantity`: Total item quantity in the event.
 * `pinterest.order_id`: Authoritative Order Reference for `Checkout` (used for 48-hour Tag & CAPI deduplication).
@@ -88,14 +95,13 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 
 ### 3. TikTok (Pixel & Events API)
 * `tiktok.event_name`: TikTok Pixel standard event (`'ViewContent'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'CompletePayment'`, `'AddToWishlist'`, `'Search'`, or `'Custom'`).
-* `tiktok.capi_event_name`: TikTok Events API event name (`'ViewContent'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddShippingInfo'`, `'CompletePayment'`, `'AddToWishlist'`, `'Search'`, or custom).
 * `tiktok.custom_event_name`: Custom event label when applicable (e.g., `'RemoveFromCart'`).
 * `tiktok.content_type`: `'product'` or `'product_group'`.
 * `tiktok.content_name`: Product name or listing category name.
 * `tiktok.content_category`: Product category.
 * `tiktok.content_id`: Top-level catalog SKU ID.
 * `tiktok.content_ids`: Array of strings matching catalog item IDs.
-* `tiktok.contents`: Array of line items matching TikTok Events API specifications:
+* `tiktok.contents`: Array of line items matching official TikTok Pixel & Events API specifications:
   ```json
   [
     {
@@ -103,7 +109,6 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
       "content_type": "product",
       "content_name": "Trink und Snack Tasse",
       "content_category": "Trinkbecher",
-      "brand": "Dooky",
       "quantity": 2,
       "price": 13.00
     }
@@ -130,19 +135,17 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | GTM Variable Name | Data Layer Variable Path | Target Tag / Usage |
 | :--- | :--- | :--- |
 | `{{dlv - meta.event_name}}` | `meta.event_name` | Meta Pixel Event Name (`fbq('track', ...)`) |
-| `{{dlv - meta.capi_event_name}}` | `meta.capi_event_name` | Meta CAPI Event Name |
 | `{{dlv - meta.content_ids}}` | `meta.content_ids` | Meta Pixel `content_ids` |
 | `{{dlv - meta.content_type}}` | `meta.content_type` | Meta Pixel `content_type` (`product` / `product_group`) |
-| `{{dlv - meta.contents}}` | `meta.contents` | Meta Pixel / CAPI line-item breakdown |
+| `{{dlv - meta.contents}}` | `meta.contents` | Meta Pixel / CAPI line-item breakdown (`id`, `quantity`, `item_price`) |
 | `{{dlv - meta.order_id}}` | `meta.order_id` | Meta Pixel / CAPI `event_id` / transaction deduplication |
 | `{{dlv - pinterest.event_name}}` | `pinterest.event_name` | Pinterest Tag Event (`pintrk`) |
-| `{{dlv - pinterest.capi_event_name}}` | `pinterest.capi_event_name` | Pinterest Conversions API Event |
-| `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag & CAPI `line_items` parameter |
+| `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag `line_items` parameter |
+| `{{dlv - pinterest.contents}}` | `pinterest.contents` | Pinterest Conversions API (CAPI v5) `contents` parameter |
 | `{{dlv - pinterest.product_ids}}` | `pinterest.product_ids` | Pinterest Tag `product_ids` |
 | `{{dlv - pinterest.order_quantity}}` | `pinterest.order_quantity` | Pinterest Tag & CAPI `order_quantity` |
 | `{{dlv - pinterest.order_id}}` | `pinterest.order_id` | Pinterest Tag & CAPI `order_id` (Deduplication) |
 | `{{dlv - tiktok.event_name}}` | `tiktok.event_name` | TikTok Pixel Event Name (`ttq.track(...)`) |
-| `{{dlv - tiktok.capi_event_name}}` | `tiktok.capi_event_name` | TikTok Events API Event Name |
 | `{{dlv - tiktok.contents}}` | `tiktok.contents` | TikTok Pixel / Events API `contents` array |
 | `{{dlv - tiktok.content_type}}` | `tiktok.content_type` | TikTok Pixel `content_type` |
 | `{{dlv - tiktok.content_id}}` | `tiktok.content_id` | TikTok Pixel `content_id` |

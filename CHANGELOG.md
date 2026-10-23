@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - **Official Pinterest Ads Integration (Tag & Conversions API)**:
   - Full official Pinterest schema compliance for both Pinterest Tag (`pintrk`) and Pinterest Conversions API (`event_data` / `custom_data`).
-  - Native `pinterest` payload object in dataLayer with `event_name`, `capi_event_name`, `custom_event_name`, `value`, `currency`, `order_quantity`, `order_id`, `search_query`, `product_ids`, and `line_items`.
+  - Native `pinterest` payload object in dataLayer with `event_name`, `custom_event_name`, `value`, `currency`, `order_quantity`, `order_id`, `search_query`, `product_ids`, `line_items`, and `contents`.
   - Comprehensive item-level line items array containing `product_id`, `product_name`, `product_price`, `product_quantity`, `product_category`, `product_brand`, `product_variant`, and `product_variant_id`.
   - Exact catalog matching for Pinterest Dynamic Product Ads matching PrestaShop catalog feed strategies (`composite`, `reference_sku`, `id_product`).
   - Event deduplication support via matching `order_id` / `event_id` and event names within Pinterest's 48-hour deduplication window.

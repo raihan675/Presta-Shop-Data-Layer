@@ -51,7 +51,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     // Meta Pixel & CAPI namespace
     assert.ok(payload.meta, 'meta namespace must exist');
     assert.strictEqual(payload.meta.event_name, 'ViewContent');
-    assert.strictEqual(payload.meta.capi_event_name, 'ViewContent');
+    assert.strictEqual(payload.meta.capi_event_name, undefined, 'capi_event_name must be removed');
     assert.strictEqual(payload.meta.content_type, 'product');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299'], 'Meta content_ids must match catalog item ID');
     assert.strictEqual(payload.meta.content_name, 'Trink und Snack Tasse');
@@ -60,14 +60,16 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.meta.value, 13.00);
     assert.strictEqual(payload.meta.num_items, 1);
     assert.strictEqual(payload.meta.contents.length, 1);
-    assert.strictEqual(payload.meta.contents[0].id, '68_299');
-    assert.strictEqual(payload.meta.contents[0].quantity, 1);
-    assert.strictEqual(payload.meta.contents[0].item_price, 13.00);
+    assert.deepStrictEqual(payload.meta.contents[0], {
+      id: '68_299',
+      quantity: 1,
+      item_price: 13.00
+    }, 'Meta contents must contain only official necessary parameters: id, quantity, item_price');
 
     // TikTok Pixel & Events API namespace
     assert.ok(payload.tiktok, 'tiktok namespace must exist');
     assert.strictEqual(payload.tiktok.event_name, 'ViewContent');
-    assert.strictEqual(payload.tiktok.capi_event_name, 'ViewContent');
+    assert.strictEqual(payload.tiktok.capi_event_name, undefined, 'capi_event_name must be removed');
     assert.strictEqual(payload.tiktok.content_type, 'product');
     assert.strictEqual(payload.tiktok.content_id, '68_299');
     assert.deepStrictEqual(payload.tiktok.content_ids, ['68_299']);
@@ -76,12 +78,14 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.tiktok.currency, 'EUR');
     assert.strictEqual(payload.tiktok.value, 13.00);
     assert.strictEqual(payload.tiktok.quantity, 1);
-    assert.strictEqual(payload.tiktok.contents[0].content_id, '68_299');
-    assert.strictEqual(payload.tiktok.contents[0].content_name, 'Trink und Snack Tasse');
-    assert.strictEqual(payload.tiktok.contents[0].content_category, 'Trinkbecher');
-    assert.strictEqual(payload.tiktok.contents[0].brand, 'Dooky');
-    assert.strictEqual(payload.tiktok.contents[0].quantity, 1);
-    assert.strictEqual(payload.tiktok.contents[0].price, 13.00);
+    assert.deepStrictEqual(payload.tiktok.contents[0], {
+      content_id: '68_299',
+      content_type: 'product',
+      content_name: 'Trink und Snack Tasse',
+      content_category: 'Trinkbecher',
+      quantity: 1,
+      price: 13.00
+    }, 'TikTok contents must contain only official necessary parameters: content_id, content_type, content_name, content_category, quantity, price');
 
     // Google Ads Dynamic Remarketing namespace
     assert.ok(payload.google_ads, 'google_ads namespace must exist');
@@ -96,20 +100,31 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     // Pinterest Tag & Conversions API namespace
     assert.ok(payload.pinterest, 'pinterest namespace must exist');
     assert.strictEqual(payload.pinterest.event_name, 'PageVisit');
-    assert.strictEqual(payload.pinterest.capi_event_name, 'page_visit');
+    assert.strictEqual(payload.pinterest.capi_event_name, undefined, 'capi_event_name must be removed');
     assert.strictEqual(payload.pinterest.currency, 'EUR');
     assert.strictEqual(payload.pinterest.value, 13.00);
     assert.strictEqual(payload.pinterest.order_quantity, 1);
     assert.deepStrictEqual(payload.pinterest.product_ids, ['68_299']);
     assert.strictEqual(payload.pinterest.line_items.length, 1);
-    assert.strictEqual(payload.pinterest.line_items[0].product_id, '68_299');
-    assert.strictEqual(payload.pinterest.line_items[0].product_name, 'Trink und Snack Tasse');
-    assert.strictEqual(payload.pinterest.line_items[0].product_price, 13.00);
-    assert.strictEqual(payload.pinterest.line_items[0].product_quantity, 1);
-    assert.strictEqual(payload.pinterest.line_items[0].product_category, 'Trinkbecher');
-    assert.strictEqual(payload.pinterest.line_items[0].product_brand, 'Dooky');
-    assert.strictEqual(payload.pinterest.line_items[0].product_variant, 'Farbe: Stahlblau');
-    assert.strictEqual(payload.pinterest.line_items[0].product_variant_id, '299');
+    assert.deepStrictEqual(payload.pinterest.line_items[0], {
+      product_id: '68_299',
+      product_name: 'Trink und Snack Tasse',
+      product_price: 13.00,
+      product_quantity: 1,
+      product_category: 'Trinkbecher',
+      product_brand: 'Dooky',
+      product_variant: 'Farbe: Stahlblau',
+      product_variant_id: '299'
+    });
+    assert.strictEqual(payload.pinterest.contents.length, 1);
+    assert.deepStrictEqual(payload.pinterest.contents[0], {
+      id: '68_299',
+      item_name: 'Trink und Snack Tasse',
+      item_price: 13.00,
+      quantity: 1,
+      item_category: 'Trinkbecher',
+      item_brand: 'Dooky'
+    }, 'Pinterest contents must contain official CAPI parameters');
   });
 
   it('2. Product 2 (Sonnenblenden fürs Auto): Exact view_item payload for Simple Product without combinations', function () {
@@ -320,7 +335,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // Meta
     assert.strictEqual(payload.meta.event_name, 'Purchase');
-    assert.strictEqual(payload.meta.capi_event_name, 'Purchase');
+    assert.strictEqual(payload.meta.capi_event_name, undefined);
     assert.strictEqual(payload.meta.order_id, '1250');
     assert.strictEqual(payload.meta.content_type, 'product');
     assert.deepStrictEqual(payload.meta.content_ids, ['68_299', '1033']);
@@ -329,7 +344,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
 
     // TikTok
     assert.strictEqual(payload.tiktok.event_name, 'CompletePayment');
-    assert.strictEqual(payload.tiktok.capi_event_name, 'CompletePayment');
+    assert.strictEqual(payload.tiktok.capi_event_name, undefined);
     assert.strictEqual(payload.tiktok.order_id, '1250');
     assert.strictEqual(payload.tiktok.content_type, 'product');
     assert.strictEqual(payload.tiktok.quantity, 3);
@@ -568,7 +583,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item', { currency: 'EUR', value: 26.00, items: [item1] });
     let p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'PageVisit');
-    assert.strictEqual(p.capi_event_name, 'page_visit');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.currency, 'EUR');
     assert.strictEqual(p.value, 26.00);
     assert.strictEqual(p.order_quantity, 2);
@@ -578,28 +593,28 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item_list', { currency: 'EUR', value: 26.00, item_list_name: 'Trinkbecher', items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'ViewCategory');
-    assert.strictEqual(p.capi_event_name, 'view_category');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.category_name, 'Trinkbecher');
 
     // 3. add_to_cart -> AddToCart
     EDL.pushEvent('add_to_cart', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'AddToCart');
-    assert.strictEqual(p.capi_event_name, 'add_to_cart');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.order_quantity, 2);
 
     // 4. remove_from_cart -> Custom (RemoveFromCart)
     EDL.pushEvent('remove_from_cart', { currency: 'EUR', value: 13.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'Custom');
-    assert.strictEqual(p.capi_event_name, 'custom');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.custom_event_name, 'RemoveFromCart');
 
     // 5. begin_checkout -> Custom (InitiateCheckout)
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'Custom');
-    assert.strictEqual(p.capi_event_name, 'custom');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.custom_event_name, 'InitiateCheckout');
 
     // 6. add_shipping_info -> Custom (AddShippingInfo) with property
@@ -620,12 +635,14 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('purchase', { transaction_id: 'ORD-9988', currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1].pinterest;
     assert.strictEqual(p.event_name, 'Checkout');
-    assert.strictEqual(p.capi_event_name, 'checkout');
+    assert.strictEqual(p.capi_event_name, undefined);
     assert.strictEqual(p.order_id, 'ORD-9988');
     assert.strictEqual(p.order_quantity, 2);
     assert.strictEqual(p.line_items[0].product_id, '68_299');
     assert.strictEqual(p.line_items[0].product_name, 'Trink und Snack Tasse');
     assert.strictEqual(p.line_items[0].product_variant, 'Farbe: Stahlblau');
+    assert.strictEqual(p.contents[0].id, '68_299');
+    assert.strictEqual(p.contents[0].item_name, 'Trink und Snack Tasse');
   });
 
   it('14. Pinterest Ads: Catalog ID Strategy parity (composite vs reference_sku vs id_product)', function () {
@@ -693,25 +710,25 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item', { currency: 'EUR', value: 26.00, items: [item1] });
     let p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'ViewContent');
-    assert.strictEqual(p.meta.capi_event_name, 'ViewContent');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'ViewContent');
-    assert.strictEqual(p.tiktok.capi_event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 2. view_item_list -> Meta: ViewCategory, TikTok: ViewContent
     EDL.pushEvent('view_item_list', { currency: 'EUR', value: 26.00, item_list_name: 'Trinkbecher', items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'ViewCategory');
-    assert.strictEqual(p.meta.capi_event_name, 'ViewCategory');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'ViewContent');
-    assert.strictEqual(p.tiktok.capi_event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 3. add_to_cart -> Meta: AddToCart, TikTok: AddToCart
     EDL.pushEvent('add_to_cart', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'AddToCart');
-    assert.strictEqual(p.meta.capi_event_name, 'AddToCart');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'AddToCart');
-    assert.strictEqual(p.tiktok.capi_event_name, 'AddToCart');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 4. remove_from_cart -> Meta: Custom (RemoveFromCart), TikTok: Custom (RemoveFromCart)
     EDL.pushEvent('remove_from_cart', { currency: 'EUR', value: 13.00, items: [item1] });
@@ -725,42 +742,42 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'InitiateCheckout');
-    assert.strictEqual(p.meta.capi_event_name, 'InitiateCheckout');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'InitiateCheckout');
-    assert.strictEqual(p.tiktok.capi_event_name, 'InitiateCheckout');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 6. add_shipping_info -> Meta: AddShippingInfo, TikTok: AddShippingInfo
     EDL.pushEvent('add_shipping_info', { currency: 'EUR', value: 26.00, shipping_tier: 'DHL Express', items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'AddShippingInfo');
-    assert.strictEqual(p.meta.capi_event_name, 'AddShippingInfo');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'AddShippingInfo');
-    assert.strictEqual(p.tiktok.capi_event_name, 'AddShippingInfo');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 7. add_payment_info -> Meta: AddPaymentInfo, TikTok: AddPaymentInfo
     EDL.pushEvent('add_payment_info', { currency: 'EUR', value: 26.00, payment_type: 'Credit Card', items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'AddPaymentInfo');
-    assert.strictEqual(p.meta.capi_event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'AddPaymentInfo');
-    assert.strictEqual(p.tiktok.capi_event_name, 'AddPaymentInfo');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 8. add_to_wishlist -> Meta: AddToWishlist, TikTok: AddToWishlist
     EDL.pushEvent('add_to_wishlist', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'AddToWishlist');
-    assert.strictEqual(p.meta.capi_event_name, 'AddToWishlist');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.event_name, 'AddToWishlist');
-    assert.strictEqual(p.tiktok.capi_event_name, 'AddToWishlist');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
 
     // 9. purchase -> Meta: Purchase, TikTok: CompletePayment
     EDL.pushEvent('purchase', { transaction_id: 'ORD-5544', currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'Purchase');
-    assert.strictEqual(p.meta.capi_event_name, 'Purchase');
+    assert.strictEqual(p.meta.capi_event_name, undefined);
     assert.strictEqual(p.meta.order_id, 'ORD-5544');
     assert.strictEqual(p.tiktok.event_name, 'CompletePayment');
-    assert.strictEqual(p.tiktok.capi_event_name, 'CompletePayment');
+    assert.strictEqual(p.tiktok.capi_event_name, undefined);
     assert.strictEqual(p.tiktok.order_id, 'ORD-5544');
   });
 

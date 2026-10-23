@@ -109,6 +109,7 @@ class PayloadBuilder
         $googleItems = [];
         $pinterestProdIds = [];
         $pinterestLineItems = [];
+        $pinterestContents = [];
         $totalQuantity = 0;
 
         foreach ($items as $it) {
@@ -125,23 +126,20 @@ class PayloadBuilder
             if (!in_array($metaId, $metaContentIds)) {
                 $metaContentIds[] = $metaId;
             }
+            // Meta official contents schema: id, quantity, item_price
             $metaContents[] = [
                 'id' => $metaId,
                 'quantity' => $qty,
                 'item_price' => $price,
-                'title' => isset($it['item_name']) ? (string)$it['item_name'] : '',
-                'item_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
-                'brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
-                'category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
             ];
 
+            // TikTok official contents schema: content_id, content_type, content_name, content_category, quantity, price
             $ttId = $isList ? (string)$it['item_id'] : $catId;
             $tiktokContents[] = [
                 'content_id' => $ttId,
                 'content_type' => 'product',
                 'content_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
                 'content_category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
-                'brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
                 'quantity' => $qty,
                 'price' => $price,
             ];
@@ -159,6 +157,7 @@ class PayloadBuilder
             if (!in_array($catId, $pinterestProdIds)) {
                 $pinterestProdIds[] = $catId;
             }
+            // Pinterest Web Tag official line_items schema
             $pinterestLineItems[] = [
                 'product_id' => $catId,
                 'product_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
@@ -169,11 +168,20 @@ class PayloadBuilder
                 'product_variant' => isset($it['item_variant']) ? (string)$it['item_variant'] : '',
                 'product_variant_id' => (isset($it['variant_id']) && (string)$it['variant_id'] !== '0') ? (string)$it['variant_id'] : '',
             ];
+
+            // Pinterest Conversions API (CAPI v5) official contents schema
+            $pinterestContents[] = [
+                'id' => $catId,
+                'item_name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'item_price' => $price,
+                'quantity' => $qty,
+                'item_category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
+                'item_brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
+            ];
         }
 
         // Meta Event Name Resolution
         $metaEventName = 'Custom';
-        $metaCapiName = 'Custom';
         $metaCustomName = null;
 
         switch ($canonicalEvent) {
@@ -181,55 +189,43 @@ class PayloadBuilder
             case 'select_item':
             case 'view_cart':
                 $metaEventName = 'ViewContent';
-                $metaCapiName = 'ViewContent';
                 break;
             case 'view_item_list':
                 $metaEventName = 'ViewCategory';
-                $metaCapiName = 'ViewCategory';
                 break;
             case 'add_to_cart':
                 $metaEventName = 'AddToCart';
-                $metaCapiName = 'AddToCart';
                 break;
             case 'purchase':
                 $metaEventName = 'Purchase';
-                $metaCapiName = 'Purchase';
                 break;
             case 'search':
                 $metaEventName = 'Search';
-                $metaCapiName = 'Search';
                 break;
             case 'add_to_wishlist':
                 $metaEventName = 'AddToWishlist';
-                $metaCapiName = 'AddToWishlist';
                 break;
             case 'begin_checkout':
                 $metaEventName = 'InitiateCheckout';
-                $metaCapiName = 'InitiateCheckout';
                 break;
             case 'add_shipping_info':
                 $metaEventName = 'AddShippingInfo';
-                $metaCapiName = 'AddShippingInfo';
                 break;
             case 'add_payment_info':
                 $metaEventName = 'AddPaymentInfo';
-                $metaCapiName = 'AddPaymentInfo';
                 break;
             case 'remove_from_cart':
                 $metaEventName = 'Custom';
-                $metaCapiName = 'Custom';
                 $metaCustomName = 'RemoveFromCart';
                 break;
             default:
                 $metaEventName = 'Custom';
-                $metaCapiName = 'Custom';
                 $metaCustomName = $canonicalEvent;
                 break;
         }
 
         $meta = [
             'event_name' => $metaEventName,
-            'capi_event_name' => $metaCapiName,
             'content_type' => $isList ? 'product_group' : 'product',
             'content_ids' => $metaContentIds,
             'contents' => $metaContents,
@@ -258,7 +254,6 @@ class PayloadBuilder
 
         // TikTok Event Name Resolution
         $tiktokEventName = 'Custom';
-        $tiktokCapiName = 'Custom';
         $tiktokCustomName = null;
 
         switch ($canonicalEvent) {
@@ -267,51 +262,40 @@ class PayloadBuilder
             case 'view_cart':
             case 'view_item_list':
                 $tiktokEventName = 'ViewContent';
-                $tiktokCapiName = 'ViewContent';
                 break;
             case 'add_to_cart':
                 $tiktokEventName = 'AddToCart';
-                $tiktokCapiName = 'AddToCart';
                 break;
             case 'purchase':
                 $tiktokEventName = 'CompletePayment';
-                $tiktokCapiName = 'CompletePayment';
                 break;
             case 'search':
                 $tiktokEventName = 'Search';
-                $tiktokCapiName = 'Search';
                 break;
             case 'add_to_wishlist':
                 $tiktokEventName = 'AddToWishlist';
-                $tiktokCapiName = 'AddToWishlist';
                 break;
             case 'begin_checkout':
                 $tiktokEventName = 'InitiateCheckout';
-                $tiktokCapiName = 'InitiateCheckout';
                 break;
             case 'add_shipping_info':
                 $tiktokEventName = 'AddShippingInfo';
-                $tiktokCapiName = 'AddShippingInfo';
                 break;
             case 'add_payment_info':
                 $tiktokEventName = 'AddPaymentInfo';
-                $tiktokCapiName = 'AddPaymentInfo';
                 break;
             case 'remove_from_cart':
                 $tiktokEventName = 'Custom';
-                $tiktokCapiName = 'Custom';
                 $tiktokCustomName = 'RemoveFromCart';
                 break;
             default:
                 $tiktokEventName = 'Custom';
-                $tiktokCapiName = 'Custom';
                 $tiktokCustomName = $canonicalEvent;
                 break;
         }
 
         $tiktok = [
             'event_name' => $tiktokEventName,
-            'capi_event_name' => $tiktokCapiName,
             'content_type' => $isList ? 'product_group' : 'product',
             'content_id' => !empty($metaContentIds) ? $metaContentIds[0] : '',
             'content_ids' => $metaContentIds,
@@ -351,7 +335,6 @@ class PayloadBuilder
 
         // Pinterest Event Name and Schema Resolution
         $pinterestEventName = 'Custom';
-        $pinterestCapiName = 'custom';
         $pinterestCustomName = null;
 
         switch ($canonicalEvent) {
@@ -359,64 +342,53 @@ class PayloadBuilder
             case 'select_item':
             case 'view_cart':
                 $pinterestEventName = 'PageVisit';
-                $pinterestCapiName = 'page_visit';
                 break;
             case 'view_item_list':
                 $pinterestEventName = 'ViewCategory';
-                $pinterestCapiName = 'view_category';
                 break;
             case 'add_to_cart':
                 $pinterestEventName = 'AddToCart';
-                $pinterestCapiName = 'add_to_cart';
                 break;
             case 'purchase':
                 $pinterestEventName = 'Checkout';
-                $pinterestCapiName = 'checkout';
                 break;
             case 'search':
                 $pinterestEventName = 'Search';
-                $pinterestCapiName = 'search';
                 break;
             case 'remove_from_cart':
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = 'RemoveFromCart';
                 break;
             case 'add_to_wishlist':
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = 'AddWishList';
                 break;
             case 'begin_checkout':
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = 'InitiateCheckout';
                 break;
             case 'add_shipping_info':
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = 'AddShippingInfo';
                 break;
             case 'add_payment_info':
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = 'AddPaymentInfo';
                 break;
             default:
                 $pinterestEventName = 'Custom';
-                $pinterestCapiName = 'custom';
                 $pinterestCustomName = $canonicalEvent;
                 break;
         }
 
         $pinterest = [
             'event_name' => $pinterestEventName,
-            'capi_event_name' => $pinterestCapiName,
             'currency' => $currencyCode,
             'value' => $val,
             'order_quantity' => ($totalQuantity > 0) ? $totalQuantity : 1,
             'product_ids' => $pinterestProdIds,
             'line_items' => $pinterestLineItems,
+            'contents' => $pinterestContents,
         ];
         if (!empty($pinterestCustomName)) {
             $pinterest['custom_event_name'] = $pinterestCustomName;
