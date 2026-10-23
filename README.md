@@ -56,6 +56,15 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
 * `meta.order_id`: Authoritative Order Reference for `Purchase` (used for Browser Tag & CAPI deduplication).
 * `meta.currency` & `meta.value`: Normalized monetary value.
 * `meta.search_string`: Search query string on search results.
+* `meta.user_data`: SHA-256 hashed customer identifiers for Meta Advanced Matching:
+  - `em`: Lowercase, trimmed email (SHA-256)
+  - `ph`: Digits only phone number with country calling code, strictly without `+` prefix (SHA-256)
+  - `fn`: Lowercase first name with punctuation removed (SHA-256)
+  - `ln`: Lowercase last name with punctuation removed (SHA-256)
+  - `ct`: Lowercase city without spaces or punctuation (SHA-256)
+  - `st`: Lowercase 2-letter state code (SHA-256)
+  - `zp`: Lowercase postal code without spaces or dashes (SHA-256)
+  - `country`: Lowercase 2-letter ISO country code (SHA-256)
 
 ### 2. Pinterest Ads (Pinterest Tag & Enhanced Matching)
 * `pinterest.event_name`: Pinterest Tag standard event (`'PageVisit'`, `'ViewCategory'`, `'AddToCart'`, `'InitiateCheckout'`, `'AddPaymentInfo'`, `'AddToWishList'`, `'Checkout'`, `'Search'`, or `'Custom'`).
@@ -144,6 +153,7 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - meta.content_ids}}` | `meta.content_ids` | Meta Pixel `content_ids` |
 | `{{dlv - meta.content_type}}` | `meta.content_type` | Meta Pixel `content_type` (`product` / `product_group`) |
 | `{{dlv - meta.contents}}` | `meta.contents` | Meta Pixel / CAPI line-item breakdown (`id`, `quantity`, `item_price`) |
+| `{{dlv - meta.user_data}}` | `meta.user_data` | Meta Pixel & CAPI Advanced Matching (`em`, `ph`, `fn`, `ln`, `ct`, `st`, `zp`, `country`) |
 | `{{dlv - meta.order_id}}` | `meta.order_id` | Meta Pixel / CAPI `event_id` / transaction deduplication |
 | `{{dlv - pinterest.event_name}}` | `pinterest.event_name` | Pinterest Tag Event (`pintrk`) |
 | `{{dlv - pinterest.line_items}}` | `pinterest.line_items` | Pinterest Tag `line_items` parameter |

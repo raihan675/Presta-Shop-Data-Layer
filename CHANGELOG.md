@@ -6,6 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.18.0] - 2026-10-23
+
+### Added
+- **Meta Advanced Matching (`meta.user_data`)**:
+  - Implemented authoritative customer data extraction, normalization, and SHA-256 hashing for Meta Pixel & Conversions API (CAPI) Advanced Matching parameters:
+    - `em`: Lowercase, trimmed email SHA-256 hashed.
+    - `ph`: Phone number with country calling code, digits only (**strictly without `+` sign**), SHA-256 hashed.
+    - `fn`: Lowercase first name (punctuation stripped) SHA-256 hashed.
+    - `ln`: Lowercase last name (punctuation stripped) SHA-256 hashed.
+    - `ct`: Lowercase city (spaces and punctuation stripped) SHA-256 hashed.
+    - `st`: Lowercase 2-letter state code SHA-256 hashed.
+    - `zp`: Lowercase postal/zip code (spaces and dashes stripped) SHA-256 hashed.
+    - `country`: Lowercase 2-letter ISO country code SHA-256 hashed.
+  - Pre-hydrated server-side on storefront page loads for authenticated customer sessions (`window.psGtmConfig.metaUserData`) and populated during checkout and purchase (`Purchase`) for maximum Event Quality Score (EQS) on Meta Events Manager.
+  - Strictly omitted `external_id` and first-party browser cookies per privacy specification.
+
+### Changed
+- **Meta ViewCart Event Alignment**:
+  - Reclassified Meta `view_cart` mapping from generic `ViewContent` to `Custom` event with `custom_event_name: 'ViewCart'`.
+  - Preserved standard `ViewContent` strictly for product detail views (`view_item`) and miniature card interactions (`select_item`), preventing cart summary views from skewing product view metrics on Meta Events Manager.
+
+---
+
 ## [1.17.1] - 2026-10-23
 
 ### Changed

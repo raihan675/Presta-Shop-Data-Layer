@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.17.1';
+        $this->version = '1.18.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1637,7 +1637,8 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
-            // Pre-hydrate Pinterest and TikTok Advanced Matching hashed user data
+            // Pre-hydrate Meta, Pinterest and TikTok Advanced Matching hashed user data
+            $metaUserData = null;
             $pinterestUserData = null;
             $tiktokUserData = null;
             if ($this->context->customer && Validate::isLoadedObject($this->context->customer)) {
@@ -1653,6 +1654,7 @@ class Ps_Gtm_DataLayer extends Module
                         }
                     }
                 }
+                $metaUserData = CustomerDataEngine::buildMetaUserData($this->context->customer, $customerAddress);
                 $pinterestUserData = CustomerDataEngine::buildPinterestUserData($this->context->customer, $customerAddress);
                 $tiktokUserData = CustomerDataEngine::buildTikTokUserData($this->context->customer, $customerAddress);
             }
@@ -1676,6 +1678,7 @@ class Ps_Gtm_DataLayer extends Module
                 'payment_options_map' => json_encode($paymentOptionsMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'selected_carrier' => $selectedCarrierName,
                 'cart_coupon' => $cartCoupon,
+                'meta_user_data' => !empty($metaUserData) ? json_encode($metaUserData, JSON_UNESCAPED_SLASHES) : null,
                 'pinterest_user_data' => !empty($pinterestUserData) ? json_encode($pinterestUserData, JSON_UNESCAPED_SLASHES) : null,
                 'tiktok_user_data' => !empty($tiktokUserData) ? json_encode($tiktokUserData, JSON_UNESCAPED_SLASHES) : null,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),

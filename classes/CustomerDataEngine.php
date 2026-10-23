@@ -70,6 +70,227 @@ class CustomerDataEngine
     }
 
     /**
+     * Extracts, normalizes, and SHA-256 hashes customer data specifically for Meta
+     * Advanced Matching (em, ph, fn, ln, ct, st, zp, country).
+     *
+     * @param Customer $customer
+     * @param Address|null $address
+     * @return array
+     */
+    public static function buildMetaUserData(Customer $customer, Address $address = null)
+    {
+        if (!Validate::isLoadedObject($customer)) {
+            return [];
+        }
+
+        $rawEmail = (string)$customer->email;
+        $rawPhone = '';
+        if ($address && Validate::isLoadedObject($address)) {
+            $rawPhone = !empty($address->phone_mobile) ? (string)$address->phone_mobile : (string)$address->phone;
+        }
+
+        $firstName = ($address && !empty($address->firstname)) ? (string)$address->firstname : (string)$customer->firstname;
+        $lastName = ($address && !empty($address->lastname)) ? (string)$address->lastname : (string)$customer->lastname;
+        $city = ($address && !empty($address->city)) ? (string)$address->city : '';
+        $postcode = ($address && !empty($address->postcode)) ? (string)$address->postcode : '';
+
+        $stateCode = '';
+        if ($address && !empty($address->id_state) && class_exists('State')) {
+            $stateObj = new State((int)$address->id_state);
+            if (Validate::isLoadedObject($stateObj) && !empty($stateObj->iso_code)) {
+                $stateCode = (string)$stateObj->iso_code;
+            }
+        }
+
+        $countryCode = ($address && !empty($address->id_country) && class_exists('Country')) ? (string)Country::getIsoById((int)$address->id_country) : '';
+
+        return self::hashMetaUserData([
+            'email' => $rawEmail,
+            'phone_number' => $rawPhone,
+            'address' => [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'city' => $city,
+                'state' => $stateCode,
+                'postal_code' => $postcode,
+                'country' => $countryCode,
+            ]
+        ], $address);
+    }
+
+    /**
+     * Normalizes and SHA-256 hashes arbitrary user data into Meta Advanced Matching schema.
+     * Strictly omits external_id and cookies per privacy specification.
+     *
+     * @param array $userData
+     * @param Address|null $address
+     * @return array
+     */
+    public static function hashMetaUserData(array $userData, Address $address = null)
+    {
+        $result = [];
+
+        // em (Email)
+        $email = !empty($userData['email']) ? $userData['email'] : '';
+        if ($hashed = self::hashMetaField($email, 'em')) {
+            $result['em'] = $hashed;
+        }
+
+        // ph (Phone: digits only with country calling code, no + sign)
+        $phone = !empty($userData['phone_number']) ? $userData['phone_number'] : (!empty($userData['phone']) ? $userData['phone'] : '');
+        if (!empty($phone)) {
+            $cleanPhone = trim((string)$phone);
+            if (preg_match('/^[a-f0-9]{64}$/i', $cleanPhone)) {
+                $result['ph'] = strtolower($cleanPhone);
+            } else {
+                $metaPhone = self::normalizeMetaPhone($cleanPhone, $address);
+                if ($metaPhone !== '') {
+                    $result['ph'] = hash('sha256', $metaPhone);
+                }
+            }
+        }
+
+        $addr = !empty($userData['address']) && is_array($userData['address']) ? $userData['address'] : $userData;
+
+        // fn (First Name)
+        $fn = !empty($addr['first_name']) ? $addr['first_name'] : (!empty($userData['first_name']) ? $userData['first_name'] : '');
+        if ($hashed = self::hashMetaField($fn, 'fn')) {
+            $result['fn'] = $hashed;
+        }
+
+        // ln (Last Name)
+        $ln = !empty($addr['last_name']) ? $addr['last_name'] : (!empty($userData['last_name']) ? $userData['last_name'] : '');
+        if ($hashed = self::hashMetaField($ln, 'ln')) {
+            $result['ln'] = $hashed;
+        }
+
+        // ct (City)
+        $ct = !empty($addr['city']) ? $addr['city'] : '';
+        if ($hashed = self::hashMetaField($ct, 'ct')) {
+            $result['ct'] = $hashed;
+        }
+
+        // st (State)
+        $st = !empty($addr['state']) ? $addr['state'] : '';
+        if ($hashed = self::hashMetaField($st, 'st')) {
+            $result['st'] = $hashed;
+        }
+
+        // zp (Postal Code)
+        $zp = !empty($addr['postal_code']) ? $addr['postal_code'] : (!empty($addr['postcode']) ? $addr['postcode'] : '');
+        if ($hashed = self::hashMetaField($zp, 'zp')) {
+            $result['zp'] = $hashed;
+        }
+
+        // country (ISO Code)
+        $country = !empty($addr['country']) ? $addr['country'] : '';
+        if ($hashed = self::hashMetaField($country, 'country')) {
+            $result['country'] = $hashed;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Normalizes a specific user data field per Meta specifications and returns SHA-256 hash.
+     *
+     * @param string $val
+     * @param string $field
+     * @return string
+     */
+    public static function hashMetaField($val, $field)
+    {
+        if (empty($val) || !is_string($val)) {
+            return '';
+        }
+
+        $clean = trim($val);
+        if ($clean === '') {
+            return '';
+        }
+
+        // Check if value is already a 64-character lowercase hex string
+        if (preg_match('/^[a-f0-9]{64}$/i', $clean)) {
+            return strtolower($clean);
+        }
+
+        switch ($field) {
+            case 'em':
+                $clean = strtolower($clean);
+                if (!filter_var($clean, FILTER_VALIDATE_EMAIL)) {
+                    return '';
+                }
+                break;
+
+            case 'ct':
+                // Lowercase, remove spaces and punctuation
+                $clean = strtolower(preg_replace('/[^a-z0-9]/i', '', $clean));
+                if (empty($clean)) {
+                    return '';
+                }
+                break;
+
+            case 'st':
+                // Lowercase 2-letter state code
+                $clean = strtolower(trim($clean));
+                if (empty($clean)) {
+                    return '';
+                }
+                break;
+
+            case 'zp':
+                // Lowercase, spaces and dashes removed
+                $clean = strtolower(preg_replace('/[^a-z0-9]/i', '', $clean));
+                if (empty($clean)) {
+                    return '';
+                }
+                break;
+
+            case 'country':
+                // 2-character ISO country code in lowercase
+                $clean = strtolower(trim($clean));
+                if (empty($clean)) {
+                    return '';
+                }
+                break;
+
+            case 'fn':
+            case 'ln':
+            default:
+                // Lowercase, strip punctuation and excessive whitespace
+                $clean = strtolower(trim(preg_replace('/[[:punct:]]/u', '', $clean)));
+                if (empty($clean)) {
+                    return '';
+                }
+                break;
+        }
+
+        return hash('sha256', $clean);
+    }
+
+    /**
+     * Normalizes phone number per Meta Conversions API specifications:
+     * Digits only, including country calling code, strictly WITHOUT the '+' prefix.
+     *
+     * @param string $phone
+     * @param Address|null $address
+     * @return string
+     */
+    public static function normalizeMetaPhone($phone, Address $address = null)
+    {
+        if (empty($phone)) {
+            return '';
+        }
+
+        $e164 = self::normalizeE164Phone($phone, $address);
+        if (empty($e164)) {
+            return '';
+        }
+
+        return preg_replace('/[^0-9]/', '', $e164);
+    }
+
+    /**
      * Extracts, normalizes, and SHA-256 hashes customer data specifically for Pinterest
      * Enhanced / Advanced Matching (em, ph, fn, ln, ct, st, zp, country).
      *

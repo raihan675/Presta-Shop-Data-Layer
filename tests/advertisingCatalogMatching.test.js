@@ -743,6 +743,13 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.tiktok.event_name, 'Custom');
     assert.strictEqual(p.tiktok.custom_event_name, 'RemoveFromCart');
 
+    // 4b. view_cart -> Meta: Custom (ViewCart), TikTok: ViewContent
+    EDL.pushEvent('view_cart', { currency: 'EUR', value: 26.00, items: [item1] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.meta.event_name, 'Custom');
+    assert.strictEqual(p.meta.custom_event_name, 'ViewCart');
+    assert.strictEqual(p.tiktok.event_name, 'ViewContent');
+
     // 5. begin_checkout -> Meta: InitiateCheckout, TikTok: InitiateCheckout
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
@@ -1131,6 +1138,76 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.ok(engineCode.includes('public static function buildTikTokUserData'), 'buildTikTokUserData method must exist in CustomerDataEngine');
     assert.ok(engineCode.includes('public static function hashTikTokUserData'), 'hashTikTokUserData method must exist in CustomerDataEngine');
     assert.ok(engineCode.includes('public static function normalizeE164Phone'), 'normalizeE164Phone method must exist in CustomerDataEngine');
+  });
+
+  it('24. Meta Ads: Advanced Matching user_data mapping (em, ph, fn, ln, ct, st, zp, country, strictly omitting external_id and cookies)', function () {
+    const crypto = require('crypto');
+    function sha256(val) {
+      return crypto.createHash('sha256').update(val).digest('hex');
+    }
+
+    const item = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      item_brand: 'Dooky',
+      item_category: 'Trinkbecher',
+      item_variant: 'Farbe: Stahlblau',
+      price: 13.00,
+      quantity: 1
+    };
+
+    const mockMetaUserData = {
+      em: sha256('customer@example.com'),
+      ph: sha256('14155552671'),
+      fn: sha256('john'),
+      ln: sha256('doe'),
+      ct: sha256('sanfrancisco'),
+      st: sha256('ca'),
+      zp: sha256('94105'),
+      country: sha256('us')
+    };
+
+    // Test passing metaUserData via window.psGtmConfig
+    global.window.psGtmConfig.metaUserData = mockMetaUserData;
+
+    EDL.pushEvent('purchase', {
+      transaction_id: 'ORD-7766',
+      currency: 'USD',
+      value: 13.00,
+      items: [item]
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.meta, 'meta namespace must exist on purchase');
+    assert.strictEqual(payload.meta.event_name, 'Purchase');
+    assert.strictEqual(payload.meta.order_id, 'ORD-7766');
+    assert.strictEqual(payload.meta.currency, 'USD');
+    assert.strictEqual(payload.meta.value, 13.00);
+
+    // Advanced Matching user_data
+    assert.ok(payload.meta.user_data, 'meta.user_data must be present for Advanced Matching');
+    assert.strictEqual(payload.meta.user_data.em, mockMetaUserData.em);
+    assert.strictEqual(payload.meta.user_data.ph, mockMetaUserData.ph);
+    assert.strictEqual(payload.meta.user_data.fn, mockMetaUserData.fn);
+    assert.strictEqual(payload.meta.user_data.ln, mockMetaUserData.ln);
+    assert.strictEqual(payload.meta.user_data.ct, mockMetaUserData.ct);
+    assert.strictEqual(payload.meta.user_data.st, mockMetaUserData.st);
+    assert.strictEqual(payload.meta.user_data.zp, mockMetaUserData.zp);
+    assert.strictEqual(payload.meta.user_data.country, mockMetaUserData.country);
+    assert.strictEqual(payload.meta.user_data.external_id, undefined, 'external_id must be strictly omitted per instruction');
+    assert.strictEqual(payload.meta.user_data.fbp, undefined, 'fbp must be strictly omitted per instruction');
+    assert.strictEqual(payload.meta.user_data.fbc, undefined, 'fbc must be strictly omitted per instruction');
+
+    // Verify CustomerDataEngine PHP backend code implements the Meta static helpers
+    const fs = require('fs');
+    const path = require('path');
+    const engineCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'CustomerDataEngine.php'), 'utf8');
+    assert.ok(engineCode.includes('public static function buildMetaUserData'), 'buildMetaUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function hashMetaUserData'), 'hashMetaUserData method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function hashMetaField'), 'hashMetaField method must exist in CustomerDataEngine');
+    assert.ok(engineCode.includes('public static function normalizeMetaPhone'), 'normalizeMetaPhone method must exist in CustomerDataEngine');
   });
 
 });

@@ -327,8 +327,11 @@
     var metaEventName = 'Custom';
     var metaCustomName = null;
 
-    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart') {
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item') {
       metaEventName = 'ViewContent';
+    } else if (canonicalEventName === 'view_cart') {
+      metaEventName = 'Custom';
+      metaCustomName = 'ViewCart';
     } else if (canonicalEventName === 'view_item_list') {
       metaEventName = 'ViewCategory';
     } else if (canonicalEventName === 'add_to_cart') {
@@ -379,6 +382,12 @@
       if (!metaNamespace.content_category && items[0].item_category) {
         metaNamespace.content_category = String(items[0].item_category);
       }
+    }
+
+    var mUserData = options.metaUserData || options.meta_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.metaUserData ? window.psGtmConfig.metaUserData : null);
+    if (mUserData && typeof mUserData === 'object' && Object.keys(mUserData).length > 0) {
+      metaNamespace.user_data = mUserData;
     }
 
     // TikTok Event Name Resolution

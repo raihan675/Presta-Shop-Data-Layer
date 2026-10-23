@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.17.1",
+    "latest_version":  "1.18.0",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.17.1/ps_gtm_datalayer.zip",
-    "checksum":  "0a0a27e71be53d068196f36c9ec2329ab64164e30267e4fefbb3cfeb6ce2392c",
-    "release_type":  "patch",
-    "release_notes":  "1. Reclassified Pinterest view_cart event mapping from PageVisit to Custom (custom_event_name: \u0027ViewCart\u0027).\n2. Preserved standard PageVisit strictly for PDP and product cards.\n3. Updated documentation and test suites."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.18.0/ps_gtm_datalayer.zip",
+    "checksum":  "2c50f5cfbc36fea5c5c2b47e64e58dccedfdef83aca10864954f75b566bcd20e",
+    "release_type":  "minor",
+    "release_notes":  "1. Added Meta Advanced Matching user_data mapping with SHA-256 hashed parameters (em, ph, fn, ln, ct, st, zp, country).\n2. Reclassified Meta view_cart event mapping to Custom (custom_event_name: \u0027ViewCart\u0027).\n3. Pre-hydrated metaUserData across storefront sessions.\n4. Strictly omitted external_id and cookies per privacy specification."
 }

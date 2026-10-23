@@ -240,8 +240,11 @@ class PayloadBuilder
         switch ($canonicalEvent) {
             case 'view_item':
             case 'select_item':
-            case 'view_cart':
                 $metaEventName = 'ViewContent';
+                break;
+            case 'view_cart':
+                $metaEventName = 'Custom';
+                $metaCustomName = 'ViewCart';
                 break;
             case 'view_item_list':
                 $metaEventName = 'ViewCategory';
@@ -303,6 +306,23 @@ class PayloadBuilder
             $meta['content_name'] = (string)$items[0]['item_name'];
             if (empty($meta['content_category']) && !empty($items[0]['item_category'])) {
                 $meta['content_category'] = (string)$items[0]['item_category'];
+            }
+        }
+        if (!empty($options['meta_user_data']) && is_array($options['meta_user_data'])) {
+            $meta['user_data'] = $options['meta_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $hashedMetaUser = CustomerDataEngine::hashMetaUserData($options['user_data']);
+            if (!empty($hashedMetaUser)) {
+                $meta['user_data'] = $hashedMetaUser;
+            }
+        } elseif (isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $mUserData = CustomerDataEngine::buildMetaUserData($this->context->customer, $addr);
+            if (!empty($mUserData)) {
+                $meta['user_data'] = $mUserData;
             }
         }
 
@@ -1227,6 +1247,7 @@ class PayloadBuilder
         $platformNamespaces = $this->buildPlatformNamespaces('purchase', $items, $orderCurrency, $ga4Value, [
             'order_id' => $orderReference,
             'user_data' => $userData,
+            'meta_user_data' => CustomerDataEngine::buildMetaUserData($customer, $address),
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
             'tiktok_user_data' => CustomerDataEngine::buildTikTokUserData($customer, $address),
         ]);
