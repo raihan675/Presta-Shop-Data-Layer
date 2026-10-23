@@ -70,6 +70,70 @@ class PayloadBuilder
     }
 
     /**
+     * Authoritative search keyword extractor across native PrestaShop and third-party modules
+     * (Warehouse/iqitsearch, Leo Search, Jolisearch, PM AdvancedSearch4, etc.)
+     *
+     * @return string
+     */
+    public static function getSearchQuery()
+    {
+        $keys = ['s', 'search_query', 'q', 'query', 'tag'];
+        foreach ($keys as $k) {
+            if (class_exists('Tools')) {
+                $val = Tools::getValue($k);
+                if ($val !== false && $val !== null && is_string($val) && trim($val) !== '') {
+                    return trim($val);
+                }
+            } elseif (isset($_GET[$k]) && is_string($_GET[$k]) && trim($_GET[$k]) !== '') {
+                return trim($_GET[$k]);
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Determines whether the current controller represents a search results page
+     * across native PrestaShop and third-party modules.
+     *
+     * @param string $controller
+     * @param Context|null $context
+     * @return bool
+     */
+    public static function isSearchController($controller, $context = null)
+    {
+        if (empty($controller)) {
+            if ($context && isset($context->controller->php_self)) {
+                $controller = (string)$context->controller->php_self;
+            } elseif (class_exists('Tools')) {
+                $controller = (string)Tools::getValue('controller', '');
+            }
+        }
+
+        $ctrlLower = strtolower(trim((string)$controller));
+
+        if ($ctrlLower === 'search' || $ctrlLower === 'searchiqit') {
+            return true;
+        }
+        if (strpos($ctrlLower, 'search') !== false) {
+            return true;
+        }
+
+        if ($context && is_object($context->controller)) {
+            $class = strtolower(get_class($context->controller));
+            if (strpos($class, 'search') !== false) {
+                return true;
+            }
+        }
+
+        $query = self::getSearchQuery();
+        if ($query !== '' && (strpos($ctrlLower, 'module-') === 0 || $ctrlLower === '')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Universal Advertising Platform Namespace Builder:
      * Generates exact, catalog-matching payload parameters for Meta, TikTok, Google Ads, and Pinterest.
      *
@@ -452,6 +516,10 @@ class PayloadBuilder
 
     public function buildPagePayload($controller, $params)
     {
+        if (self::isSearchController($controller, $this->context)) {
+            return $this->buildViewItemListPayload('search');
+        }
+
         switch ($controller) {
             case 'product':
                 return $this->buildViewItemPayload();
@@ -679,27 +747,29 @@ class PayloadBuilder
                     }
                 }
             }
-        } elseif ($controller === 'search') {
-            $query = Tools::getValue('s');
+        } elseif (self::isSearchController($controller, $this->context)) {
+            $query = self::getSearchQuery();
             if ($query) {
                 $listId = 'search_results';
                 $listName = 'Search: ' . $query;
                 $p = max(1, (int)Tools::getValue('page', Tools::getValue('p', 1)));
                 $n = (int)Configuration::get('PS_PRODUCTS_PER_PAGE') > 0 ? (int)Configuration::get('PS_PRODUCTS_PER_PAGE') : 24;
-                $searchRes = Search::find($idLanguage, $query, $p, $n, 'position', 'desc');
-                if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
-                    $idx = 1;
-                    foreach ($searchRes['result'] as $pItem) {
-                        $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
-                        if (!empty($pItem['manufacturer_name'])) {
-                            $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                if (class_exists('Search') && method_exists('Search', 'find')) {
+                    $searchRes = Search::find($idLanguage, $query, $p, $n, 'position', 'desc');
+                    if (!empty($searchRes['result']) && is_array($searchRes['result'])) {
+                        $idx = 1;
+                        foreach ($searchRes['result'] as $pItem) {
+                            $productObj = new Product((int)$pItem['id_product'], false, $idLanguage);
+                            if (!empty($pItem['manufacturer_name'])) {
+                                $productObj->manufacturer_name = $pItem['manufacturer_name'];
+                            }
+                            $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
+                            $item = $this->formatItem($productObj, 0, 1, $price);
+                            $item['index'] = $idx++;
+                            $item['item_list_id'] = $listId;
+                            $item['item_list_name'] = $listName;
+                            $items[] = $item;
                         }
-                        $price = isset($pItem['price_wt']) ? PricingEngine::roundHalfUp($pItem['price_wt'], $currencyPrecision) : PricingEngine::getCustomerPrice($productObj, 0, 1, $this->context);
-                        $item = $this->formatItem($productObj, 0, 1, $price);
-                        $item['index'] = $idx++;
-                        $item['item_list_id'] = $listId;
-                        $item['item_list_name'] = $listName;
-                        $items[] = $item;
                     }
                 }
             }
@@ -723,7 +793,7 @@ class PayloadBuilder
             'list_id' => $listId,
             'list_name' => $listName,
             'category_name' => ($controller === 'category') ? $listName : '',
-            'search_term' => ($controller === 'search') ? (Tools::getValue('s') ?: Tools::getValue('search_query')) : '',
+            'search_term' => self::isSearchController($controller, $this->context) ? self::getSearchQuery() : '',
         ]);
 
         return array_merge([
@@ -751,9 +821,9 @@ class PayloadBuilder
      */
     public function buildViewSearchResultsPayload($searchTerm = null, $resultsCount = null, array $items = [])
     {
-        $query = ($searchTerm !== null)
+        $query = ($searchTerm !== null && trim((string)$searchTerm) !== '')
             ? trim((string)$searchTerm)
-            : trim((string)Tools::getValue('s', Tools::getValue('search_query', Tools::getValue('tag', ''))));
+            : self::getSearchQuery();
 
         if ($query === '') {
             return null;

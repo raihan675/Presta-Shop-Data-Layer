@@ -1352,6 +1352,76 @@
         // Delegated document click listeners automatically cover re-rendered miniatures.
       });
     }
+
+    // 8. Client-Side Search Discovery & Third-Party Search Theme Safety Net
+    (function () {
+      if (typeof window === 'undefined') return;
+
+      function checkSearchDiscovery() {
+        var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
+        var isSearch = false;
+        if (pageCtx && pageCtx.controller) {
+          var cLower = String(pageCtx.controller).toLowerCase();
+          if (cLower === 'search' || cLower.indexOf('search') !== -1) {
+            isSearch = true;
+          }
+        }
+        if (!isSearch && window.location) {
+          var href = window.location.href || '';
+          if (href.indexOf('/suche') !== -1 || href.indexOf('/search') !== -1 || href.indexOf('iqitsearch') !== -1 || /[?&](?:s|search_query|q|query)=/.test(href)) {
+            isSearch = true;
+          }
+        }
+        if (!isSearch) return;
+
+        var query = '';
+        try {
+          if (window.location && window.location.search) {
+            var params = new URLSearchParams(window.location.search);
+            query = params.get('s') || params.get('search_query') || params.get('q') || params.get('query') || params.get('tag') || '';
+          }
+        } catch (e) {}
+
+        if (!query && document.querySelector) {
+          var sInput = document.querySelector('input[name="s"], input[name="search_query"], input[name="q"], input.search-widget-input');
+          if (sInput && sInput.value) {
+            query = String(sInput.value).trim();
+          }
+        }
+
+        if (!query) return;
+
+        if (window.psGtmConfig) {
+          window.psGtmConfig.pageContext = window.psGtmConfig.pageContext || {};
+          if (!window.psGtmConfig.pageContext.list_id) {
+            window.psGtmConfig.pageContext.list_id = 'search_results';
+            window.psGtmConfig.pageContext.list_name = 'Search: ' + query;
+          }
+        }
+
+        var hasSearchEventPushed = false;
+        if (window.dataLayer && Array.isArray(window.dataLayer)) {
+          for (var i = 0; i < window.dataLayer.length; i++) {
+            var entry = window.dataLayer[i];
+            if (entry && (entry.original_event === 'view_search_results' || (entry.event && entry.event.indexOf('view_search_results') !== -1))) {
+              hasSearchEventPushed = true;
+              break;
+            }
+          }
+        }
+
+        if (!hasSearchEventPushed && EDL && typeof EDL.pushEvent === 'function') {
+          var listItems = (window.psGtmConfig && window.psGtmConfig.currentList && window.psGtmConfig.currentList.items) || [];
+          EDL.pushEvent('view_search_results', {
+            search_term: query,
+            search_results_count: listItems.length,
+            items: listItems
+          });
+        }
+      }
+
+      checkSearchDiscovery();
+    })();
   }
 
   if (document.readyState === 'loading') {

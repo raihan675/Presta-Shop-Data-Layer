@@ -2,7 +2,7 @@
 <module>
     <name>ps_gtm_datalayer</name>
     <displayName><![CDATA[E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok & Google Ads]]></displayName>
-    <version><![CDATA[1.14.1]]></version>
+    <version><![CDATA[1.14.2]]></version>
     <description><![CDATA[Catalog-accurate ecommerce DataLayer with native Meta, Pinterest, TikTok & Google Ads Dynamic Remarketing matching, base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.]]></description>
     <author><![CDATA[Raihan]]></author>
     <tab><![CDATA[analytics_stats]]></tab>

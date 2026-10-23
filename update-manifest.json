@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.14.1",
+    "latest_version":  "1.14.2",
     "release_date":  "2026-10-23",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.1/ps_gtm_datalayer.zip",
-    "checksum":  "63c63447d7f1668f663fef0bc62811e88bfb18cd7437a2ad033d29c47ebad6af",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.14.2/ps_gtm_datalayer.zip",
+    "checksum":  "4ccc63e2b754248e890fb07a81fa1a0afe813100d703e55457cb263aac1ca5f7",
     "release_type":  "patch",
-    "release_notes":  "1. Updated README.md documentation with complete view_search_results event guidelines.\n2. Added GTM variable mapping table entries for search_term, search_results_count, meta.search_string, pinterest.search_query, and tiktok.query.\n3. Synchronized version and cleared Smarty caches."
+    "release_notes":  "1. Expanded search results detection to third-party themes and modules (Warehouse iqitsearch, Leo Search, Jolisearch, PM AdvancedSearch4).\n2. Added multi-parameter search keyword extraction (s, search_query, q, query, tag).\n3. Added client-side search discovery and third-party theme safety net in prestashop-adapter.js.\n4. Verified 1-click update support and cleared Smarty caches."
 }

@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.14.2] - 2026-10-23
+
+### Fixed
+- **Universal Search Controller Detection (Warehouse/iqitsearch, Leo Search, Jolisearch, AS4)**:
+  - Fixed search detection on stores running third-party search modules such as Warehouse theme (`module-iqitsearch-searchiqit`), Leo Search (`leosearch`), Jolisearch, and custom module search controllers.
+  - Sourced search queries flexibly across all common parameters (`s`, `search_query`, `q`, `query`, `tag`).
+  - Added client-side search discovery and third-party theme safety net in `prestashop-adapter.js` ensuring `view_search_results` is captured under all theme routing architectures.
+
+---
+
 ## [1.14.1] - 2026-10-23
 
 ### Documentation & Guidelines

@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.14.1';
+        $this->version = '1.14.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1161,12 +1161,13 @@ class Ps_Gtm_DataLayer extends Module
             $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
 
             $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
+            $isSearch = PayloadBuilder::isSearchController($controller, $this->context);
             $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
             $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
 
             $initialPayloads = [];
-            if ($controller === 'search') {
-                $searchQuery = (string)Tools::getValue('s', Tools::getValue('search_query', Tools::getValue('tag', '')));
+            if ($isSearch) {
+                $searchQuery = PayloadBuilder::getSearchQuery();
                 if ($searchQuery !== '') {
                     $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery);
                     if ($searchPayload) {
@@ -1223,8 +1224,8 @@ class Ps_Gtm_DataLayer extends Module
             } elseif ($controller === 'cart') {
                 $pageContext['list_id'] = 'cross_sell';
                 $pageContext['list_name'] = 'Cart Cross-Sell';
-            } elseif ($controller === 'search') {
-                $searchQuery = (string)Tools::getValue('s', Tools::getValue('search_query', ''));
+            } elseif ($isSearch) {
+                $searchQuery = PayloadBuilder::getSearchQuery();
                 $pageContext['list_id'] = 'search_results';
                 $pageContext['list_name'] = $searchQuery ? 'Search: ' . $searchQuery : 'Search Results';
             } elseif ($controller === 'prices-drop') {

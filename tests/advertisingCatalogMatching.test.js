@@ -856,4 +856,50 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.google_ads, undefined, 'Google Ads Dynamic Remarketing must be strictly excluded from view_search_results');
   });
 
+  it('18. Third-party theme search controllers (Warehouse/iqitsearch, Leo Search): Emits view_search_results with proper prefix and search parameters', function () {
+    EDL.setEventPrefix('ps');
+
+    const searchItems = [
+      {
+        item_id: '1066',
+        item_name: 'Chicco Natural Feeling Glas-Babyflasche, 150 ml',
+        item_brand: 'Chicco',
+        item_category: 'Babyflasche',
+        price: 10.92,
+        quantity: 1
+      },
+      {
+        item_id: '1186',
+        item_name: 'Miffy – Baby-Gehörschutz Weiß',
+        item_brand: 'Dooky',
+        item_category: 'Gehörschutz',
+        price: 21.00,
+        quantity: 1
+      }
+    ];
+
+    EDL.pushEvent('view_search_results', {
+      search_term: 'baby',
+      search_results_count: 139,
+      currency: 'EUR',
+      value: 31.92,
+      items: searchItems
+    });
+
+    const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+
+    assert.strictEqual(payload.event, 'ps_view_search_results');
+    assert.strictEqual(payload.original_event, 'view_search_results');
+    assert.strictEqual(payload.search_term, 'baby');
+    assert.strictEqual(payload.search_results_count, 139);
+    assert.strictEqual(payload.ecommerce.items.length, 2);
+    assert.strictEqual(payload.meta.event_name, 'Search');
+    assert.strictEqual(payload.meta.search_string, 'baby');
+    assert.strictEqual(payload.tiktok.event_name, 'Search');
+    assert.strictEqual(payload.tiktok.query, 'baby');
+    assert.strictEqual(payload.pinterest.event_name, 'Search');
+    assert.strictEqual(payload.pinterest.search_query, 'baby');
+    assert.strictEqual(payload.google_ads, undefined);
+  });
+
 });
