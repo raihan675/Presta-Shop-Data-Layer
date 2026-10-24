@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.21.3",
+    "latest_version":  "1.27.0",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.3/ps_gtm_datalayer.zip",
-    "checksum":  "7cc8db6900d9556bd98f2c2d75006dff71282f4807e01f7d577fbf1f7db2cafb",
-    "release_type":  "patch",
-    "release_notes":  "1. Restored and healed TikTok Ads DataLayer configuration via upgrade migration script upgrade-1.21.3.php, ensuring tiktok namespace is actively pushed across all events.\n2. Aligned Back Office platform event counter to accurately display (Platform Off) when disabled, preventing misleading active counts.\n3. Cleared template caches for instantaneous frontend and backend DataLayer activation."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.27.0/ps_gtm_datalayer.zip",
+    "checksum":  "ead805bdaa5cc68b9f1bd29a4d76ef4cb9ce3075ffb9f4463c868e1f0aacbeb5",
+    "release_type":  "minor",
+    "release_notes":  "1. Restores the native classic PrestaShop UI layout (v1.21.3 design) with full hook integrity.\n2. Adds dedicated configuration fields for Raw GTM container scripts (\u003chead\u003e and \u003cbody\u003e noscript injection).\n3. Product Catalog Identifier Strategy organized with wide dropdown and comprehensive, real-world guidance.\n4. Enables seamless 1-click update in PrestaShop 8 Back Office bypassing downgrade locks."
 }

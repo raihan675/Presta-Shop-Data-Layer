@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.27.0] - 2026-10-24
+
+### Changed
+- **Classic PrestaShop UI Architecture (v1.21.3 Design)**:
+  - Preserved the clean, native PrestaShop Back Office interface architecture without custom SaaS dashboard layout or overflowing titles.
+  - Guaranteed 100% hook method integrity across all storefront lifecycles.
+
+### Added
+- **Raw GTM Container Script Injection**:
+  - Added dedicated Back Office textarea inputs for raw GTM `<head>` script and raw GTM `<body>` (noscript) container code.
+  - Automatically injected into storefront `<head>` and opening `<body>` tags across all pages.
+- **Enhanced Product Catalog Identifier Strategy**:
+  - Organized dropdown selector with full width (`max-width: 650px; height: 38px`).
+  - Added permanent guidance cards with clear "When to use" descriptions and real-world store examples for Option 1 (Composite ID), Option 2 (Base Product ID), and Option 3 (Reference / SKU).
+
+---
+
 ## [1.21.3] - 2026-10-24
 
 ### Fixed
