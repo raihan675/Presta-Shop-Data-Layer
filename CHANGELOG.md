@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.20.1] - 2026-10-24
+
+### Fixed
+- **New Customer Acquisition (NCA) & CLV Support for Bank Wire and Offline Payments**:
+  - Fixed database order query in `CustomerDataEngine::resolveCustomerLifecycleMetrics()` to include placed orders with non-canceled states (`valid = 1` or `current_state NOT IN (PS_OS_CANCELED, PS_OS_ERROR)`).
+  - Resolved issue where test orders placed using Banküberweisung (`ps_wirepayment`, initial state 10 `valid = 0`) were omitted from prior orders and lifetime value calculations.
+  - Guaranteed that repeat purchasers using bank wire or cash on delivery correctly fire `new_customer: false` and accumulate prior orders into `customer_lifetime_value`.
+
+---
+
 ## [1.20.0] - 2026-10-24
 
 ### Added
