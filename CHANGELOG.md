@@ -1,8 +1,32 @@
 # Changelog
 
-All notable changes to the **Enterprise GA4, Meta, Pinterest, TikTok & Google Ads DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
+All notable changes to the **Enterprise GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.21.0] - 2026-10-24
+
+### Added
+- **Dedicated Microsoft Advertising (Bing Ads) & UET Integration (`microsoft_ads`)**:
+  - Implemented universal dataLayer payload namespace `microsoft_ads` matching Microsoft Universal Event Tracking (UET) specifications and Microsoft Merchant Center (MMC) feeds.
+  - **Standard Ecommerce Conversion Events**:
+    - Dispatches standard Microsoft Advertising events with `event_action`: `view_item`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`, `view_item_list`, `view_search_results`, and `add_to_wishlist`.
+    - Supplies transaction financials: `revenue_value`, `currency`, `transaction_id` (numeric format e.g. `"1239"`), `tax`, `shipping`, `coupon`, `checkout_step`, and `checkout_option`.
+  - **Retail Dynamic Remarketing (`dynamic_remarketing`)**:
+    - Standardized `dynamic_remarketing` schema with `ecomm_pagetype` (`home`, `product`, `category`, `searchresults`, `cart`, `purchase`, `other`), `ecomm_prodid` (string on product, array on listings/cart/purchase), `ecomm_totalvalue`, `ecomm_category`, and `ecomm_query`.
+  - **Product Line Items Array**:
+    - Generates dedicated `items` array with `id`, `name`, `brand`, `category`, `variant`, `price`, `quantity`, `list_name`, and `list_position`.
+  - **Microsoft Merchant Center (MMC) Catalog Matching**:
+    - Respects the module's Catalog ID Strategy (`composite`, `id_product`, `reference_sku`), ensuring 100% ID synchronization between dynamic remarketing tags and MMC product catalogs.
+  - **Enhanced Conversions / Advanced Matching (`pid`)**:
+    - Built-in `CustomerDataEngine::buildMicrosoftUserData()` producing normalized, SHA-256 hashed customer identifiers with dual-key compatibility (`email`/`em` and `phone_number`/`ph`) for UET tag and CAPI ingestion.
+  - **Back Office Configuration & Event-Level Routing Matrix**:
+    - Added dedicated Microsoft Advertising accordion card with official 4-square Microsoft branding (`views/img/microsoft_ads.png`).
+    - Granular per-event toggles allowing merchants to independently enable or suppress `microsoft_ads` output across all 12 supported ecommerce events.
+  - **DataLayer Purge Isolation**:
+    - Integrated `microsoft_ads: null` into event purge resets, preventing stale parameter inheritance across consecutive single-page interactions.
 
 ---
 

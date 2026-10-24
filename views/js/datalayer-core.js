@@ -267,6 +267,8 @@
     var googleCartDataItems = [];
     var pinterestProdIds = [];
     var pinterestLineItems = [];
+    var microsoftProdIds = [];
+    var microsoftItems = [];
     var totalNumItems = 0;
 
     for (var i = 0; i < items.length; i++) {
@@ -330,6 +332,23 @@
         product_variant: String(it.item_variant || ''),
         product_variant_id: (it.variant_id !== undefined && it.variant_id !== null && String(it.variant_id) !== '0') ? String(it.variant_id) : ''
       });
+
+      if (microsoftProdIds.indexOf(catId) === -1) {
+        microsoftProdIds.push(catId);
+      }
+      // Microsoft Advertising official items schema
+      var msftItem = {
+        id: catId,
+        name: String(it.item_name || ''),
+        brand: String(it.item_brand || ''),
+        category: String(it.item_category || ''),
+        variant: String(it.item_variant || ''),
+        price: itemPrice,
+        quantity: itemQty
+      };
+      if (it.list_name) msftItem.list_name = String(it.list_name);
+      if (it.list_position !== undefined) msftItem.list_position = Number(it.list_position);
+      microsoftItems.push(msftItem);
     }
 
     // Meta Event Name Resolution
@@ -609,6 +628,89 @@
       pinterestNamespace.user_data = pUserData;
     }
 
+    // Microsoft Advertising Event Action and Schema Resolution
+    var msftEventAction = canonicalEventName;
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item') {
+      msftEventAction = 'view_item';
+    } else if (canonicalEventName === 'view_cart') {
+      msftEventAction = 'view_cart';
+    } else if (canonicalEventName === 'view_item_list') {
+      msftEventAction = 'view_item_list';
+    } else if (canonicalEventName === 'search' || canonicalEventName === 'view_search_results') {
+      msftEventAction = 'view_search_results';
+    } else if (canonicalEventName === 'add_to_cart') {
+      msftEventAction = 'add_to_cart';
+    } else if (canonicalEventName === 'remove_from_cart') {
+      msftEventAction = 'remove_from_cart';
+    } else if (canonicalEventName === 'begin_checkout') {
+      msftEventAction = 'begin_checkout';
+    } else if (canonicalEventName === 'add_shipping_info') {
+      msftEventAction = 'checkout_progress';
+    } else if (canonicalEventName === 'add_payment_info') {
+      msftEventAction = 'add_payment_info';
+    } else if (canonicalEventName === 'purchase') {
+      msftEventAction = 'purchase';
+    } else if (canonicalEventName === 'add_to_wishlist') {
+      msftEventAction = 'add_to_wishlist';
+    }
+
+    var microsoftAdsNamespace = {
+      event_action: msftEventAction,
+      event_category: 'ecommerce',
+      revenue_value: val,
+      currency: curr,
+      items: microsoftItems
+    };
+
+    if (options.orderId) {
+      microsoftAdsNamespace.event_label = 'Order ' + String(options.orderId);
+    }
+    if (options.searchTerm) {
+      microsoftAdsNamespace.search_term = String(options.searchTerm);
+    }
+    if (canonicalEventName === 'begin_checkout') {
+      microsoftAdsNamespace.checkout_step = 1;
+    } else if (canonicalEventName === 'add_shipping_info') {
+      microsoftAdsNamespace.checkout_step = 3;
+      if (options.property) microsoftAdsNamespace.checkout_option = String(options.property);
+    } else if (canonicalEventName === 'add_payment_info') {
+      microsoftAdsNamespace.checkout_step = 4;
+      if (options.property) microsoftAdsNamespace.checkout_option = String(options.property);
+    }
+    if (options.coupon) {
+      microsoftAdsNamespace.coupon = String(options.coupon);
+    }
+
+    if (canonicalEventName === 'purchase') {
+      var msftTxId = options.transactionId ? String(options.transactionId) : (options.orderId ? String(options.orderId) : '');
+      if (msftTxId) {
+        microsoftAdsNamespace.transaction_id = msftTxId;
+        microsoftAdsNamespace.event_id = msftTxId + '_' + Date.now();
+      }
+      if (options.tax !== undefined) microsoftAdsNamespace.tax = parseFloat(options.tax) || 0.0;
+      if (options.shipping !== undefined) microsoftAdsNamespace.shipping = parseFloat(options.shipping) || 0.0;
+      if (options.affiliation) microsoftAdsNamespace.affiliation = String(options.affiliation);
+    }
+
+    var msftRemarketing = {
+      ecomm_pagetype: pageType,
+      ecomm_prodid: isSingleProduct ? (microsoftProdIds[0] || '') : microsoftProdIds,
+      ecomm_totalvalue: val
+    };
+    if (options.categoryName) {
+      msftRemarketing.ecomm_category = String(options.categoryName);
+    }
+    if (options.searchTerm) {
+      msftRemarketing.ecomm_query = String(options.searchTerm);
+    }
+    microsoftAdsNamespace.dynamic_remarketing = msftRemarketing;
+
+    var msUserData = options.microsoftUserData || options.microsoft_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.microsoftUserData ? window.psGtmConfig.microsoftUserData : null);
+    if (msUserData && typeof msUserData === 'object') {
+      microsoftAdsNamespace.pid = msUserData.pid || msUserData;
+    }
+
     var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
     if (!masterEnabled) {
       return {};
@@ -618,11 +720,13 @@
     var tiktokEnabled = advSettings ? (advSettings.tiktok_enabled !== false && advSettings.tiktok_enabled !== 0 && advSettings.tiktok_enabled !== '0') : true;
     var gadsEnabled = advSettings ? (advSettings.gads_enabled !== false && advSettings.gads_enabled !== 0 && advSettings.gads_enabled !== '0') : true;
     var pinterestEnabled = advSettings ? (advSettings.pinterest_enabled !== false && advSettings.pinterest_enabled !== 0 && advSettings.pinterest_enabled !== '0') : true;
+    var microsoftEnabled = advSettings ? (advSettings.microsoft_enabled !== false && advSettings.microsoft_enabled !== 0 && advSettings.microsoft_enabled !== '0') : true;
 
     var metaEvents = (advSettings && Array.isArray(advSettings.meta_events)) ? advSettings.meta_events : null;
     var tiktokEvents = (advSettings && Array.isArray(advSettings.tiktok_events)) ? advSettings.tiktok_events : null;
     var gadsEvents = (advSettings && Array.isArray(advSettings.gads_events)) ? advSettings.gads_events : null;
     var pinterestEvents = (advSettings && Array.isArray(advSettings.pinterest_events)) ? advSettings.pinterest_events : null;
+    var microsoftEvents = (advSettings && Array.isArray(advSettings.microsoft_events)) ? advSettings.microsoft_events : null;
 
     var isSearchListing = (canonicalEventName === 'view_item_list' && (pageType === 'searchresults' || (options && options.listId && String(options.listId).indexOf('search') !== -1)));
 
@@ -638,6 +742,9 @@
     }
     if (!isSearchListing && pinterestEnabled && (!pinterestEvents || pinterestEvents.indexOf(canonicalEventName) !== -1)) {
       result.pinterest = pinterestNamespace;
+    }
+    if (microsoftEnabled && (!microsoftEvents || microsoftEvents.indexOf(canonicalEventName) !== -1)) {
+      result.microsoft_ads = microsoftAdsNamespace;
     }
 
     return result;
@@ -710,12 +817,16 @@
     if (platformNamespaces.pinterest) {
       canonicalPayload.pinterest = platformNamespaces.pinterest;
     }
+    if (platformNamespaces.microsoft_ads) {
+      canonicalPayload.microsoft_ads = platformNamespaces.microsoft_ads;
+    }
 
     if (additionalNamespaces && typeof additionalNamespaces === 'object') {
       if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta || {}, additionalNamespaces.meta);
       if (additionalNamespaces.tiktok) canonicalPayload.tiktok = Object.assign({}, canonicalPayload.tiktok || {}, additionalNamespaces.tiktok);
       if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads || {}, additionalNamespaces.google_ads);
       if (additionalNamespaces.pinterest) canonicalPayload.pinterest = Object.assign({}, canonicalPayload.pinterest || {}, additionalNamespaces.pinterest);
+      if (additionalNamespaces.microsoft_ads) canonicalPayload.microsoft_ads = Object.assign({}, canonicalPayload.microsoft_ads || {}, additionalNamespaces.microsoft_ads);
       if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
     }
 
@@ -730,7 +841,8 @@
         meta: null,
         tiktok: null,
         google_ads: null,
-        pinterest: null
+        pinterest: null,
+        microsoft_ads: null
       });
       window.dataLayer.push(canonicalPayload);
     }

@@ -106,6 +106,15 @@
   {else}
   window.psGtmConfig.tiktokUserData = null;
   {/if}
+  {if !empty($microsoft_user_data)}
+  try {
+    window.psGtmConfig.microsoftUserData = {$microsoft_user_data nofilter};
+  } catch(e) {
+    window.psGtmConfig.microsoftUserData = null;
+  }
+  {else}
+  window.psGtmConfig.microsoftUserData = null;
+  {/if}
   {if isset($page_context)}
   try {
     window.psGtmConfig.pageContext = {$page_context nofilter};
@@ -150,7 +159,8 @@
             meta: null,
             tiktok: null,
             google_ads: null,
-            pinterest: null
+            pinterest: null,
+            microsoft_ads: null
           });
           window.dataLayer.push(p);
         }
@@ -172,7 +182,8 @@
             meta: null,
             tiktok: null,
             google_ads: null,
-            pinterest: null
+            pinterest: null,
+            microsoft_ads: null
           });
           window.dataLayer.push(pending[i]);
         }

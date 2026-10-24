@@ -1223,7 +1223,8 @@ describe('Catalog-Accurate Identity & Variants Test Suite', function () {
         meta: null,
         tiktok: null,
         google_ads: null,
-        pinterest: null
+        pinterest: null,
+        microsoft_ads: null
       });
     });
 

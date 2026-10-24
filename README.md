@@ -1,10 +1,10 @@
-# Enterprise GA4, Meta, Pinterest, TikTok & Google Ads DataLayer Module for PrestaShop
+# Enterprise GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads DataLayer Module for PrestaShop
 
 [![PrestaShop Compatibility](https://img.shields.io/badge/PrestaShop-1.7.0.0%20--%208.2.x%20%2F%209.x-blue.svg)](https://www.prestashop.com/)
 [![License: Academic Free License (AFL 3.0)](https://img.shields.io/badge/License-AFL%203.0-green.svg)](https://opensource.org/licenses/AFL-3.0)
 [![Latest Release](https://img.shields.io/github/v/release/raihan675/Presta-Shop-Data-Layer?color=brightgreen)](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest)
 
-An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, and **Google Ads Dynamic Remarketing (Retail vertical)** with zero client-side transformation required in Google Tag Manager.
+An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, **Google Ads Dynamic Remarketing (Retail vertical)**, and **Microsoft Advertising (Bing Ads) & UET** with zero client-side transformation required in Google Tag Manager.
 
 Includes **Server-Side GTM (sGTM)** support, **Google Consent Mode v2**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
@@ -16,18 +16,18 @@ The module supports all core ecommerce actions across the full customer funnel w
 
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
-| **1** | **`view_item_list`** | Visiting a genuine product listing page (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**). Carries authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`). Never fires on search pages. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` pagetype), `meta` (`ViewCategory`), `pinterest` (`ViewCategory`), `tiktok` (`ViewContent`) |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme search controllers). Strictly represents search action with authoritative `search_term`, `search_results_count`, and returned `items`. Never triggers `view_item_list`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `google_ads` (`searchresults` pagetype, `search_term`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`) |
-| **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype) |
-| **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`) |
-| **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads` |
-| **6** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **7** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`Custom: ViewCart`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data` with `new_customer`, `customer_lifetime_value`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
+| **1** | **`view_item_list`** | Visiting a genuine product listing page (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**). Carries authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`). Never fires on search pages. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` pagetype), `meta` (`ViewCategory`), `pinterest` (`ViewCategory`), `tiktok` (`ViewContent`), `microsoft_ads` (`view_item_list`, `category` pagetype) |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme search controllers). Strictly represents search action with authoritative `search_term`, `search_results_count`, and returned `items`. Never triggers `view_item_list`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `google_ads` (`searchresults` pagetype, `search_term`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), `microsoft_ads` (`view_search_results`, `search_term`, `searchresults` pagetype) |
+| **3** | **`select_item`** | Clicking any product card or link from a catalog listing or search grid. | `ecommerce`, `meta` (`product`), `pinterest` (`PageVisit`), `tiktok`, `google_ads` (`product` pagetype), `microsoft_ads` (`select_item`, `product` pagetype) |
+| **4** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`), `microsoft_ads` (`view_item`, `product` pagetype, `items`) |
+| **5** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports `blockwishlist`, `iqitwishlist`, and custom themes). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads`, `microsoft_ads` (`add_to_wishlist`, `other` pagetype) |
+| **6** | **`add_to_cart`** | Adding an item from PDP, quick-add from listings, or incrementing quantities in the cart/modal. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_to_cart`, `cart` pagetype, `revenue_value`) |
+| **7** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`remove_from_cart`, `cart` pagetype) |
+| **8** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`Custom: ViewCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`view_cart`, `cart` pagetype) |
+| **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`begin_checkout`, `checkout_step: 1`, `cart` pagetype) |
+| **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_shipping_info`, `checkout_step: 3`) |
+| **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_payment_info`, `checkout_step: 4`) |
+| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data`), `microsoft_ads` (`purchase`, `transaction_id`, `revenue_value`, `tax`, `shipping`, `pid`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
 
 ---
 
@@ -150,9 +150,39 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   * `google_ads.cart_data.new_customer`: Boolean (`true`/`false`) identifying whether the purchase is from a first-time buyer (Google Ads New Customer Acquisition - NCA).
   * `google_ads.cart_data.customer_lifetime_value`: Total cumulative lifetime spend of the customer in store currency, calculated authoritatively from PrestaShop's core order database.
 
+### 5. Microsoft Advertising (Bing Ads & UET)
+* `microsoft_ads.event_action`: Official standard event name (`'view_item'`, `'view_item_list'`, `'view_search_results'`, `'select_item'`, `'add_to_cart'`, `'remove_from_cart'`, `'view_cart'`, `'begin_checkout'`, `'add_shipping_info'`, `'add_payment_info'`, `'purchase'`, `'add_to_wishlist'`).
+* `microsoft_ads.revenue_value`: Normalized event conversion revenue.
+* `microsoft_ads.currency`: 3-letter ISO currency code.
+* `microsoft_ads.transaction_id`: Authoritative numeric Order ID (e.g., `'1239'`) on purchase conversions.
+* `microsoft_ads.tax`, `microsoft_ads.shipping`, `microsoft_ads.coupon`: Order totals and voucher code.
+* `microsoft_ads.items`: Dedicated product array matching Microsoft catalog specifications:
+  ```json
+  [
+    {
+      "id": "68_299",
+      "name": "Trink und Snack Tasse",
+      "brand": "Dooky",
+      "category": "Trinkbecher",
+      "variant": "Farbe: Stahlblau",
+      "price": 13.00,
+      "quantity": 1
+    }
+  ]
+  ```
+* `microsoft_ads.dynamic_remarketing`: Retail dynamic remarketing object:
+  * `ecomm_pagetype`: `'home'`, `'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`, `'other'`.
+  * `ecomm_prodid`: String product ID on PDP (`'68_299'`) or array of IDs on listings/cart/purchase (`['68_299', '1013']`).
+  * `ecomm_totalvalue`: Page-level conversion total value.
+  * `ecomm_category`: Listing or product category name.
+  * `ecomm_query`: Search keywords on search result listings.
+* `microsoft_ads.pid`: SHA-256 hashed customer identifiers for Enhanced Conversions / Advanced Matching:
+  * `email` / `em`: Lowercase trimmed email hash.
+  * `phone_number` / `ph`: E.164 normalized phone hash.
+
 > [!NOTE]
 > **Strict Event Separation: Search vs Product-List Tracking**:
-> * `view_search_results`: Strictly fires when a user performs a search action and views on-site search results. Communicates search intent and query parameters (`search_term`, `search_results_count`) alongside returned catalog `items` directly to GA4 Site Search reports, and triggers authoritative `Search` / dynamic remarketing tracking across Meta, TikTok, Pinterest, and Google Ads (`ecomm_pagetype: 'searchresults'`).
+> * `view_search_results`: Strictly fires when a user performs a search action and views on-site search results. Communicates search intent and query parameters (`search_term`, `search_results_count`) alongside returned catalog `items` directly to GA4 Site Search reports, and triggers authoritative `Search` / dynamic remarketing tracking across Meta, TikTok, Pinterest, Google Ads, and Microsoft Advertising (`ecomm_pagetype: 'searchresults'`).
 > * `view_item_list`: Strictly fires only when a user visits genuine product lists (Category, Home Featured, Brand, On Sale, New Products, Best Sellers) with authentic list IDs and names. A search page is never classified as a product list, and `view_item_list` never fires automatically following `view_search_results`.
 
 ---
@@ -206,6 +236,17 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - pinterest.search_query}}` | `pinterest.search_query` | Pinterest Search Tag (`search_query`) |
 | `{{dlv - tiktok.search_string}}` | `tiktok.search_string` | TikTok Search Tag official standard (`search_string`) |
 | `{{dlv - tiktok.query}}` | `tiktok.query` | TikTok Search Tag legacy alias (`query`) |
+| `{{dlv - microsoft_ads.event_action}}` | `microsoft_ads.event_action` | Microsoft Advertising UET Event Action (`event_action`) |
+| `{{dlv - microsoft_ads.revenue_value}}` | `microsoft_ads.revenue_value` | Microsoft Advertising Conversion Value (`revenue_value`) |
+| `{{dlv - microsoft_ads.currency}}` | `microsoft_ads.currency` | Microsoft Advertising Conversion Currency (`currency`) |
+| `{{dlv - microsoft_ads.transaction_id}}` | `microsoft_ads.transaction_id` | Microsoft Advertising Conversion Transaction ID (`transaction_id`) |
+| `{{dlv - microsoft_ads.items}}` | `microsoft_ads.items` | Microsoft Advertising Product Array (`items`) |
+| `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_prodid}}` | `microsoft_ads.dynamic_remarketing.ecomm_prodid` | Microsoft Retail Dynamic Remarketing: **Product ID** |
+| `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_pagetype}}` | `microsoft_ads.dynamic_remarketing.ecomm_pagetype` | Microsoft Retail Dynamic Remarketing: **Page Type** |
+| `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_totalvalue}}` | `microsoft_ads.dynamic_remarketing.ecomm_totalvalue` | Microsoft Retail Dynamic Remarketing: **Total Value** |
+| `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_category}}` | `microsoft_ads.dynamic_remarketing.ecomm_category` | Microsoft Retail Dynamic Remarketing: **Category** |
+| `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_query}}` | `microsoft_ads.dynamic_remarketing.ecomm_query` | Microsoft Retail Dynamic Remarketing: **Search Query** |
+| `{{dlv - microsoft_ads.pid}}` | `microsoft_ads.pid` | Microsoft Enhanced Conversions / UET Enhanced Matching (`email`, `phone_number`) |
 
 ---
 
@@ -224,8 +265,8 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
 * **Enable Google Consent Mode v2**: Automatically injects GDPR/DMA compliant default denied consent flags before GTM loads.
 
 ### Advertising Platform DataLayer Settings
-* **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`) across all events in a single click.
-* **Platform-Based Expandable Routing Panels**: Each supported advertising platform (**Meta**, **Google Ads**, **TikTok**, and **Pinterest**) features its own expandable accordion panel.
+* **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`, `microsoft_ads`) across all events in a single click.
+* **Platform-Based Expandable Routing Panels**: Each supported advertising platform (**Meta**, **Google Ads**, **TikTok**, **Pinterest**, and **Microsoft Advertising**) features its own expandable accordion panel.
 * **Independent Platform Master Toggles**: Enable or disable data layer output for an individual platform directly on its header card. Disabling a platform preserves its underlying event selections.
 * **Granular Event-Level Toggles**: Expand any platform to view its supported ecommerce events, payload specifications, and independently toggle data layer dispatch per event.
 * **Platform-Specific Bulk Actions**: Each expanded panel includes instant "Enable all events" and "Disable all events" buttons scoped exclusively to that platform.
@@ -244,7 +285,7 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
 ### Method 2: Manual FTP / SFTP Installation
 1. Download and extract `ps_gtm_datalayer.zip`.
 2. Upload the unzipped `ps_gtm_datalayer` folder into `/modules/` on your server.
-3. In PrestaShop Back Office, find **E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok & Google Ads** in Module Manager and click **Install**.
+3. In PrestaShop Back Office, find **E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads** in Module Manager and click **Install**.
 
 ---
 

@@ -176,6 +176,8 @@ class PayloadBuilder
         $googleCartDataItems = [];
         $pinterestProdIds = [];
         $pinterestLineItems = [];
+        $microsoftProdIds = [];
+        $microsoftItems = [];
         $totalQuantity = 0;
 
         foreach ($items as $it) {
@@ -239,6 +241,27 @@ class PayloadBuilder
                 'product_variant' => isset($it['item_variant']) ? (string)$it['item_variant'] : '',
                 'product_variant_id' => (isset($it['variant_id']) && (string)$it['variant_id'] !== '0') ? (string)$it['variant_id'] : '',
             ];
+
+            if (!in_array($catId, $microsoftProdIds)) {
+                $microsoftProdIds[] = $catId;
+            }
+            // Microsoft Advertising official items schema
+            $msftItem = [
+                'id' => $catId,
+                'name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                'brand' => isset($it['item_brand']) ? (string)$it['item_brand'] : '',
+                'category' => isset($it['item_category']) ? (string)$it['item_category'] : '',
+                'variant' => isset($it['item_variant']) ? (string)$it['item_variant'] : '',
+                'price' => $price,
+                'quantity' => $qty,
+            ];
+            if (!empty($it['list_name'])) {
+                $msftItem['list_name'] = (string)$it['list_name'];
+            }
+            if (isset($it['list_position'])) {
+                $msftItem['list_position'] = (int)$it['list_position'];
+            }
+            $microsoftItems[] = $msftItem;
         }
 
         // Meta Event Name Resolution
@@ -615,6 +638,131 @@ class PayloadBuilder
             }
         }
 
+        // Microsoft Advertising (Bing Ads & UET) Event Action and Schema Resolution
+        $msftEventAction = $canonicalEvent;
+        switch ($canonicalEvent) {
+            case 'view_item':
+            case 'select_item':
+                $msftEventAction = 'view_item';
+                break;
+            case 'view_cart':
+                $msftEventAction = 'view_cart';
+                break;
+            case 'view_item_list':
+                $msftEventAction = 'view_item_list';
+                break;
+            case 'search':
+            case 'view_search_results':
+                $msftEventAction = 'view_search_results';
+                break;
+            case 'add_to_cart':
+                $msftEventAction = 'add_to_cart';
+                break;
+            case 'remove_from_cart':
+                $msftEventAction = 'remove_from_cart';
+                break;
+            case 'begin_checkout':
+                $msftEventAction = 'begin_checkout';
+                break;
+            case 'add_shipping_info':
+                $msftEventAction = 'checkout_progress';
+                break;
+            case 'add_payment_info':
+                $msftEventAction = 'add_payment_info';
+                break;
+            case 'purchase':
+                $msftEventAction = 'purchase';
+                break;
+            case 'add_to_wishlist':
+                $msftEventAction = 'add_to_wishlist';
+                break;
+            default:
+                $msftEventAction = $canonicalEvent;
+                break;
+        }
+
+        $microsoftAds = [
+            'event_action' => $msftEventAction,
+            'event_category' => 'ecommerce',
+            'revenue_value' => $val,
+            'currency' => $currencyCode,
+            'items' => $microsoftItems,
+        ];
+
+        if (!empty($options['order_id'])) {
+            $microsoftAds['event_label'] = 'Order ' . (string)$options['order_id'];
+        }
+
+        if (!empty($options['search_term'])) {
+            $microsoftAds['search_term'] = (string)$options['search_term'];
+        }
+
+        if ($canonicalEvent === 'begin_checkout') {
+            $microsoftAds['checkout_step'] = 1;
+        } elseif ($canonicalEvent === 'add_shipping_info') {
+            $microsoftAds['checkout_step'] = 3;
+            if (!empty($options['property'])) {
+                $microsoftAds['checkout_option'] = (string)$options['property'];
+            }
+        } elseif ($canonicalEvent === 'add_payment_info') {
+            $microsoftAds['checkout_step'] = 4;
+            if (!empty($options['property'])) {
+                $microsoftAds['checkout_option'] = (string)$options['property'];
+            }
+        }
+
+        if (!empty($options['coupon'])) {
+            $microsoftAds['coupon'] = (string)$options['coupon'];
+        }
+
+        if ($canonicalEvent === 'purchase') {
+            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+            if (!empty($txId)) {
+                $microsoftAds['transaction_id'] = $txId;
+                $microsoftAds['event_id'] = $txId . '_' . (isset($options['timestamp']) ? $options['timestamp'] : time());
+            }
+            if (isset($options['tax'])) {
+                $microsoftAds['tax'] = (float)$options['tax'];
+            }
+            if (isset($options['shipping'])) {
+                $microsoftAds['shipping'] = (float)$options['shipping'];
+            }
+            if (!empty($options['affiliation'])) {
+                $microsoftAds['affiliation'] = (string)$options['affiliation'];
+            }
+        }
+
+        $msftRemarketing = [
+            'ecomm_pagetype' => $pageType,
+            'ecomm_prodid' => $isSingleProduct ? (isset($microsoftProdIds[0]) ? $microsoftProdIds[0] : '') : $microsoftProdIds,
+            'ecomm_totalvalue' => $val,
+        ];
+        if (!empty($options['category_name'])) {
+            $msftRemarketing['ecomm_category'] = (string)$options['category_name'];
+        }
+        if (!empty($options['search_term'])) {
+            $msftRemarketing['ecomm_query'] = (string)$options['search_term'];
+        }
+        $microsoftAds['dynamic_remarketing'] = $msftRemarketing;
+
+        if (!empty($options['microsoft_user_data']) && is_array($options['microsoft_user_data'])) {
+            $microsoftAds['pid'] = isset($options['microsoft_user_data']['pid']) ? $options['microsoft_user_data']['pid'] : $options['microsoft_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $msftPid = CustomerDataEngine::hashMicrosoftUserData($options['user_data']);
+            if (!empty($msftPid['pid'])) {
+                $microsoftAds['pid'] = $msftPid['pid'];
+            }
+        } elseif (isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $msftPid = CustomerDataEngine::buildMicrosoftUserData($this->context->customer, $addr);
+            if (!empty($msftPid['pid'])) {
+                $microsoftAds['pid'] = $msftPid['pid'];
+            }
+        }
+
         $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
         if (!$masterEnabled) {
             return [];
@@ -624,6 +772,7 @@ class PayloadBuilder
         $tiktokEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0') : true;
         $gadsEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0') : true;
         $pinterestEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') : true;
+        $microsoftEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0') : true;
 
         $metaEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_META_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_META_EVENTS'), true)
@@ -636,6 +785,9 @@ class PayloadBuilder
             : null;
         $pinterestEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS'), true)
+            : null;
+        $microsoftEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS'), true)
             : null;
 
         $isSearchListing = ($canonicalEvent === 'view_item_list' && $pageType === 'searchresults');
@@ -659,6 +811,11 @@ class PayloadBuilder
         $isPinterestActive = ($pinterestEvents === null) ? true : (is_array($pinterestEvents) && in_array($canonicalEvent, $pinterestEvents));
         if (!$isSearchListing && $pinterestEnabled && $isPinterestActive) {
             $result['pinterest'] = $pinterest;
+        }
+
+        $isMicrosoftActive = ($microsoftEvents === null) ? true : (is_array($microsoftEvents) && in_array($canonicalEvent, $microsoftEvents));
+        if ($microsoftEnabled && $isMicrosoftActive) {
+            $result['microsoft_ads'] = $microsoftAds;
         }
 
         return $result;
@@ -1332,6 +1489,10 @@ class PayloadBuilder
             'order_id' => $orderReference,
             'transaction_id' => (string)$order->id,
             'discount' => $orderDiscount,
+            'tax' => $orderTax,
+            'shipping' => $orderShipping,
+            'coupon' => $coupon,
+            'affiliation' => (class_exists('Configuration') && Configuration::get('PS_SHOP_NAME')) ? (string)Configuration::get('PS_SHOP_NAME') : '',
             'aw_feed_country' => $countryIso,
             'aw_feed_language' => $langIso,
             'new_customer' => $lifecycleMetrics['new_customer'],
@@ -1340,6 +1501,7 @@ class PayloadBuilder
             'meta_user_data' => CustomerDataEngine::buildMetaUserData($customer, $address),
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
             'tiktok_user_data' => CustomerDataEngine::buildTikTokUserData($customer, $address),
+            'microsoft_user_data' => CustomerDataEngine::buildMicrosoftUserData($customer, $address),
         ]);
 
         $purchasePayload = [
@@ -1384,6 +1546,9 @@ class PayloadBuilder
         }
         if (isset($platformNamespaces['pinterest'])) {
             $purchasePayload['pinterest'] = $platformNamespaces['pinterest'];
+        }
+        if (isset($platformNamespaces['microsoft_ads'])) {
+            $purchasePayload['microsoft_ads'] = $platformNamespaces['microsoft_ads'];
         }
 
         return $purchasePayload;

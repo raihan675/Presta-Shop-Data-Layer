@@ -570,6 +570,91 @@ class CustomerDataEngine
     }
 
     /**
+     * Builds Microsoft Advertising Enhanced Conversions (pid) user data.
+     *
+     * @param Customer $customer
+     * @param Address|null $address
+     * @return array
+     */
+    public static function buildMicrosoftUserData(Customer $customer, Address $address = null)
+    {
+        if (!Validate::isLoadedObject($customer)) {
+            return [];
+        }
+
+        $rawEmail = (string)$customer->email;
+        $rawPhone = '';
+        if ($address && Validate::isLoadedObject($address)) {
+            $rawPhone = !empty($address->phone_mobile) ? (string)$address->phone_mobile : (string)$address->phone;
+        }
+
+        return self::hashMicrosoftUserData([
+            'email' => $rawEmail,
+            'phone_number' => $rawPhone,
+        ], $address);
+    }
+
+    /**
+     * Normalizes and SHA-256 hashes user data into Microsoft Advertising pid schema.
+     *
+     * @param array $userData
+     * @param Address|null $address
+     * @return array
+     */
+    public static function hashMicrosoftUserData(array $userData, Address $address = null)
+    {
+        $pid = [];
+
+        // 1. Email: lowercase, remove accents, strip periods and plus aliases, sha256
+        $email = !empty($userData['email']) ? trim((string)$userData['email']) : '';
+        if ($email !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $email)) {
+                $hashedEmail = strtolower($email);
+            } else {
+                $cleanEmail = strtolower($email);
+                if (filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
+                    // Microsoft normalization: remove subaddressing '+...' and periods before @
+                    $parts = explode('@', $cleanEmail, 2);
+                    if (count($parts) === 2) {
+                        $local = preg_replace('/\+.*$/', '', $parts[0]);
+                        $local = str_replace('.', '', $local);
+                        $cleanEmail = $local . '@' . $parts[1];
+                    }
+                    $hashedEmail = hash('sha256', $cleanEmail);
+                } else {
+                    $hashedEmail = '';
+                }
+            }
+            if (!empty($hashedEmail)) {
+                $pid['email'] = $hashedEmail;
+                $pid['em'] = $hashedEmail;
+            }
+        }
+
+        // 2. Phone: E.164 (+[country code][digits]), sha256
+        $phone = !empty($userData['phone_number']) ? (string)$userData['phone_number'] : (!empty($userData['phone']) ? (string)$userData['phone'] : '');
+        if ($phone !== '') {
+            $cleanPhone = trim($phone);
+            if (preg_match('/^[a-f0-9]{64}$/i', $cleanPhone)) {
+                $hashedPhone = strtolower($cleanPhone);
+            } else {
+                $normalizedPhone = self::normalizeE164Phone($cleanPhone, $address);
+                if ($normalizedPhone !== '') {
+                    $hashedPhone = hash('sha256', $normalizedPhone);
+                } else {
+                    $hashedPhone = '';
+                }
+            }
+            if (!empty($hashedPhone)) {
+                $pid['phone_number'] = $hashedPhone;
+                $pid['ph'] = $hashedPhone;
+            }
+        }
+
+        return !empty($pid) ? ['pid' => $pid] : [];
+    }
+
+    /**
      * Normalizes phone number to strict E.164 format (+[country code][digits]).
      *
      * @param string $phone

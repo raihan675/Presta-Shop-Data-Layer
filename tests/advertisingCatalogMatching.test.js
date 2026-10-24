@@ -1555,4 +1555,216 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(repeatBuyerPayload.user_data.orders_count, 4);
   });
 
+  it('28. Microsoft Advertising (Bing Ads & UET): Full schema verification across standard and dynamic remarketing events', function () {
+    // 1. view_item
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', {
+      currency: 'EUR',
+      value: 13.00,
+      items: [
+        {
+          item_id: '68',
+          variant_id: '299',
+          sku_id: 'BHK125-B',
+          item_name: 'Trink und Snack Tasse',
+          item_brand: 'Dooky',
+          item_category: 'Trinkbecher',
+          item_variant: 'Farbe: Stahlblau',
+          price: 13.00,
+          quantity: 1
+        }
+      ]
+    });
+
+    const viewItemPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(viewItemPayload.microsoft_ads, 'microsoft_ads namespace must exist on view_item');
+    assert.strictEqual(viewItemPayload.microsoft_ads.event_action, 'view_item');
+    assert.strictEqual(viewItemPayload.microsoft_ads.revenue_value, 13.00);
+    assert.strictEqual(viewItemPayload.microsoft_ads.currency, 'EUR');
+    assert.strictEqual(viewItemPayload.microsoft_ads.items.length, 1);
+    assert.strictEqual(viewItemPayload.microsoft_ads.items[0].id, '68_299');
+    assert.strictEqual(viewItemPayload.microsoft_ads.items[0].name, 'Trink und Snack Tasse');
+    assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'product');
+    assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68_299');
+    assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_totalvalue, 13.00);
+
+    // 2. add_to_cart
+    global.window.dataLayer = [];
+    EDL.pushEvent('add_to_cart', {
+      currency: 'EUR',
+      value: 26.00,
+      items: [
+        {
+          item_id: '68',
+          variant_id: '299',
+          price: 13.00,
+          quantity: 2
+        }
+      ]
+    });
+
+    const addToCartPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(addToCartPayload.microsoft_ads.event_action, 'add_to_cart');
+    assert.strictEqual(addToCartPayload.microsoft_ads.revenue_value, 26.00);
+    assert.strictEqual(addToCartPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'cart');
+    assert.deepStrictEqual(addToCartPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
+
+    // 3. begin_checkout
+    global.window.dataLayer = [];
+    EDL.pushEvent('begin_checkout', {
+      currency: 'EUR',
+      value: 35.99,
+      items: [
+        { item_id: '68', variant_id: '299', price: 13.00, quantity: 2 },
+        { item_id: '15', variant_id: '', price: 9.99, quantity: 1 }
+      ]
+    });
+
+    const checkoutPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(checkoutPayload.microsoft_ads.event_action, 'begin_checkout');
+    assert.strictEqual(checkoutPayload.microsoft_ads.checkout_step, 1);
+    assert.strictEqual(checkoutPayload.microsoft_ads.revenue_value, 35.99);
+    assert.deepStrictEqual(checkoutPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299', '15']);
+
+    // 4. view_item_list
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item_list', {
+      item_list_id: 'category_5',
+      item_list_name: 'Trinkbecher',
+      items: [
+        { item_id: '68', variant_id: '299', price: 13.00 },
+        { item_id: '72', variant_id: '', price: 15.00 }
+      ]
+    });
+
+    const listPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(listPayload.microsoft_ads.event_action, 'view_item_list');
+    assert.strictEqual(listPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'category');
+    assert.deepStrictEqual(listPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68', '72']);
+
+    // 5. view_search_results
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_search_results', {
+      search_term: 'baby',
+      items: [
+        { item_id: '68', variant_id: '299', price: 13.00 }
+      ]
+    });
+
+    const searchPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(searchPayload.microsoft_ads.event_action, 'view_search_results');
+    assert.strictEqual(searchPayload.microsoft_ads.search_term, 'baby');
+    assert.strictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'searchresults');
+    assert.strictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_query, 'baby');
+    assert.deepStrictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68']);
+
+    // 6. purchase
+    global.window.dataLayer = [];
+    EDL.pushEvent('purchase', {
+      transaction_id: '1246',
+      value: 19.20,
+      tax: 3.79,
+      shipping: 4.50,
+      currency: 'EUR',
+      coupon: 'SUMMER2026',
+      items: [
+        { item_id: '153', variant_id: '', sku_id: 'FIT09', price: 19.20, quantity: 1 }
+      ]
+    }, {
+      email: 'ahamedr675@gmail.com'
+    }, {
+      microsoft_ads: {
+        pid: {
+          email: '21e179aa2c9bc86c844a7dafc32e9c89b5585f7db00b39bf2f734e4cef42cead'
+        }
+      }
+    });
+
+    const purchasePayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(purchasePayload.microsoft_ads.event_action, 'purchase');
+    assert.strictEqual(purchasePayload.microsoft_ads.transaction_id, '1246');
+    assert.strictEqual(purchasePayload.microsoft_ads.revenue_value, 19.20);
+    assert.strictEqual(purchasePayload.microsoft_ads.tax, 3.79);
+    assert.strictEqual(purchasePayload.microsoft_ads.shipping, 4.50);
+    assert.strictEqual(purchasePayload.microsoft_ads.coupon, 'SUMMER2026');
+    assert.strictEqual(purchasePayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'purchase');
+    assert.deepStrictEqual(purchasePayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['153']);
+    assert.ok(purchasePayload.microsoft_ads.pid, 'pid should exist');
+  });
+
+  it('29. Microsoft Advertising: Catalog ID Strategy parity (composite vs reference_sku vs id_product)', function () {
+    const item = {
+      item_id: '68',
+      variant_id: '299',
+      sku_id: 'BHK125-B',
+      item_name: 'Trink und Snack Tasse',
+      price: 13.00,
+      quantity: 1
+    };
+
+    // composite
+    global.window.psGtmConfig.catalogIdStrategy = 'composite';
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    let p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.microsoft_ads.items[0].id, '68_299');
+    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68_299');
+
+    // reference_sku
+    global.window.psGtmConfig.catalogIdStrategy = 'reference_sku';
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.microsoft_ads.items[0].id, 'BHK125-B');
+    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, 'BHK125-B');
+
+    // id_product
+    global.window.psGtmConfig.catalogIdStrategy = 'id_product';
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
+    p = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(p.microsoft_ads.items[0].id, '68');
+    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68');
+  });
+
+  it('30. Microsoft Advertising: Master switch and routing matrix toggles & dataLayer purge reset', function () {
+    const item = { item_id: '153', price: 19.20, quantity: 1 };
+
+    // 1. Purge reset check
+    global.window.psGtmConfig.catalogIdStrategy = 'composite';
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 19.20, items: [item] });
+    const resetPush = global.window.dataLayer[global.window.dataLayer.length - 2];
+    assert.strictEqual(resetPush.microsoft_ads, null, 'Reset push must contain microsoft_ads: null');
+
+    // 2. Individual platform toggle
+    global.window.psGtmConfig.advertisingSettings = {
+      master_enabled: true,
+      microsoft_enabled: false,
+      microsoft_events: ['view_item', 'purchase']
+    };
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 19.20, items: [item] });
+    let payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(payload.microsoft_ads, undefined, 'microsoft_ads should be suppressed when microsoft_enabled is false');
+
+    // 3. Routing matrix toggle
+    global.window.psGtmConfig.advertisingSettings = {
+      master_enabled: true,
+      microsoft_enabled: true,
+      microsoft_events: ['purchase'] // view_item not enabled
+    };
+    global.window.dataLayer = [];
+    EDL.pushEvent('view_item', { currency: 'EUR', value: 19.20, items: [item] });
+    payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(payload.microsoft_ads, undefined, 'microsoft_ads should be omitted when view_item is not in microsoft_events');
+
+    // But purchase is enabled
+    global.window.dataLayer = [];
+    EDL.pushEvent('purchase', { transaction_id: '999', value: 19.20, items: [item] });
+    payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.ok(payload.microsoft_ads, 'microsoft_ads should be pushed on purchase when present in microsoft_events');
+    assert.strictEqual(payload.microsoft_ads.event_action, 'purchase');
+  });
+
 });
