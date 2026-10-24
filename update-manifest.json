@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.20.1",
+    "latest_version":  "1.20.2",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.20.1/ps_gtm_datalayer.zip",
-    "checksum":  "99cc9f64e83b38e84d506b6a17360e73f8d3cf4bef8370eb0a153cebc9ee9255",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.20.2/ps_gtm_datalayer.zip",
+    "checksum":  "5511e489ba40a69287a3d48e0722b994e4a5a877c8869c82883c01a339aa9a3d",
     "release_type":  "patch",
-    "release_notes":  "1. Fixed new_customer and customer_lifetime_value resolution for bank wire (ps_wirepayment) and offline payment methods whose initial state has valid = 0.\n2. Both registered customers and guest checkouts accurately accumulate lifetime spend and recognize repeat purchases across all payment gateways."
+    "release_notes":  "1. Strict accounting standard for customer lifecycle metrics: new_customer and customer_lifetime_value count authoritative orders with payment accepted (valid = 1) from the PrestaShop Back Office.\n2. Pending/unpaid offline orders (e.g. Bank Wire awaiting payment) do not count as completed historical orders until marked accepted."
 }

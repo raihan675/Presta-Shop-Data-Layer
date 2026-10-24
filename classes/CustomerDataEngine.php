@@ -637,24 +637,9 @@ class CustomerDataEngine
                     ))';
                 }
 
-                $excludedStates = [];
-                if (class_exists('Configuration')) {
-                    $canceledId = (int)Configuration::get('PS_OS_CANCELED');
-                    if ($canceledId > 0) {
-                        $excludedStates[] = $canceledId;
-                    }
-                    $errorId = (int)Configuration::get('PS_OS_ERROR');
-                    if ($errorId > 0) {
-                        $excludedStates[] = $errorId;
-                    }
-                }
-                if (empty($excludedStates)) {
-                    $excludedStates = [6, 8];
-                }
-                $excludedStatesSql = implode(',', array_map('intval', $excludedStates));
-                $validityCondition = '(`valid` = 1 OR (`current_state` > 0 AND `current_state` NOT IN (' . $excludedStatesSql . ')))';
+                $validityCondition = '`valid` = 1';
 
-                // 1. Prior placed orders strictly before this current order
+                // 1. Prior placed orders strictly before this current order with payment accepted
                 $priorSql = 'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'orders`
                              WHERE ' . $whereClause . '
                                AND ' . $validityCondition;
@@ -663,7 +648,7 @@ class CustomerDataEngine
                 }
                 $priorOrdersCount = (int)$db->getValue($priorSql);
 
-                // 2. Cumulative lifetime spend across all placed orders
+                // 2. Cumulative lifetime spend across accepted orders
                 $clvSql = 'SELECT SUM(`total_paid_tax_incl`) FROM `' . _DB_PREFIX_ . 'orders`
                            WHERE ' . $whereClause . '
                              AND ' . $validityCondition;
@@ -693,6 +678,9 @@ class CustomerDataEngine
                 $dbTotalCount = (int)$db->getValue($countSql);
                 if ($dbTotalCount > 0) {
                     $totalOrdersCount = $dbTotalCount;
+                }
+                if ($currentOrderId > 0 && $totalOrdersCount < ($priorOrdersCount + 1)) {
+                    $totalOrdersCount = $priorOrdersCount + 1;
                 }
             } catch (\Throwable $e) {
                 $priorOrdersCount = 0;

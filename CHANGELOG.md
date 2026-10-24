@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.20.2] - 2026-10-24
+
+### Changed
+- **Strict Accounting Standard for Customer Lifecycle Metrics**:
+  - Enforced strict `valid = 1` verification in `CustomerDataEngine::resolveCustomerLifecycleMetrics()` for prior orders count and customer lifetime value (`customer_lifetime_value`).
+  - Offline pending orders (e.g. Bank Wire / Cash on Delivery with state *Awaiting bank wire payment*, `valid = 0`) are not counted as completed prior orders until an administrator accepts payment (`valid = 1`) in the PrestaShop Back Office.
+  - Ensures 100% accounting accuracy for Google Ads New Customer Acquisition (NCA) and CLV bidding models.
+
+---
+
 ## [1.20.1] - 2026-10-24
 
 ### Fixed
