@@ -945,12 +945,9 @@
       }
     }
 
-    // Capture Quick View clicks via PrestaShop Core Event Bus
+    // Quick View handler (select_item omitted per merchant configuration)
     window.prestashop.on('clickQuickView', function (event) {
-      var idProduct = (event && event.dataset && (event.dataset.idProduct || event.dataset.id_product)) || '';
-      if (idProduct) {
-        handleSelectItem(idProduct);
-      }
+      // Intentionally decoupled — select_item omitted per theme-independent architecture
     });
 
     // 4. PrestaShop Core Wishlist Event Bus & Custom Document Listeners (blockwishlist / ps_wishlist)
@@ -987,195 +984,7 @@
       if (idProd) dispatchAddToWishlist(idProd, idAttr);
     });
 
-    // 5. Fallback Delegated Click Handler on Wishlist Triggers (Universal Theme Compatibility)
-    document.addEventListener('click', function (e) {
-      if (!e.target || !e.target.closest) return;
-      var btn = e.target.closest(
-        '.wishlist-button, .wishlist-button-add, .btn-wishlist, [data-action="add-to-wishlist"], ' +
-        '[data-wishlist-add], .js-wishlist-button, .wishtlist-btn, .addToWishlist, .add-to-wishlist, ' +
-        '.wishlist_button, .iqitwishlist-add'
-      );
-      if (!btn) return;
-
-      // Skip if button indicates item is already in wishlist (action is removal)
-      var isAlreadyChecked = btn.classList.contains('active') ||
-                            btn.classList.contains('checked') ||
-                            btn.getAttribute('data-checked') === 'true';
-      if (isAlreadyChecked) return;
-
-      var idProd = btn.getAttribute('data-product-id') ||
-                   btn.getAttribute('data-id-product') ||
-                   btn.getAttribute('data-id_product') ||
-                   (btn.dataset && (btn.dataset.productId || btn.dataset.idProduct));
-
-      var idAttr = btn.getAttribute('data-product-attribute-id') ||
-                   btn.getAttribute('data-id-product-attribute') ||
-                   btn.getAttribute('data-id_product_attribute') ||
-                   (btn.dataset && (btn.dataset.productAttributeId || btn.dataset.idProductAttribute)) || 0;
-
-      if (!idProd && window.psGtmConfig && window.psGtmConfig.currentProduct) {
-        idProd = window.psGtmConfig.currentProduct.item_id;
-        if (!idAttr) idAttr = window.psGtmConfig.currentProduct.variant_id;
-      }
-
-      if (idProd) {
-        setTimeout(function () {
-          dispatchAddToWishlist(idProd, idAttr);
-        }, 400);
-      }
-    }, true);
-
-    // Universal Cart Removal Click Listener (Cart page, checkout page, mini-cart, OPC modules)
-    document.addEventListener('click', function (e) {
-      if (!e.target || !e.target.closest) return;
-
-      var removeTrigger = e.target.closest(
-        '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
-        '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, ' +
-        'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"]'
-      );
-      if (!removeTrigger) return;
-
-      var anchor = (removeTrigger.tagName === 'A') ? removeTrigger : (removeTrigger.querySelector ? removeTrigger.querySelector('a') : null);
-      if (!anchor && removeTrigger.closest) {
-        anchor = removeTrigger.closest('a');
-      }
-
-      var idProd = '';
-      var idAttr = '';
-      var rowQty = 0;
-
-      // 1. Extract from anchor href
-      if (anchor && anchor.href) {
-        var pMatch = anchor.href.match(/(?:[\?&]id_product=|[\?&]idProduct=|[\?&]productId=)(\d+)/i);
-        var aMatch = anchor.href.match(/(?:[\?&]id_product_attribute=|[\?&]idProductAttribute=|[\?&]productAttributeId=)(\d+)/i);
-        if (pMatch && pMatch[1]) idProd = pMatch[1];
-        if (aMatch && aMatch[1]) idAttr = aMatch[1];
-      }
-
-      // 2. Extract from trigger or parent data attributes
-      if (!idProd) {
-        idProd = removeTrigger.getAttribute('data-id-product') ||
-                 removeTrigger.getAttribute('data-product-id') ||
-                 removeTrigger.getAttribute('data-id_product') ||
-                 (removeTrigger.dataset && (removeTrigger.dataset.idProduct || removeTrigger.dataset.productId));
-      }
-      if (!idAttr) {
-        idAttr = removeTrigger.getAttribute('data-id-product-attribute') ||
-                 removeTrigger.getAttribute('data-product-attribute-id') ||
-                 removeTrigger.getAttribute('data-id_product_attribute') ||
-                 (removeTrigger.dataset && (removeTrigger.dataset.idProductAttribute || removeTrigger.dataset.productAttributeId));
-      }
-
-      // 3. Inspect parent cart item / row container
-      var parentRow = removeTrigger.closest('.cart-item, .cart-line-product, [data-id-product], [data-product-id], tr, li');
-      if (parentRow) {
-        if (!idProd) {
-          idProd = parentRow.getAttribute('data-id-product') ||
-                   parentRow.getAttribute('data-product-id') ||
-                   parentRow.getAttribute('data-id_product') ||
-                   (parentRow.dataset && (parentRow.dataset.idProduct || parentRow.dataset.productId));
-        }
-        if (!idAttr) {
-          idAttr = parentRow.getAttribute('data-id-product-attribute') ||
-                   parentRow.getAttribute('data-product-attribute-id') ||
-                   parentRow.getAttribute('data-id_product_attribute') ||
-                   (parentRow.dataset && (parentRow.dataset.idProductAttribute || parentRow.dataset.productAttributeId));
-        }
-
-        var qtyInput = parentRow.querySelector('input.js-cart-line-product-quantity, input[name="product-quantity-spin"], input.cart-line-product-quantity, input[type="number"], .product-quantity, [data-quantity]');
-        if (qtyInput) {
-          rowQty = parseInt(qtyInput.value || qtyInput.getAttribute('value') || qtyInput.getAttribute('data-quantity') || qtyInput.innerText || qtyInput.textContent, 10) || 0;
-        }
-      }
-
-      if (idProd) {
-        dispatchDirectRemoveFromCart(idProd, idAttr, (rowQty > 0 ? rowQty : null));
-      }
-    }, true);
-
-    // Capture Product Link Selection from Listings (Capture phase for instant pre-unload execution)
-    document.addEventListener('click', function (e) {
-      if (!e.target) return;
-
-      var targetEl = e.target;
-      // Exclude cart actions, removal buttons, quantity adjustments, wishlist toggles, and cart/checkout overview containers
-      var isCartOrActionElement = targetEl.closest && targetEl.closest(
-        '.remove-from-cart, [data-link-action="delete-from-cart"], [data-link-action="remove-from-cart"], ' +
-        '[data-action="delete-from-cart"], .delete-from-cart, .ets_remove_cart, .cart-line-product-actions, ' +
-        'a[href*="delete=1"], a[href*="deleteProduct"], a[href*="action=delete"], a[href*="opc_delete_cart"], ' +
-        '.js-increase-product-quantity, .js-decrease-product-quantity, [data-link-action="update-qty"], ' +
-        '.cart-line-product-quantity, .bootstrap-touchspin-up, .bootstrap-touchspin-down, ' +
-        '.cart-overview, .cart-items, .cart-item, .cart-grid, .cart-container, ' +
-        '.block-shopping-cart, .blockcart, #blockcart, .cart-preview, .cart-detailed-actions, ' +
-        '.ets-opc-block-shopping-cart, #form_ets_onepagecheckout, .ets_onepagecheckout, ' +
-        '.checkout-cart-overview, .order-confirmation-table, .add-to-cart, [data-button-action="add-to-cart"], ' +
-        '.quick-view, .js-quick-view, .js-quick-view-iqit, .quickview, .js-quickview, [data-link-action="quickview"], [data-link-action="quick-view"], ' +
-        // Universal Wishlist selectors across official blockwishlist & third-party themes
-        '.wishlist-button, .wishlist-button-add, .btn-wishlist, .btn-outline-wishlist, ' +
-        '[data-action="add-to-wishlist"], [data-action*="wishlist"], [data-wishlist-add], ' +
-        '[data-link-action*="wishlist"], [data-button-action*="wishlist"], [data-id-wishlist], ' +
-        '.js-wishlist-button, .js-wishlist-btn, .wishtlist-btn, .addToWishlist, .add-to-wishlist, ' +
-        '.wishlist_button, .iqitwishlist-add, .iqitwishlist-button, .leo-wishlist-button, ' +
-        '.favorite-button, [class*="favorite"], [class*="wishlist"], [id*="wishlist"], ' +
-        'a[href*="wishlist"], button[name*="wishlist"]'
-      );
-      if (isCartOrActionElement) {
-        if (targetEl.closest && targetEl.closest('[class*="wishlist"], [id*="wishlist"], [data-action*="wishlist"], [data-link-action*="wishlist"], a[href*="wishlist"]')) {
-          lastWishlistTime = new Date().getTime();
-        }
-        return;
-      }
-
-      var anchor = targetEl.closest ? targetEl.closest('a') : null;
-      if (anchor && anchor.href) {
-        var hrefLower = anchor.href.toLowerCase();
-        if (hrefLower.indexOf('delete=1') !== -1 ||
-            hrefLower.indexOf('action=delete') !== -1 ||
-            hrefLower.indexOf('deleteproduct') !== -1 ||
-            hrefLower.indexOf('opc_delete_cart') !== -1 ||
-            hrefLower.indexOf('wishlist') !== -1) {
-          if (hrefLower.indexOf('wishlist') !== -1) {
-            lastWishlistTime = new Date().getTime();
-          }
-          return;
-        }
-      }
-
-      var pageCtx = window.psGtmConfig && window.psGtmConfig.pageContext;
-      var currentMainId = (window.psGtmConfig && window.psGtmConfig.currentProduct && window.psGtmConfig.currentProduct.item_id) || '';
-
-      // On PDP, if clicking within the main product container rather than a genuine miniature card, ignore
-      if (pageCtx && pageCtx.controller === 'product') {
-        var mainContainer = targetEl.closest && targetEl.closest('#main, #product, .product-detail, form#add-to-cart-or-refresh, .product-container');
-        var isRelatedMiniature = targetEl.closest && targetEl.closest('.product-accessories, .featured-products, .crossselling, .js-product-miniature, article.product-miniature');
-        if (mainContainer && !isRelatedMiniature) {
-          return; // Clicks inside main PDP details are not list selection events
-        }
-      }
-
-      var productCard = targetEl.closest ? targetEl.closest('.js-product-miniature, article.product-miniature, .product-miniature, [data-id-product]') : null;
-
-      var idProduct = '';
-      if (productCard && productCard.getAttribute('data-id-product')) {
-        idProduct = productCard.getAttribute('data-id-product');
-      } else if (anchor && anchor.href) {
-        var urlMatch = anchor.href.match(/(?:[\/-]|^|id_product=)(\d+)(?:-[^\/?#]+|\.html|$|[?&])/i);
-        if (urlMatch && urlMatch[1]) {
-          idProduct = urlMatch[1];
-        }
-      }
-
-      if (idProduct && window.psGtmConfig) {
-        // Prevent current PDP product from selecting itself
-        if (pageCtx && pageCtx.controller === 'product' && currentMainId && String(idProduct) === String(currentMainId)) {
-          return;
-        }
-        handleSelectItem(idProduct);
-      }
-    }, true);
-
-    // 6. Checkout Step Observers: add_shipping_info & add_payment_info (Universal PrestaShop Core & Custom Themes)
+    // 5. Checkout Step Observers: add_shipping_info & add_payment_info (Universal PrestaShop Core & Custom Themes)
     var lastTrackedShippingTier = '';
     var lastTrackedShippingTime = 0;
     var lastTrackedPaymentType = '';
@@ -1331,16 +1140,6 @@
           }
         }
       }
-      // 5. Look for label text if available
-      if (id && typeof document !== 'undefined' && document.querySelector) {
-        var labelEl = document.querySelector('label[for="' + id + '"]');
-        if (labelEl && labelEl.textContent) {
-          var cleanLabel = labelEl.textContent.trim().replace(/\s+/g, ' ');
-          if (cleanLabel.length > 0 && cleanLabel.length < 80) {
-            return cleanLabel;
-          }
-        }
-      }
       return modName ? modName : (val && val !== 'on' ? val : 'Online Payment');
     }
 
@@ -1455,10 +1254,11 @@
           }
         } catch (e) {}
 
-        if (!query && document.querySelector) {
-          var sInput = document.querySelector('input[name="s"], input[name="search_query"], input[name="q"], input.search-widget-input');
-          if (sInput && sInput.value) {
-            query = String(sInput.value).trim();
+        if (!query && window.psGtmConfig) {
+          if (window.psGtmConfig.searchResults && window.psGtmConfig.searchResults.search_term) {
+            query = String(window.psGtmConfig.searchResults.search_term).trim();
+          } else if (window.psGtmConfig.pageContext && window.psGtmConfig.pageContext.search_term) {
+            query = String(window.psGtmConfig.pageContext.search_term).trim();
           }
         }
 

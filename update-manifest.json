@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.27.0",
+    "latest_version":  "1.28.0",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.27.0/ps_gtm_datalayer.zip",
-    "checksum":  "ead805bdaa5cc68b9f1bd29a4d76ef4cb9ce3075ffb9f4463c868e1f0aacbeb5",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.0/ps_gtm_datalayer.zip",
+    "checksum":  "3d273d766b68cdfa1197312a4cc9b972d27087934a1adea8df30011c9b2b2241",
     "release_type":  "minor",
-    "release_notes":  "1. Restores the native classic PrestaShop UI layout (v1.21.3 design) with full hook integrity.\n2. Adds dedicated configuration fields for Raw GTM container scripts (\u003chead\u003e and \u003cbody\u003e noscript injection).\n3. Product Catalog Identifier Strategy organized with wide dropdown and comprehensive, real-world guidance.\n4. Enables seamless 1-click update in PrestaShop 8 Back Office bypassing downgrade locks."
+    "release_notes":  "1. Universal Theme Independence: Completely eliminated all DOM scraping, class listeners, and HTML text parsing across all ecommerce events.\n2. Cart Delta Engine: Authoritatively tracks add_to_cart and remove_from_cart via mathematical cart state diffing and core controller network interception.\n3. Omitted fragile select_item link scraping in favor of clean catalog separation (view_item_list and view_item).\n4. Native blockwishlist support and backend-hydrated checkout carrier and payment tracking."
 }

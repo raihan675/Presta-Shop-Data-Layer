@@ -22,7 +22,7 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
         header('Content-Type: application/json; charset=utf-8');
 
         $action = Tools::getValue('action');
-        if ($action === 'resolveProduct') {
+        if ($action === 'resolveProduct' || $action === 'resolveWishlistProduct' || $action === 'resolveCartDelta') {
             $this->ajaxProcessResolveProduct();
         } else {
             die(json_encode(['error' => 'Invalid action']));

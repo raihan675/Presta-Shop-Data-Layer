@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.0] - 2026-10-24
+
+### Changed
+- **Universal Theme Independence & Zero DOM Scraping**:
+  - Removed all fragile DOM click listeners and class queries (`.wishlist-button`, `.btn-wishlist`, `.remove-from-cart`, `a[href*="delete=1"]`, `input.js-cart-line-product-quantity`, `input[name="s"]`).
+  - Switched 100% of cart add/remove tracking to authoritative PrestaShop application models via the Universal Cart Delta Engine (`EDL.processCartDelta`) and core network response interception.
+  - Omitted fragile listing click scraping (`select_item`) in favor of clean catalog separation (`view_item_list` and `view_item`).
+  - Decoupled wishlist tracking from CSS classes to native event bus (`prestashop.on('addToWishlist')`) and official `blockwishlist` network interceptor.
+  - Decoupled payment method and search discovery from DOM labels and inputs to backend-hydrated maps and server query inputs.
+
+---
+
 ## [1.27.0] - 2026-10-24
 
 ### Changed
