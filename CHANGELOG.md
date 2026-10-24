@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.20.3] - 2026-10-24
+
+### Added
+- **High-Resolution Branded Platform Icons**:
+  - Integrated official high-resolution brand icons for all four advertising platforms (Meta / Facebook, Google Ads, TikTok, Pinterest) directly in the Back Office configuration interface.
+  - Replaced generic FontAwesome icons and workarounds (such as music note for TikTok) with crisp branded logos in `views/img/`.
+  - Added responsive icon container styling with clean neutral borders and shadows.
+
+---
+
 ## [1.20.2] - 2026-10-24
 
 ### Changed

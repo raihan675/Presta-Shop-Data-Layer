@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.20.2",
+    "latest_version":  "1.20.3",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.20.2/ps_gtm_datalayer.zip",
-    "checksum":  "5511e489ba40a69287a3d48e0722b994e4a5a877c8869c82883c01a339aa9a3d",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.20.3/ps_gtm_datalayer.zip",
+    "checksum":  "e9123b41171bd26ca91e6850affca0cf81b8fb3802644af535740705862b3f54",
     "release_type":  "patch",
-    "release_notes":  "1. Strict accounting standard for customer lifecycle metrics: new_customer and customer_lifetime_value count authoritative orders with payment accepted (valid = 1) from the PrestaShop Back Office.\n2. Pending/unpaid offline orders (e.g. Bank Wire awaiting payment) do not count as completed historical orders until marked accepted."
+    "release_notes":  "1. Added high-resolution branded vector/raster icons for all 4 advertising platforms (Meta, Google Ads, TikTok, Pinterest) in the module management and configuration interface.\n2. Enhanced Back Office UI styling with crisp branded platform cards and automated asset resolution."
 }

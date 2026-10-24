@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.20.2';
+        $this->version = '1.20.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -685,6 +685,7 @@ class Ps_Gtm_DataLayer extends Module
         if (!is_array($gadsEvents)) $gadsEvents = array_keys($events);
         if (!is_array($pinterestEvents)) $pinterestEvents = array_keys($events);
 
+        $imgBase = $this->_path . 'views/img/';
         $platforms = [
             'meta' => [
                 'key' => 'meta',
@@ -694,6 +695,7 @@ class Ps_Gtm_DataLayer extends Module
                 'config_key' => 'PS_GTM_ADV_META_ENABLED',
                 'enabled' => $advMeta,
                 'active_events' => $metaEvents,
+                'icon_img' => $imgBase . 'meta.png',
                 'icon_class' => 'icon-facebook',
                 'brand_color' => '#1877f2',
                 'brand_bg' => '#eaf3fe',
@@ -707,6 +709,7 @@ class Ps_Gtm_DataLayer extends Module
                 'config_key' => 'PS_GTM_ADV_GADS_ENABLED',
                 'enabled' => $advGads,
                 'active_events' => $gadsEvents,
+                'icon_img' => $imgBase . 'google_ads.png',
                 'icon_class' => 'icon-google',
                 'brand_color' => '#ea4335',
                 'brand_bg' => '#fdeeed',
@@ -720,6 +723,7 @@ class Ps_Gtm_DataLayer extends Module
                 'config_key' => 'PS_GTM_ADV_TIKTOK_ENABLED',
                 'enabled' => $advTiktok,
                 'active_events' => $tiktokEvents,
+                'icon_img' => $imgBase . 'tiktok.png',
                 'icon_class' => 'icon-music',
                 'brand_color' => '#111111',
                 'brand_bg' => '#f1f2f6',
@@ -733,6 +737,7 @@ class Ps_Gtm_DataLayer extends Module
                 'config_key' => 'PS_GTM_ADV_PINTEREST_ENABLED',
                 'enabled' => $advPinterest,
                 'active_events' => $pinterestEvents,
+                'icon_img' => $imgBase . 'pinterest.png',
                 'icon_class' => 'icon-pinterest',
                 'brand_color' => '#bd081c',
                 'brand_bg' => '#fdf0f1',
@@ -919,8 +924,12 @@ class Ps_Gtm_DataLayer extends Module
 
             // Left: Icon & Platform Info
             $html .= '<div style="display: flex; align-items: center;">';
-            $html .= '<div style="width: 40px; height: 40px; border-radius: 8px; background: ' . $p['brand_bg'] . '; display: flex; align-items: center; justify-content: center; font-size: 20px; color: ' . $p['brand_color'] . '; margin-right: 14px; flex-shrink: 0;">';
-            $html .= '<i class="' . $p['icon_class'] . '"></i>';
+            $html .= '<div style="width: 42px; height: 42px; border-radius: 8px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; padding: 6px; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">';
+            if (!empty($p['icon_img'])) {
+                $html .= '<img src="' . htmlspecialchars($p['icon_img']) . '" alt="' . htmlspecialchars($p['short_name']) . '" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />';
+            } else {
+                $html .= '<i class="' . $p['icon_class'] . '" style="font-size: 20px; color: ' . $p['brand_color'] . ';"></i>';
+            }
             $html .= '</div>';
             $html .= '<div>';
             $html .= '<div style="font-size: 14px; font-weight: 700; color: #2c3e50;">' . htmlspecialchars($p['name']) . '</div>';
