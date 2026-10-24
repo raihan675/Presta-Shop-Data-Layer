@@ -515,6 +515,12 @@ class PayloadBuilder
             if (!empty($options['aw_feed_language'])) {
                 $cartData['aw_feed_language'] = (string)$options['aw_feed_language'];
             }
+            if (isset($options['new_customer'])) {
+                $cartData['new_customer'] = (bool)$options['new_customer'];
+            }
+            if (isset($options['customer_lifetime_value'])) {
+                $cartData['customer_lifetime_value'] = (float)$options['customer_lifetime_value'];
+            }
             $googleAds['cart_data'] = $cartData;
         }
 
@@ -1272,6 +1278,7 @@ class PayloadBuilder
         $customer = new Customer((int)$order->id_customer);
         $address = new Address((int)$order->id_address_invoice);
         $userData = CustomerDataEngine::buildCustomerPayload($customer, $address);
+        $lifecycleMetrics = CustomerDataEngine::resolveCustomerLifecycleMetrics($customer, $order);
 
         $orderTax = PricingEngine::roundHalfUp((float)($order->total_paid_tax_incl - $order->total_paid_tax_excl), $currencyPrecision);
         $orderShipping = PricingEngine::roundHalfUp((float)$order->total_shipping_tax_incl, $currencyPrecision);
@@ -1327,6 +1334,8 @@ class PayloadBuilder
             'discount' => $orderDiscount,
             'aw_feed_country' => $countryIso,
             'aw_feed_language' => $langIso,
+            'new_customer' => $lifecycleMetrics['new_customer'],
+            'customer_lifetime_value' => $lifecycleMetrics['customer_lifetime_value'],
             'user_data' => $userData,
             'meta_user_data' => CustomerDataEngine::buildMetaUserData($customer, $address),
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
@@ -1336,6 +1345,8 @@ class PayloadBuilder
         $purchasePayload = [
             'event' => $this->getEventName('purchase'),
             'original_event' => 'purchase',
+            'new_customer' => $lifecycleMetrics['new_customer'],
+            'customer_lifetime_value' => $lifecycleMetrics['customer_lifetime_value'],
             'ecommerce' => [
                 'transaction_id' => (string)$order->id,
                 'value' => $ga4Value, // GA4 item revenue: sum of items, excluding shipping
@@ -1355,7 +1366,11 @@ class PayloadBuilder
                 'order_total' => $orderTotal,
                 'currency' => $orderCurrency,
             ],
-            'user_data' => $userData,
+            'user_data' => array_merge($userData, [
+                'new_customer' => $lifecycleMetrics['new_customer'],
+                'customer_lifetime_value' => $lifecycleMetrics['customer_lifetime_value'],
+                'orders_count' => $lifecycleMetrics['orders_count'],
+            ]),
         ];
 
         if (isset($platformNamespaces['meta'])) {

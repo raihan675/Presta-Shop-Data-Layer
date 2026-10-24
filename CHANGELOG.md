@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.20.0] - 2026-10-24
+
+### Added
+- **Google Ads New Customer Acquisition (NCA) & Customer Lifetime Value (CLV)**:
+  - Added authoritative backend calculation for `new_customer` (boolean `true`/`false`) in `CustomerDataEngine` based on PrestaShop core orders database (`ps_orders`), supporting both registered customers and guest checkout histories.
+  - Added cumulative `customer_lifetime_value` (numeric spend) reflecting total customer revenue in store currency.
+  - Included both `new_customer` and `customer_lifetime_value` at the root DataLayer level (for direct GTM variable mapping), inside `google_ads.cart_data` on `purchase`, and inside `user_data`.
+  - Added full test coverage for first-time and repeat customer purchase scenarios.
+
+---
+
 ## [1.19.3] - 2026-10-24
 
 ### Changed

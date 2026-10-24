@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.19.3",
+    "latest_version":  "1.20.0",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.19.3/ps_gtm_datalayer.zip",
-    "checksum":  "3cb11e34932ffba7c46e24afc15ccba93b6da9c206b509db62676f88767f09d1",
-    "release_type":  "patch",
-    "release_notes":  "1. Streamlined google_ads schema: removed redundant conversion_data in favor of cart_data.\n2. Removed duplicate root-level parameters under google_ads, keeping them clean and organized inside dynamic_remarketing and cart_data."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.20.0/ps_gtm_datalayer.zip",
+    "checksum":  "c6a55c44c1be0c6a8d490dc3b207e2cbd2158342f62da17b4a56e34dd7912621",
+    "release_type":  "minor",
+    "release_notes":  "1. Added Google Ads New Customer Acquisition (NCA) parameter (new_customer: true/false) authoritatively resolved from PrestaShop database.\n2. Added Customer Lifetime Value (customer_lifetime_value) reflecting total customer spend.\n3. Dispatched at root level, under google_ads.cart_data, and within user_data."
 }

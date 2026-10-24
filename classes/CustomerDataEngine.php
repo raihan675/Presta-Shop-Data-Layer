@@ -606,4 +606,81 @@ class CustomerDataEngine
 
         return $cleaned;
     }
+
+    /**
+     * Resolves customer lifecycle acquisition metrics (New vs. Returning Customer and Lifetime Value)
+     * authoritatively from PrestaShop's core orders database.
+     *
+     * @param Customer $customer
+     * @param Order|null $currentOrder
+     * @return array
+     */
+    public static function resolveCustomerLifecycleMetrics(Customer $customer, Order $currentOrder = null)
+    {
+        $idCustomer = Validate::isLoadedObject($customer) ? (int)$customer->id : ($currentOrder ? (int)$currentOrder->id_customer : 0);
+        $email = Validate::isLoadedObject($customer) ? trim((string)$customer->email) : '';
+        $currentOrderId = ($currentOrder && Validate::isLoadedObject($currentOrder)) ? (int)$currentOrder->id : 0;
+        $currentOrderTotal = ($currentOrder && Validate::isLoadedObject($currentOrder)) ? (float)$currentOrder->total_paid_tax_incl : 0.0;
+
+        $priorOrdersCount = 0;
+        $totalLifetimeValue = $currentOrderTotal;
+        $totalOrdersCount = ($currentOrderId > 0) ? 1 : 0;
+
+        if (class_exists('Db')) {
+            try {
+                $db = Db::getInstance();
+
+                $whereClause = '`id_customer` = ' . (int)$idCustomer;
+                if (!empty($email)) {
+                    $whereClause = '(`id_customer` = ' . (int)$idCustomer . ' OR `id_customer` IN (
+                        SELECT `id_customer` FROM `' . _DB_PREFIX_ . 'customer` WHERE `email` = \'' . pSQL($email) . '\'
+                    ))';
+                }
+
+                // 1. Prior valid orders placed strictly before this current order
+                $priorSql = 'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'orders`
+                             WHERE ' . $whereClause . '
+                               AND `valid` = 1';
+                if ($currentOrderId > 0) {
+                    $priorSql .= ' AND `id_order` < ' . (int)$currentOrderId;
+                }
+                $priorOrdersCount = (int)$db->getValue($priorSql);
+
+                // 2. Cumulative lifetime spend across all valid orders
+                $clvSql = 'SELECT SUM(`total_paid_tax_incl`) FROM `' . _DB_PREFIX_ . 'orders`
+                           WHERE ' . $whereClause . '
+                             AND `valid` = 1';
+                $lifetimeSum = $db->getValue($clvSql);
+                if ($lifetimeSum !== null && $lifetimeSum !== false && (float)$lifetimeSum > 0) {
+                    $totalLifetimeValue = (float)$lifetimeSum;
+                } elseif ($currentOrderTotal > 0) {
+                    $totalLifetimeValue = $currentOrderTotal;
+                }
+
+                // 3. Total lifetime orders count
+                $countSql = 'SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'orders`
+                             WHERE ' . $whereClause . '
+                               AND `valid` = 1';
+                $dbTotalCount = (int)$db->getValue($countSql);
+                if ($dbTotalCount > 0) {
+                    $totalOrdersCount = $dbTotalCount;
+                }
+            } catch (\Throwable $e) {
+                $priorOrdersCount = 0;
+                $totalLifetimeValue = $currentOrderTotal;
+                $totalOrdersCount = 1;
+            }
+        }
+
+        $isNewCustomer = ($priorOrdersCount === 0);
+        $precision = class_exists('PlatformAdapter') ? PlatformAdapter::getCurrencyPrecision(Context::getContext()) : 2;
+        $roundedClv = class_exists('PricingEngine') ? PricingEngine::roundHalfUp($totalLifetimeValue, $precision) : round($totalLifetimeValue, $precision);
+
+        return [
+            'new_customer' => $isNewCustomer,
+            'customer_lifetime_value' => $roundedClv,
+            'orders_count' => $totalOrdersCount,
+            'prior_orders_count' => $priorOrdersCount,
+        ];
+    }
 }

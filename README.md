@@ -27,7 +27,7 @@ The module supports all core ecommerce actions across the full customer funnel w
 | **9** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **10** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
 | **11** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype) |
-| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype), `order_totals`, `user_data` |
+| **12** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data` with `new_customer`, `customer_lifetime_value`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
 
 ---
 
@@ -147,6 +147,8 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   * `google_ads.cart_data.aw_merchant_id`: Linked Google Merchant Center Account ID (configured in Back Office).
   * `google_ads.cart_data.aw_feed_country`: 2-letter CLDR country code of order delivery address.
   * `google_ads.cart_data.aw_feed_language`: 2-letter ISO language code of order context.
+  * `google_ads.cart_data.new_customer`: Boolean (`true`/`false`) identifying whether the purchase is from a first-time buyer (Google Ads New Customer Acquisition - NCA).
+  * `google_ads.cart_data.customer_lifetime_value`: Total cumulative lifetime spend of the customer in store currency, calculated authoritatively from PrestaShop's core order database.
 
 > [!NOTE]
 > **Strict Event Separation: Search vs Product-List Tracking**:
@@ -191,6 +193,10 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - google_ads.cart_data.aw_merchant_id}}` | `google_ads.cart_data.aw_merchant_id` | Google Ads Conversion Merchant Center ID (`mid`) |
 | `{{dlv - google_ads.cart_data.aw_feed_country}}` | `google_ads.cart_data.aw_feed_country` | Google Ads Conversion Feed Country |
 | `{{dlv - google_ads.cart_data.aw_feed_language}}` | `google_ads.cart_data.aw_feed_language` | Google Ads Conversion Feed Language |
+| `{{dlv - new_customer}}` | `new_customer` | Google Ads New Customer Acquisition (`true` / `false`) |
+| `{{dlv - customer_lifetime_value}}` | `customer_lifetime_value` | Google Ads Customer Lifetime Value (CLV / LTV total spend) |
+| `{{dlv - google_ads.cart_data.new_customer}}` | `google_ads.cart_data.new_customer` | Google Ads NCA `new_customer` boolean under `cart_data` |
+| `{{dlv - google_ads.cart_data.customer_lifetime_value}}` | `google_ads.cart_data.customer_lifetime_value` | Google Ads CLV `customer_lifetime_value` numeric spend under `cart_data` |
 | `{{dlv - ecommerce.currency}}` | `ecommerce.currency` | All tags (Currency ISO) |
 | `{{dlv - ecommerce.value}}` | `ecommerce.value` | All tags (Event Revenue) |
 | `{{dlv - user_data}}` | `user_data` | Enhanced Conversions, Meta Advanced Matching, Pinterest User Data |

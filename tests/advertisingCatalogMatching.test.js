@@ -327,12 +327,16 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       tax: 6.46,
       shipping: 4.50,
       currency: 'EUR',
+      new_customer: true,
+      customer_lifetime_value: 35.99,
       items: norm
     }, userData, { order_totals: orderTotals });
 
     const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
 
     assert.strictEqual(payload.original_event, 'purchase');
+    assert.strictEqual(payload.new_customer, true);
+    assert.strictEqual(payload.customer_lifetime_value, 35.99);
     assert.strictEqual(payload.ecommerce.value, 35.99);
     assert.strictEqual(payload.ecommerce.transaction_id, '1250');
 
@@ -370,6 +374,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(payload.google_ads.cart_data.transaction_id, '1250');
     assert.strictEqual(payload.google_ads.cart_data.value, 35.99);
     assert.strictEqual(payload.google_ads.cart_data.currency, 'EUR');
+    assert.strictEqual(payload.google_ads.cart_data.new_customer, true);
+    assert.strictEqual(payload.google_ads.cart_data.customer_lifetime_value, 35.99);
     assert.deepStrictEqual(payload.google_ads.cart_data.items, [
       { id: '68_299', quantity: 2, price: 13.00 },
       { id: '1033', quantity: 1, price: 9.99 }
@@ -1444,11 +1450,15 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
       discount: 5.00,
       aw_feed_country: 'DE',
       aw_feed_language: 'de',
+      new_customer: false,
+      customer_lifetime_value: 129.50,
       items: testProducts
     });
     lastEvent = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.ok(lastEvent.google_ads, 'google_ads must exist on purchase');
     assert.strictEqual(lastEvent.google_ads.event_name, 'purchase');
+    assert.strictEqual(lastEvent.new_customer, false);
+    assert.strictEqual(lastEvent.customer_lifetime_value, 129.50);
     assert.strictEqual(lastEvent.google_ads.conversion_data, undefined);
     assert.strictEqual(lastEvent.google_ads.ecomm_pagetype, undefined);
 
@@ -1467,10 +1477,82 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(lastEvent.google_ads.cart_data.aw_merchant_id, '123456789');
     assert.strictEqual(lastEvent.google_ads.cart_data.aw_feed_country, 'DE');
     assert.strictEqual(lastEvent.google_ads.cart_data.aw_feed_language, 'de');
+    assert.strictEqual(lastEvent.google_ads.cart_data.new_customer, false);
+    assert.strictEqual(lastEvent.google_ads.cart_data.customer_lifetime_value, 129.50);
     assert.deepStrictEqual(lastEvent.google_ads.cart_data.items, [
       { id: '1149_299', quantity: 2, price: 19.99 },
       { id: '1033', quantity: 1, price: 9.99 }
     ]);
+  });
+
+  it('27. Google Ads New Customer Acquisition & Customer Lifetime Value: Emits new_customer boolean and customer_lifetime_value numeric parameters on purchase', function () {
+    global.window.dataLayer = [];
+    EDL.setEventPrefix('ps');
+
+    // Scenario A: First-time purchaser (New Customer)
+    EDL.pushEvent('purchase', {
+      transaction_id: '2001',
+      value: 65.00,
+      currency: 'EUR',
+      new_customer: true,
+      customer_lifetime_value: 65.00,
+      items: [
+        {
+          item_id: '1066',
+          item_name: 'Chicco Natural Feeling Glas-Babyflasche',
+          price: 65.00,
+          quantity: 1
+        }
+      ]
+    }, {
+      email: 'newbuyer@example.com',
+      new_customer: true,
+      customer_lifetime_value: 65.00,
+      orders_count: 1
+    });
+
+    const newBuyerPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(newBuyerPayload.event, 'ps_purchase');
+    assert.strictEqual(newBuyerPayload.new_customer, true);
+    assert.strictEqual(newBuyerPayload.customer_lifetime_value, 65.00);
+    assert.strictEqual(newBuyerPayload.google_ads.cart_data.new_customer, true);
+    assert.strictEqual(newBuyerPayload.google_ads.cart_data.customer_lifetime_value, 65.00);
+    assert.strictEqual(newBuyerPayload.user_data.new_customer, true);
+    assert.strictEqual(newBuyerPayload.user_data.customer_lifetime_value, 65.00);
+    assert.strictEqual(newBuyerPayload.user_data.orders_count, 1);
+
+    // Scenario B: Returning customer (Existing repeat buyer)
+    global.window.dataLayer = [];
+    EDL.pushEvent('purchase', {
+      transaction_id: '2002',
+      value: 40.00,
+      currency: 'EUR',
+      new_customer: false,
+      customer_lifetime_value: 215.50,
+      items: [
+        {
+          item_id: '1186',
+          item_name: 'Miffy – Baby-Gehörschutz Weiß',
+          price: 40.00,
+          quantity: 1
+        }
+      ]
+    }, {
+      email: 'repeat@example.com',
+      new_customer: false,
+      customer_lifetime_value: 215.50,
+      orders_count: 4
+    });
+
+    const repeatBuyerPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
+    assert.strictEqual(repeatBuyerPayload.event, 'ps_purchase');
+    assert.strictEqual(repeatBuyerPayload.new_customer, false);
+    assert.strictEqual(repeatBuyerPayload.customer_lifetime_value, 215.50);
+    assert.strictEqual(repeatBuyerPayload.google_ads.cart_data.new_customer, false);
+    assert.strictEqual(repeatBuyerPayload.google_ads.cart_data.customer_lifetime_value, 215.50);
+    assert.strictEqual(repeatBuyerPayload.user_data.new_customer, false);
+    assert.strictEqual(repeatBuyerPayload.user_data.customer_lifetime_value, 215.50);
+    assert.strictEqual(repeatBuyerPayload.user_data.orders_count, 4);
   });
 
 });

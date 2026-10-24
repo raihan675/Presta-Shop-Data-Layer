@@ -534,6 +534,12 @@
       if (options.awFeedLanguage) {
         cartData.aw_feed_language = String(options.awFeedLanguage);
       }
+      if (options.newCustomer !== undefined || options.new_customer !== undefined) {
+        cartData.new_customer = Boolean(options.newCustomer !== undefined ? options.newCustomer : options.new_customer);
+      }
+      if (options.customerLifetimeValue !== undefined || options.customer_lifetime_value !== undefined) {
+        cartData.customer_lifetime_value = parseFloat(options.customerLifetimeValue !== undefined ? options.customerLifetimeValue : options.customer_lifetime_value);
+      }
       googleAdsNamespace.cart_data = cartData;
     }
 
@@ -664,6 +670,8 @@
       awMerchantId: ecommerceData.aw_merchant_id || (additionalNamespaces && additionalNamespaces.aw_merchant_id) || '',
       awFeedCountry: ecommerceData.aw_feed_country || (additionalNamespaces && additionalNamespaces.aw_feed_country) || '',
       awFeedLanguage: ecommerceData.aw_feed_language || (additionalNamespaces && additionalNamespaces.aw_feed_language) || '',
+      newCustomer: ecommerceData.new_customer !== undefined ? ecommerceData.new_customer : (additionalNamespaces && additionalNamespaces.new_customer !== undefined ? additionalNamespaces.new_customer : undefined),
+      customerLifetimeValue: ecommerceData.customer_lifetime_value !== undefined ? ecommerceData.customer_lifetime_value : (additionalNamespaces && additionalNamespaces.customer_lifetime_value !== undefined ? additionalNamespaces.customer_lifetime_value : undefined),
       searchTerm: ecommerceData.search_term || '',
       property: ecommerceData.shipping_tier || ecommerceData.payment_type || ''
     });
@@ -673,6 +681,13 @@
       original_event: canonicalEventName,
       ecommerce: ecommerceData
     };
+
+    if (ecommerceData.new_customer !== undefined || (additionalNamespaces && additionalNamespaces.new_customer !== undefined)) {
+      canonicalPayload.new_customer = Boolean(ecommerceData.new_customer !== undefined ? ecommerceData.new_customer : additionalNamespaces.new_customer);
+    }
+    if (ecommerceData.customer_lifetime_value !== undefined || (additionalNamespaces && additionalNamespaces.customer_lifetime_value !== undefined)) {
+      canonicalPayload.customer_lifetime_value = parseFloat(ecommerceData.customer_lifetime_value !== undefined ? ecommerceData.customer_lifetime_value : additionalNamespaces.customer_lifetime_value);
+    }
 
     if (canonicalEventName === 'view_search_results') {
       if (ecommerceData.search_term !== undefined) {
