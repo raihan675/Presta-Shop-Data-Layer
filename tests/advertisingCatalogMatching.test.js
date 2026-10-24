@@ -1585,7 +1585,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(viewItemPayload.microsoft_ads.items[0].id, '68_299');
     assert.strictEqual(viewItemPayload.microsoft_ads.items[0].name, 'Trink und Snack Tasse');
     assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'product');
-    assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68_299');
+    assert.deepStrictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
     assert.strictEqual(viewItemPayload.microsoft_ads.dynamic_remarketing.ecomm_totalvalue, 13.00);
 
     // 2. add_to_cart
@@ -1640,7 +1640,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     const listPayload = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(listPayload.microsoft_ads.event_action, 'view_item_list');
     assert.strictEqual(listPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'category');
-    assert.deepStrictEqual(listPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68', '72']);
+    assert.deepStrictEqual(listPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299', '72']);
 
     // 5. view_search_results
     global.window.dataLayer = [];
@@ -1656,7 +1656,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(searchPayload.microsoft_ads.search_term, 'baby');
     assert.strictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_pagetype, 'searchresults');
     assert.strictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_query, 'baby');
-    assert.deepStrictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68']);
+    assert.deepStrictEqual(searchPayload.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
 
     // 6. purchase
     global.window.dataLayer = [];
@@ -1708,7 +1708,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
     let p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.microsoft_ads.items[0].id, '68_299');
-    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68_299');
+    assert.deepStrictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68_299']);
 
     // reference_sku
     global.window.psGtmConfig.catalogIdStrategy = 'reference_sku';
@@ -1716,7 +1716,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.microsoft_ads.items[0].id, 'BHK125-B');
-    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, 'BHK125-B');
+    assert.deepStrictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['BHK125-B']);
 
     // id_product
     global.window.psGtmConfig.catalogIdStrategy = 'id_product';
@@ -1724,7 +1724,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     EDL.pushEvent('view_item', { currency: 'EUR', value: 13.00, items: [item] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.microsoft_ads.items[0].id, '68');
-    assert.strictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, '68');
+    assert.deepStrictEqual(p.microsoft_ads.dynamic_remarketing.ecomm_prodid, ['68']);
   });
 
   it('30. Microsoft Advertising: Master switch and routing matrix toggles & dataLayer purge reset', function () {

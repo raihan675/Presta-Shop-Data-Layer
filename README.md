@@ -172,7 +172,7 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   ```
 * `microsoft_ads.dynamic_remarketing`: Retail dynamic remarketing object:
   * `ecomm_pagetype`: `'home'`, `'category'`, `'searchresults'`, `'product'`, `'cart'`, `'purchase'`, `'other'`.
-  * `ecomm_prodid`: String product ID on PDP (`'68_299'`) or array of IDs on listings/cart/purchase (`['68_299', '1013']`).
+  * `ecomm_prodid`: Array of strings across all events conforming strictly to Microsoft UET specifications (e.g. `['68_299']` on PDP, `['68_299', '1013']` on listings/cart/purchase).
   * `ecomm_totalvalue`: Page-level conversion total value.
   * `ecomm_category`: Listing or product category name.
   * `ecomm_query`: Search keywords on search result listings.

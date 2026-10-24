@@ -694,7 +694,7 @@
 
     var msftRemarketing = {
       ecomm_pagetype: pageType,
-      ecomm_prodid: isSingleProduct ? (microsoftProdIds[0] || '') : microsoftProdIds,
+      ecomm_prodid: Array.isArray(microsoftProdIds) ? microsoftProdIds.map(String) : [],
       ecomm_totalvalue: val
     };
     if (options.categoryName) {
@@ -780,7 +780,12 @@
       newCustomer: ecommerceData.new_customer !== undefined ? ecommerceData.new_customer : (additionalNamespaces && additionalNamespaces.new_customer !== undefined ? additionalNamespaces.new_customer : undefined),
       customerLifetimeValue: ecommerceData.customer_lifetime_value !== undefined ? ecommerceData.customer_lifetime_value : (additionalNamespaces && additionalNamespaces.customer_lifetime_value !== undefined ? additionalNamespaces.customer_lifetime_value : undefined),
       searchTerm: ecommerceData.search_term || '',
-      property: ecommerceData.shipping_tier || ecommerceData.payment_type || ''
+      property: ecommerceData.shipping_tier || ecommerceData.payment_type || '',
+      tax: ecommerceData.tax !== undefined ? ecommerceData.tax : (additionalNamespaces && additionalNamespaces.order_totals ? additionalNamespaces.order_totals.tax_total : undefined),
+      shipping: ecommerceData.shipping !== undefined ? ecommerceData.shipping : (additionalNamespaces && additionalNamespaces.order_totals ? additionalNamespaces.order_totals.shipping_total : undefined),
+      coupon: ecommerceData.coupon || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.coupon) || '',
+      affiliation: ecommerceData.affiliation || '',
+      microsoftUserData: (additionalNamespaces && additionalNamespaces.microsoft_ads && additionalNamespaces.microsoft_ads.pid) ? additionalNamespaces.microsoft_ads.pid : (additionalNamespaces && additionalNamespaces.microsoft_user_data ? additionalNamespaces.microsoft_user_data : null)
     });
 
     var canonicalPayload = {

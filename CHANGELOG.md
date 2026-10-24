@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.21.1] - 2026-10-24
+
+### Changed
+- **Strict Array-of-Strings Format for `microsoft_ads` `ecomm_prodid`**:
+  - Standardized `ecomm_prodid` inside `microsoft_ads.dynamic_remarketing` to always emit an array of strings (e.g. `['153']` on single product PDPs and `['153', '456']` on listings, cart, and checkout), strictly conforming to Microsoft Advertising UET retail dynamic remarketing specifications.
+  - Eliminated single bare string output for single-product events.
+- **Enhanced Conversion Parameters Forwarding**:
+  - Ensured client-side `tax`, `shipping`, and `coupon` values are properly propagated into `microsoft_ads` payload options during browser interactions.
+
+---
+
 ## [1.21.0] - 2026-10-24
 
 ### Added

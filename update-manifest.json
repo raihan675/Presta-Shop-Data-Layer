@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.21.0",
+    "latest_version":  "1.21.1",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.0/ps_gtm_datalayer.zip",
-    "checksum":  "84e8db2a398b5c719a147f797fcc747e87db90093f91a516e312c6818a11dc1b",
-    "release_type":  "minor",
-    "release_notes":  "1. Added dedicated Microsoft Advertising (Bing Ads) \u0026 UET dataLayer integration (microsoft_ads namespace).\n2. Standard ecommerce conversion events with event_action, revenue_value, currency, tax, shipping, and coupon parameters.\n3. Retail dynamic remarketing support (ecomm_pagetype, ecomm_prodid, ecomm_totalvalue, ecomm_category, ecomm_query).\n4. Microsoft Merchant Center (MMC) catalog ID alignment matching active Catalog ID Strategy.\n5. Enhanced Conversions customer data (pid) with SHA-256 hashed email and phone.\n6. Dedicated platform card with Microsoft branding and granular event routing in Back Office matrix table."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.1/ps_gtm_datalayer.zip",
+    "checksum":  "098cf2df5fc461e8321cf95cefca16d556c65f59869028f590b2c9df6f340536",
+    "release_type":  "patch",
+    "release_notes":  "1. Standardized microsoft_ads dynamic remarketing ecomm_prodid to always output an array of strings (e.g. [\u0027123\u0027] for single product, [\u0027123\u0027, \u0027456\u0027] for multi-product) conforming strictly to Microsoft UET specifications.\n2. Enhanced client-side tax, shipping, and coupon forwarding into microsoft_ads conversion payload."
 }

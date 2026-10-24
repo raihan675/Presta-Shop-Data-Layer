@@ -734,7 +734,7 @@ class PayloadBuilder
 
         $msftRemarketing = [
             'ecomm_pagetype' => $pageType,
-            'ecomm_prodid' => $isSingleProduct ? (isset($microsoftProdIds[0]) ? $microsoftProdIds[0] : '') : $microsoftProdIds,
+            'ecomm_prodid' => !empty($microsoftProdIds) ? array_values(array_map('strval', $microsoftProdIds)) : [],
             'ecomm_totalvalue' => $val,
         ];
         if (!empty($options['category_name'])) {
