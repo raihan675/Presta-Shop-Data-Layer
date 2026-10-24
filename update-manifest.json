@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.21.1",
+    "latest_version":  "1.21.2",
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.1/ps_gtm_datalayer.zip",
-    "checksum":  "098cf2df5fc461e8321cf95cefca16d556c65f59869028f590b2c9df6f340536",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.2/ps_gtm_datalayer.zip",
+    "checksum":  "4b741583fdf2e6fd9a933ce83663e9593eae9320ee82e8dd33ac33249f488036",
     "release_type":  "patch",
-    "release_notes":  "1. Standardized microsoft_ads dynamic remarketing ecomm_prodid to always output an array of strings (e.g. [\u0027123\u0027] for single product, [\u0027123\u0027, \u0027456\u0027] for multi-product) conforming strictly to Microsoft UET specifications.\n2. Enhanced client-side tax, shipping, and coupon forwarding into microsoft_ads conversion payload."
+    "release_notes":  "1. Replaced developer-focused jargon in Back Office advertising platform cards with clean, user-friendly, business-oriented descriptions.\n2. Resolved HTML entity escaping (\u0026quot; and \u0026amp;) in platform card subtitles using unquoted plain text and ENT_NOQUOTES."
 }

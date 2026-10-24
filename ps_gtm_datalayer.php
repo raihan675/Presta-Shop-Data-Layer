@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.21.1';
+        $this->version = '1.21.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -719,7 +719,7 @@ class Ps_Gtm_DataLayer extends Module
                 'key' => 'meta',
                 'name' => 'Meta Pixel & Conversions API (CAPI)',
                 'short_name' => 'Meta',
-                'desc' => $this->l('Outputs the "meta" namespace formatted for Facebook & Instagram catalog matching and CAPI tags.'),
+                'desc' => $this->l('Tracks product views, cart additions, and purchases for Facebook and Instagram Ads with catalog matching and server-side CAPI.'),
                 'config_key' => 'PS_GTM_ADV_META_ENABLED',
                 'enabled' => $advMeta,
                 'active_events' => $metaEvents,
@@ -733,7 +733,7 @@ class Ps_Gtm_DataLayer extends Module
                 'key' => 'gads',
                 'name' => 'Google Ads Dynamic Remarketing',
                 'short_name' => 'Google Ads',
-                'desc' => $this->l('Outputs the "google_ads" namespace with ecomm_prodid, ecomm_pagetype, and GMC feed matching items.'),
+                'desc' => $this->l('Powers dynamic retargeting and conversion tracking with cart data across Google Search, Display, and Shopping campaigns.'),
                 'config_key' => 'PS_GTM_ADV_GADS_ENABLED',
                 'enabled' => $advGads,
                 'active_events' => $gadsEvents,
@@ -747,7 +747,7 @@ class Ps_Gtm_DataLayer extends Module
                 'key' => 'tiktok',
                 'name' => 'TikTok Pixel & Events API',
                 'short_name' => 'TikTok',
-                'desc' => $this->l('Outputs the "tiktok" namespace with search_string, contents array, and conversion parameters.'),
+                'desc' => $this->l('Tracks catalog browsing, cart actions, and completed checkouts for TikTok Ads Manager and TikTok Events API.'),
                 'config_key' => 'PS_GTM_ADV_TIKTOK_ENABLED',
                 'enabled' => $advTiktok,
                 'active_events' => $tiktokEvents,
@@ -761,7 +761,7 @@ class Ps_Gtm_DataLayer extends Module
                 'key' => 'pinterest',
                 'name' => 'Pinterest Tag & Conversions API (CAPI)',
                 'short_name' => 'Pinterest',
-                'desc' => $this->l('Outputs the "pinterest" namespace formatted with line_items, product_ids, and Pinterest CAPI parameters.'),
+                'desc' => $this->l('Tracks product engagement, cart activity, and checkout conversions for Pinterest shopping ads and Pinterest CAPI.'),
                 'config_key' => 'PS_GTM_ADV_PINTEREST_ENABLED',
                 'enabled' => $advPinterest,
                 'active_events' => $pinterestEvents,
@@ -775,7 +775,7 @@ class Ps_Gtm_DataLayer extends Module
                 'key' => 'microsoft',
                 'name' => 'Microsoft Advertising (Bing Ads) & UET',
                 'short_name' => 'Microsoft Ads',
-                'desc' => $this->l('Outputs the "microsoft_ads" namespace with event_action, revenue_value, dynamic_remarketing, items, and pid.'),
+                'desc' => $this->l('Sends conversion revenue, retail dynamic remarketing, and customer matching to Microsoft Advertising and Universal Event Tracking (UET).'),
                 'config_key' => 'PS_GTM_ADV_MICROSOFT_ENABLED',
                 'enabled' => $advMicrosoft,
                 'active_events' => $microsoftEvents,
@@ -974,8 +974,8 @@ class Ps_Gtm_DataLayer extends Module
             }
             $html .= '</div>';
             $html .= '<div>';
-            $html .= '<div style="font-size: 14px; font-weight: 700; color: #2c3e50;">' . htmlspecialchars($p['name']) . '</div>';
-            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($p['desc']) . '</div>';
+            $html .= '<div style="font-size: 14px; font-weight: 700; color: #2c3e50;">' . htmlspecialchars($p['name'], ENT_NOQUOTES, 'UTF-8') . '</div>';
+            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($p['desc'], ENT_NOQUOTES, 'UTF-8') . '</div>';
             $html .= '</div>';
             $html .= '</div>';
 
@@ -1076,7 +1076,7 @@ class Ps_Gtm_DataLayer extends Module
                 $html .= '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">';
                 $html .= '<div>';
                 $html .= '<strong style="font-size: 12px; color: #34495e;">' . $this->l('Enable Cart Data on Purchase Conversions') . '</strong>';
-                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Populates "cart_data" across ecommerce events with feed-matching product IDs, unit prices, and quantities for Google Ads basket reporting.') . '</div>';
+                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Includes itemized products, quantities, and prices on purchase conversions for Google Ads Basket Cart Data reporting.') . '</div>';
                 $html .= '</div>';
                 $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
                 $html .= '<input type="checkbox" name="PS_GTM_ADV_GADS_CART_DATA" value="1" ' . ($cartDataVal ? 'checked="checked"' : '') . '>';
@@ -1085,8 +1085,8 @@ class Ps_Gtm_DataLayer extends Module
                 $html .= '</div>';
                 $html .= '<div style="margin-top: 10px;">';
                 $html .= '<label style="font-size: 12px; font-weight: 600; color: #34495e; display: block; margin-bottom: 4px;">' . $this->l('Google Merchant Center ID (Optional)') . '</label>';
-                $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId) . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 280px; font-size: 12px;">';
-                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates "aw_merchant_id" inside "cart_data".') . '</p>';
+                $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId, ENT_NOQUOTES, 'UTF-8') . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 280px; font-size: 12px;">';
+                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates Merchant Center ID inside cart data.') . '</p>';
                 $html .= '</div>';
                 $html .= '</div>';
             }

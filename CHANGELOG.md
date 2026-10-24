@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.21.2] - 2026-10-24
+
+### Changed
+- **User-Friendly Back Office Platform Descriptions**:
+  - Replaced technical internal variable names (`&quot;meta&quot;`, `ecomm_prodid`, `ecomm_pagetype`, `line_items`, `search_string`, `pid`) with clean, professional, human-understandable descriptions explaining what each advertising platform achieves for merchants.
+  - Eliminated literal HTML entity artifacts (`&quot;` and `&amp;`) across all Back Office platform cards by using unquoted text and `ENT_NOQUOTES`.
+
+---
+
 ## [1.21.1] - 2026-10-24
 
 ### Changed
