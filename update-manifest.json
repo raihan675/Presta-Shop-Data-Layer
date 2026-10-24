@@ -4,7 +4,7 @@
     "release_date":  "2026-10-24",
     "min_ps_version":  "1.7.0.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.21.3/ps_gtm_datalayer.zip",
-    "checksum":  "6af0a4dd04b828aef31ac1d808b09932b8882f4cd69ec1bfde381f2ad6437650",
+    "checksum":  "7cc8db6900d9556bd98f2c2d75006dff71282f4807e01f7d577fbf1f7db2cafb",
     "release_type":  "patch",
     "release_notes":  "1. Restored and healed TikTok Ads DataLayer configuration via upgrade migration script upgrade-1.21.3.php, ensuring tiktok namespace is actively pushed across all events.\n2. Aligned Back Office platform event counter to accurately display (Platform Off) when disabled, preventing misleading active counts.\n3. Cleared template caches for instantaneous frontend and backend DataLayer activation."
 }

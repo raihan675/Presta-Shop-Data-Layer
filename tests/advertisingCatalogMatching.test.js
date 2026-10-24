@@ -1042,7 +1042,7 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
   it('20. Event-Level Platform Routing Matrix: Platform-Based Expandable Interface Structure & Toggle Integrity', function () {
     const fs = require('fs');
     const path = require('path');
-    const phpCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8');
+    const phpCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8').replace(/\r\n/g, '\n');
 
     // 1. Verify getAdvertisingConfigForm replaces old table with new expandable matrix
     assert.ok(phpCode.includes("'name' => 'PS_GTM_ADV_MATRIX_TABLE'"), 'PS_GTM_ADV_MATRIX_TABLE free field must be defined');
