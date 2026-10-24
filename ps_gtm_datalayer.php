@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.21.2';
+        $this->version = '1.21.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -982,7 +982,11 @@ class Ps_Gtm_DataLayer extends Module
             // Right: Counter, Status Badge, Master Toggle, Chevron
             $html .= '<div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;" onclick="event.stopPropagation();">';
             $html .= '<span class="badge" id="counter_' . $pKey . '" style="background: #eef2f7; color: #34495e; font-weight: 600; font-size: 11px; padding: 5px 10px; border: 1px solid #dcdde1;">';
-            $html .= sprintf($this->l('%d of %d events active'), $activeCount, $totalSupportedEvents);
+            if (!$p['enabled']) {
+                $html .= sprintf($this->l('%d of %d events (Platform Off)'), $activeCount, $totalSupportedEvents);
+            } else {
+                $html .= sprintf($this->l('%d of %d events active'), $activeCount, $totalSupportedEvents);
+            }
             $html .= '</span>';
 
             $badgeClass = $p['enabled'] ? 'label-success' : 'label-danger';

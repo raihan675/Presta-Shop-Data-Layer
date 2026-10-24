@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.21.3] - 2026-10-24
+
+### Fixed
+- **TikTok Ads DataLayer Activation & Configuration Healing**:
+  - Restored and healed `PS_GTM_ADV_TIKTOK_ENABLED` to active state in database configuration via upgrade migration script `upgrade-1.21.3.php`.
+  - Re-hydrated and verified `PS_GTM_ADV_TIKTOK_EVENTS` to ensure all 12 supported ecommerce events are active.
+  - Resolved deceptive Back Office status counter where disabled platforms reported active event counts on initial PHP render; the counter now correctly indicates `(Platform Off)` whenever a platform is disabled.
+  - Cleared Smarty template caches to immediately reflect live `tiktok` data layer output across both server hydration and client JavaScript pushes.
+
+---
+
 ## [1.21.2] - 2026-10-24
 
 ### Changed
