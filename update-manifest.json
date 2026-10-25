@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.29.0",
+    "latest_version":  "1.30.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.29.0/ps_gtm_datalayer.zip",
-    "checksum":  "b617224c5532555f3f1c8d28b91278307f19d288a36f7f1e8c496c53bc9f8d8b",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.30.0/ps_gtm_datalayer.zip",
+    "checksum":  "4d4d26ae8c189fd34329e49f6dad9bc0fb53438f17ff60f71c8494ebd57f1c56",
     "release_type":  "minor",
-    "release_notes":  "1. Added Server-to-Server Refund \u0026 Offline Order Webhooks to Server GTM (sGTM / Stape.io) using actionOrderSlipAdd and actionValidateOrder.\n2. Built RefundDataResolver and non-blocking ServerSideWebhookDispatcher with SHA-256 customer PII normalization.\n3. Added gtm_refund_log deduplication table and Back Office configuration controls."
+    "release_notes":  "1. Added Universal Server-to-Server Order \u0026 Payment Status Change Webhook using actionOrderStatusPostUpdate.\n2. Dispatches order_status_update with new status ID, localized name, native is_paid flag, items, and SHA-256 customer data.\n3. Preserves storefront purchase tracking while providing full visibility into post-order payment transitions."
 }

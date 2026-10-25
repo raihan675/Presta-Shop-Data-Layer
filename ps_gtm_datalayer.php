@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.29.0';
+        $this->version = '1.30.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -74,11 +74,13 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('actionOrderSlipAdd')
             && $this->registerHook('actionValidateOrder')
+            && $this->registerHook('actionOrderStatusPostUpdate')
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_RAW_HEAD_CODE', '', true)
             && Configuration::updateValue('PS_GTM_RAW_BODY_CODE', '', true)
             && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
@@ -106,6 +108,7 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_REFUND_ENABLED')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED')
+            && Configuration::deleteByName('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED')
             && Configuration::deleteByName('PS_GTM_RAW_HEAD_CODE')
             && Configuration::deleteByName('PS_GTM_RAW_BODY_CODE')
             && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
@@ -215,6 +218,7 @@ class Ps_Gtm_DataLayer extends Module
                     Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
                     Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_REFUND_ENABLED') ? '1' : '0');
                     Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') ? '1' : '0');
+                    Configuration::updateValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') ? '1' : '0');
                     $output .= $this->displayConfirmation($this->l('Google Tag Manager & DataLayer settings successfully saved.'));
                 }
             }
@@ -506,6 +510,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_CATALOG_ID_STRATEGY' => Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite',
                 'PS_GTM_WEBHOOK_REFUND_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_MASTER_ENABLED' => Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_TIKTOK_ENABLED' => Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0' ? 1 : 0,
@@ -643,6 +648,26 @@ class Ps_Gtm_DataLayer extends Module
                         'values' => [
                             ['id' => 'webhook_offline_on', 'value' => 1, 'label' => $this->l('Enabled')],
                             ['id' => 'webhook_offline_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Server-to-Server Order Status Change Webhooks (sGTM)'),
+                        'name' => 'PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED',
+                        'hint' => $this->l('Dispatches asynchronous order_status_update events to your sGTM transport URL whenever an order status changes in the Back Office.'),
+                        'is_bool' => true,
+                        'desc' => $this->renderSettingHelp(
+                            'webhook_status_update',
+                            $this->l('Captures Back Office order and payment status transitions (e.g. Bank Wire to Payment Accepted, Mirakl accepted, Shipped, Delivered) and dispatches them to Server GTM.'),
+                            $this->l('Essential for Bank Wire, Cash on Delivery, or external marketplace orders where payments are confirmed days after initial placement.'),
+                            $this->l('Sends order_status_update events with transaction ID, new status ID, status name, is_paid flag, items, and SHA-256 hashed customer data.'),
+                            $this->l('Executes via non-blocking cURL on actionOrderStatusPostUpdate with strict timeout protection.'),
+                            $this->l('Enables precise Server GTM triggers for Google Ads Offline Conversion Adjustments, Meta CAPI offline events, and ERP reconciliation.'),
+                            'https://your-container.stape.io/g/collect?v=2 (order_status_update event)'
+                        ),
+                        'values' => [
+                            ['id' => 'webhook_status_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'webhook_status_off', 'value' => 0, 'label' => $this->l('Disabled')],
                         ],
                     ],
                     [
@@ -2434,6 +2459,40 @@ class Ps_Gtm_DataLayer extends Module
         } catch (\Throwable $e) {
             if (class_exists('PrestaShopLogger')) {
                 PrestaShopLogger::addLog('ps_gtm_datalayer hookActionValidateOrder error: ' . $e->getMessage(), 2);
+            }
+        }
+    }
+
+    public function hookActionOrderStatusPostUpdate($params)
+    {
+        try {
+            if (Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') === '0') {
+                return;
+            }
+
+            $sgtmUrl = (string)Configuration::get('PS_SGTM_TRANSPORT_URL');
+            if (empty($sgtmUrl)) {
+                return;
+            }
+
+            $idOrder = isset($params['id_order']) ? (int)$params['id_order'] : 0;
+            $newOrderStatus = isset($params['newOrderStatus']) ? $params['newOrderStatus'] : null;
+
+            if ($idOrder <= 0 || !Validate::isLoadedObject($newOrderStatus)) {
+                return;
+            }
+
+            $order = new Order($idOrder);
+            if (!Validate::isLoadedObject($order)) {
+                return;
+            }
+
+            $previousStatusId = isset($params['id_order_state']) ? (int)$params['id_order_state'] : 0;
+
+            ServerSideWebhookDispatcher::dispatchOrderStatusUpdate($order, $newOrderStatus, $previousStatusId, $sgtmUrl);
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog('ps_gtm_datalayer hookActionOrderStatusPostUpdate error: ' . $e->getMessage(), 2);
             }
         }
     }

@@ -263,6 +263,7 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
 * **Server-Side GTM Transport URL**: Custom domain or Stape.io endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com` or `https://xxxxxx.stape.io`).
 * **Server-to-Server Refund Webhooks**: Automatically captures Back Office credit slips (`actionOrderSlipAdd`) and sends authoritative `refund` events to sGTM / GA4 / Meta CAPI / Google Ads via non-blocking cURL.
 * **Server-to-Server Offline Order Webhooks**: Automatically dispatches `purchase` events for offline or admin-created orders validated in the Back Office (`actionValidateOrder`).
+* **Server-to-Server Order Status Change Webhooks**: Automatically dispatches `order_status_update` events to sGTM whenever an order/payment status changes in the Back Office (`actionOrderStatusPostUpdate`), carrying `new_status_id`, `new_status_name`, `is_paid`, `is_shipped`, items, and hashed customer PII.
 
 ### Advertising Platform DataLayer Settings
 * **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`, `microsoft_ads`) across all events in a single click.

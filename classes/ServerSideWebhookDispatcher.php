@@ -126,6 +126,104 @@ class ServerSideWebhookDispatcher
     }
 
     /**
+     * Dispatches an order/payment status update event to Server-Side GTM.
+     *
+     * @param Order $order PrestaShop Order object
+     * @param OrderState $newOrderStatus PrestaShop OrderState object
+     * @param int $previousStatusId
+     * @param string|null $sgtmUrl
+     * @return bool
+     */
+    public static function dispatchOrderStatusUpdate(Order $order, OrderState $newOrderStatus, $previousStatusId = 0, $sgtmUrl = null)
+    {
+        if (empty($sgtmUrl)) {
+            $sgtmUrl = class_exists('Configuration') ? (string)Configuration::get('PS_SGTM_TRANSPORT_URL') : '';
+        }
+
+        if (empty($sgtmUrl) || !Validate::isLoadedObject($order) || !Validate::isLoadedObject($newOrderStatus)) {
+            return false;
+        }
+
+        $idLanguage = (Context::getContext() && Context::getContext()->language)
+            ? (int)Context::getContext()->language->id
+            : (int)Configuration::get('PS_LANG_DEFAULT');
+
+        $statusName = is_array($newOrderStatus->name)
+            ? (isset($newOrderStatus->name[$idLanguage]) ? $newOrderStatus->name[$idLanguage] : reset($newOrderStatus->name))
+            : (string)$newOrderStatus->name;
+
+        $currency = new Currency((int)$order->id_currency);
+        $currencyIso = Validate::isLoadedObject($currency) ? $currency->iso_code : 'EUR';
+
+        $userData = RefundDataResolver::extractUserData($order);
+
+        // Resolve order items according to catalog strategy
+        $items = [];
+        $catalogStrategy = class_exists('Configuration') && Configuration::get('PS_GTM_CATALOG_ID_STRATEGY')
+            ? (string)Configuration::get('PS_GTM_CATALOG_ID_STRATEGY')
+            : 'composite';
+
+        if (method_exists($order, 'getProducts')) {
+            $products = $order->getProducts();
+            if (!empty($products) && is_array($products)) {
+                foreach ($products as $p) {
+                    $idProduct = (int)$p['product_id'];
+                    $idProductAttribute = (int)$p['product_attribute_id'];
+                    $productObj = new Product($idProduct, false, $idLanguage);
+                    $catalogItemId = RefundDataResolver::resolveCatalogIdentifier(
+                        $productObj,
+                        $idProduct,
+                        $idProductAttribute,
+                        isset($p['product_reference']) ? $p['product_reference'] : '',
+                        $catalogStrategy
+                    );
+
+                    $items[] = [
+                        'item_id' => $catalogItemId,
+                        'item_name' => isset($p['product_name']) ? (string)$p['product_name'] : '',
+                        'price' => round((float)$p['unit_price_tax_incl'], 2),
+                        'quantity' => (int)$p['product_quantity'],
+                    ];
+                }
+            }
+        }
+
+        $clientId = $order->id_customer > 0
+            ? $order->id_customer . '.' . strtotime($order->date_add)
+            : $order->id . '.' . time();
+
+        $params = [
+            'transaction_id' => (string)$order->id,
+            'order_reference' => (string)$order->reference,
+            'new_status_id' => (int)$newOrderStatus->id,
+            'new_status_name' => (string)$statusName,
+            'previous_status_id' => (int)$previousStatusId,
+            'is_paid' => (bool)$newOrderStatus->paid,
+            'is_shipped' => (bool)$newOrderStatus->shipped,
+            'currency' => $currencyIso,
+            'value' => round((float)$order->total_paid_tax_incl, 2),
+            'payment_method' => (string)$order->payment,
+            'items' => $items,
+        ];
+
+        if (!empty($userData)) {
+            $params['user_data'] = $userData;
+        }
+
+        $envelope = [
+            'client_id' => $clientId,
+            'events' => [
+                [
+                    'name' => 'order_status_update',
+                    'params' => $params,
+                ]
+            ]
+        ];
+
+        return self::sendHttpRequest($sgtmUrl, 'order_status_update', $envelope);
+    }
+
+    /**
      * Sends the non-blocking HTTP POST request to the Server GTM container endpoint.
      *
      * @param string $sgtmUrl

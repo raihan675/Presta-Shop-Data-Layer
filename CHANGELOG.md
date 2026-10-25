@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.30.0] - 2026-10-25
+
+### Added
+- **Universal Server-to-Server Order & Payment Status Change Webhooks (`actionOrderStatusPostUpdate`)**:
+  - Automatically captures manual and asynchronous order status transitions in the PrestaShop Back Office (e.g. Bank Wire `#10` to Payment Accepted `#2`, Mirakl `#11`, Shipped `#4`, Delivered `#5`).
+  - Dispatches canonical `order_status_update` payloads to Server GTM (`/g/collect?v=2`) carrying `new_status_id`, localized `new_status_name`, native `is_paid` and `is_shipped` booleans, order financials, and items.
+  - Normalizes customer PII into SHA-256 hashes for Meta CAPI and Google Ads Offline Conversion Value Adjustments.
+  - Implemented 100% universal compatibility across all PrestaShop versions (1.7 through 8.x / 9.x) using core `$orderState->paid` properties with zero hardcoded status strings or IDs.
+  - Added dedicated Back Office toggle `PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED` with interactive "Learn more" drawer.
+  - Added unit test cases 8 and 9 to `tests/serverSideWebhook.test.js`.
+
+---
+
 ## [1.29.0] - 2026-10-25
 
 ### Added

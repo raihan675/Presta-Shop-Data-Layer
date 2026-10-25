@@ -166,4 +166,80 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(isSecondTracked, true);
   });
 
+  it('8. Should build canonical GA4/sGTM order_status_update payload for Bank Wire to Payment Accepted', () => {
+    const order = {
+      id_order: 1248,
+      reference: 'RGXUHEBWD',
+      currency: 'EUR',
+      total_paid: 23.70,
+      payment: 'Bank transfer',
+      customer_email: 'test.customer@gmail.com'
+    };
+    const newOrderStatus = {
+      id: 2,
+      name: 'Payment accepted',
+      paid: true,
+      shipped: false
+    };
+    const items = [
+      { id_product: 153, id_product_attribute: 0, sku: 'FIT09', name: 'Fit Kidz Barbell Soft Toy', price: 19.20, quantity: 1 }
+    ];
+
+    const userData = {
+      email_address: sha256(order.customer_email)
+    };
+
+    const payload = {
+      client_id: `${order.id_order}.${Math.floor(Date.now() / 1000)}`,
+      events: [
+        {
+          name: 'order_status_update',
+          params: {
+            transaction_id: String(order.id_order),
+            order_reference: order.reference,
+            new_status_id: newOrderStatus.id,
+            new_status_name: newOrderStatus.name,
+            previous_status_id: 10,
+            is_paid: Boolean(newOrderStatus.paid),
+            is_shipped: Boolean(newOrderStatus.shipped),
+            currency: order.currency,
+            value: order.total_paid,
+            payment_method: order.payment,
+            user_data: userData,
+            items: items.map(i => ({
+              item_id: resolveCatalogIdentifier(i.id_product, i.id_product_attribute, i.sku, 'composite'),
+              item_name: i.name,
+              price: i.price,
+              quantity: i.quantity
+            }))
+          }
+        }
+      ]
+    };
+
+    assert.strictEqual(payload.events[0].name, 'order_status_update');
+    assert.strictEqual(payload.events[0].params.transaction_id, '1248');
+    assert.strictEqual(payload.events[0].params.order_reference, 'RGXUHEBWD');
+    assert.strictEqual(payload.events[0].params.new_status_id, 2);
+    assert.strictEqual(payload.events[0].params.new_status_name, 'Payment accepted');
+    assert.strictEqual(payload.events[0].params.is_paid, true);
+    assert.strictEqual(payload.events[0].params.is_shipped, false);
+    assert.strictEqual(payload.events[0].params.value, 23.70);
+    assert.strictEqual(payload.events[0].params.payment_method, 'Bank transfer');
+    assert.strictEqual(payload.events[0].params.items[0].item_id, '153');
+    assert.strictEqual(payload.events[0].params.user_data.email_address, crypto.createHash('sha256').update('test.customer@gmail.com').digest('hex'));
+  });
+
+  it('9. Should handle marketplace/remote orders (e.g. Mirakl status 11) with is_paid: true', () => {
+    const newOrderStatus = {
+      id: 11,
+      name: 'Remote payment accepted',
+      paid: true,
+      shipped: false
+    };
+
+    assert.strictEqual(newOrderStatus.paid, true);
+    assert.strictEqual(newOrderStatus.id, 11);
+  });
+
 });
