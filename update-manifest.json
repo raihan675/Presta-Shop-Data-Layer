@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.28.5",
+    "latest_version":  "1.29.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.5/ps_gtm_datalayer.zip",
-    "checksum":  "1d5a0a6e06aeb4a8a5a14a50979d1988288995d53ee4f69dd4c0d1877d61d1e5",
-    "release_type":  "patch",
-    "release_notes":  "1. Removed Google Consent Mode v2 toggle and associated default denied template tags to prevent conflicts with merchant CMPs.\n2. Cleaned up configuration schema and template outputs."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.29.0/ps_gtm_datalayer.zip",
+    "checksum":  "b617224c5532555f3f1c8d28b91278307f19d288a36f7f1e8c496c53bc9f8d8b",
+    "release_type":  "minor",
+    "release_notes":  "1. Added Server-to-Server Refund \u0026 Offline Order Webhooks to Server GTM (sGTM / Stape.io) using actionOrderSlipAdd and actionValidateOrder.\n2. Built RefundDataResolver and non-blocking ServerSideWebhookDispatcher with SHA-256 customer PII normalization.\n3. Added gtm_refund_log deduplication table and Back Office configuration controls."
 }

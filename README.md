@@ -260,7 +260,9 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
   1. **Composite Database ID**: `{id_product}_{id_product_attribute}` (e.g., `68_299` or `1033`). **(Recommended)**
   2. **Base Product ID**: `{id_product}` (e.g., `68` or `1033`).
   3. **Reference / Physical SKU**: Authoritative combination/product reference (e.g., `BHK125-B`).
-* **Server-Side GTM Transport URL**: Custom domain endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com`).
+* **Server-Side GTM Transport URL**: Custom domain or Stape.io endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com` or `https://xxxxxx.stape.io`).
+* **Server-to-Server Refund Webhooks**: Automatically captures Back Office credit slips (`actionOrderSlipAdd`) and sends authoritative `refund` events to sGTM / GA4 / Meta CAPI / Google Ads via non-blocking cURL.
+* **Server-to-Server Offline Order Webhooks**: Automatically dispatches `purchase` events for offline or admin-created orders validated in the Back Office (`actionValidateOrder`).
 
 ### Advertising Platform DataLayer Settings
 * **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`, `microsoft_ads`) across all events in a single click.

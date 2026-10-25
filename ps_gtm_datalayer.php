@@ -18,6 +18,8 @@ require_once __DIR__ . '/classes/PayloadBuilder.php';
 require_once __DIR__ . '/classes/DeduplicationManager.php';
 require_once __DIR__ . '/classes/WishlistIntegrationLayer.php';
 require_once __DIR__ . '/classes/UpdateManager.php';
+require_once __DIR__ . '/classes/RefundDataResolver.php';
+require_once __DIR__ . '/classes/ServerSideWebhookDispatcher.php';
 
 class Ps_Gtm_DataLayer extends Module
 {
@@ -25,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.5';
+        $this->version = '1.29.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -70,9 +72,13 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('actionCarrierProcess')
             && $this->registerHook('displayBackOfficeTop')
             && $this->registerHook('displayBackOfficeHeader')
+            && $this->registerHook('actionOrderSlipAdd')
+            && $this->registerHook('actionValidateOrder')
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
+            && Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_RAW_HEAD_CODE', '', true)
             && Configuration::updateValue('PS_GTM_RAW_BODY_CODE', '', true)
             && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
@@ -98,6 +104,8 @@ class Ps_Gtm_DataLayer extends Module
             && DeduplicationManager::dropDatabaseTable()
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
+            && Configuration::deleteByName('PS_GTM_WEBHOOK_REFUND_ENABLED')
+            && Configuration::deleteByName('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED')
             && Configuration::deleteByName('PS_GTM_RAW_HEAD_CODE')
             && Configuration::deleteByName('PS_GTM_RAW_BODY_CODE')
             && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
@@ -205,6 +213,8 @@ class Ps_Gtm_DataLayer extends Module
                     }
                     Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
                     Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
+                    Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_REFUND_ENABLED') ? '1' : '0');
+                    Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') ? '1' : '0');
                     $output .= $this->displayConfirmation($this->l('Google Tag Manager & DataLayer settings successfully saved.'));
                 }
             }
@@ -494,6 +504,8 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
                 'PS_GTM_CATALOG_ID_STRATEGY' => Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite',
+                'PS_GTM_WEBHOOK_REFUND_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_MASTER_ENABLED' => Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_TIKTOK_ENABLED' => Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0' ? 1 : 0,
@@ -592,6 +604,46 @@ class Ps_Gtm_DataLayer extends Module
                             'https://gtm.yourdomain.com'
                         ),
                         'size' => 50,
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Server-to-Server Refund Webhooks (sGTM)'),
+                        'name' => 'PS_GTM_WEBHOOK_REFUND_ENABLED',
+                        'hint' => $this->l('Dispatches asynchronous server-to-server refund conversions to your sGTM transport URL when a credit slip is generated.'),
+                        'is_bool' => true,
+                        'desc' => $this->renderSettingHelp(
+                            'webhook_refund',
+                            $this->l('Sends server-to-server refund conversions to your Server-Side GTM container when a Credit Slip is issued in the Back Office.'),
+                            $this->l('PrestaShop refunds happen inside the admin panel when shoppers are not on your storefront. This webhook bridges the gap by sending refund payloads directly from the server.'),
+                            $this->l('Transmits refunded items, quantities, and values directly to GA4, Meta CAPI, and Google Ads without browser dependencies.'),
+                            $this->l('Executes via non-blocking cURL upon actionOrderSlipAdd, ensuring instantaneous Back Office performance.'),
+                            $this->l('Requires a configured Server-Side GTM Transport URL (e.g. Stape.io or custom sGTM domain). Highly recommended for accurate net revenue reporting.'),
+                            'https://your-container.stape.io/g/collect?v=2 (refund event)'
+                        ),
+                        'values' => [
+                            ['id' => 'webhook_refund_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'webhook_refund_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
+                    ],
+                    [
+                        'type' => 'switch',
+                        'label' => $this->l('Server-to-Server Offline Order Webhooks (sGTM)'),
+                        'name' => 'PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED',
+                        'hint' => $this->l('Dispatches purchase conversions to your sGTM container for orders created or validated offline in the Back Office.'),
+                        'is_bool' => true,
+                        'desc' => $this->renderSettingHelp(
+                            'webhook_offline_order',
+                            $this->l('Captures and dispatches offline and Back Office orders directly to Server-Side GTM.'),
+                            $this->l('Ensures orders created manually by administrators, phone orders, or imported orders are never missed by your advertising attribution models.'),
+                            $this->l('Sends full purchase events with line items, customer details, and financials to GA4, Meta CAPI, and Google Ads.'),
+                            $this->l('Automatically verifies idempotency via gtm_purchase_log to prevent double-counting of storefront orders.'),
+                            $this->l('Enable if you process phone orders or create orders directly in the PrestaShop Back Office.'),
+                            'https://your-container.stape.io/g/collect?v=2 (purchase event)'
+                        ),
+                        'values' => [
+                            ['id' => 'webhook_offline_on', 'value' => 1, 'label' => $this->l('Enabled')],
+                            ['id' => 'webhook_offline_off', 'value' => 0, 'label' => $this->l('Disabled')],
+                        ],
                     ],
                     [
                         'type' => 'textarea',
@@ -2304,6 +2356,85 @@ class Ps_Gtm_DataLayer extends Module
             </script>';
         } catch (\Throwable $e) {
             return '';
+        }
+    }
+
+    public function hookActionOrderSlipAdd($params)
+    {
+        try {
+            if (Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') === '0') {
+                return;
+            }
+
+            $sgtmUrl = (string)Configuration::get('PS_SGTM_TRANSPORT_URL');
+            if (empty($sgtmUrl)) {
+                return;
+            }
+
+            $order = isset($params['order']) ? $params['order'] : null;
+            if (!$order || !Validate::isLoadedObject($order)) {
+                return;
+            }
+
+            $productList = isset($params['productList']) && is_array($params['productList']) ? $params['productList'] : [];
+            $qtyList = isset($params['qtyList']) && is_array($params['qtyList']) ? $params['qtyList'] : [];
+
+            $refundData = RefundDataResolver::resolveFromOrderSlipParams($order, $productList, $qtyList);
+            if (empty($refundData) || (float)$refundData['value'] <= 0) {
+                return;
+            }
+
+            // Deduplication check: if order slip was already tracked, do not resend
+            if (!empty($refundData['id_order_slip']) && DeduplicationManager::isRefundTracked($refundData['id_order_slip'])) {
+                return;
+            }
+
+            ServerSideWebhookDispatcher::dispatchRefund($refundData, $sgtmUrl);
+
+            if (!empty($refundData['id_order_slip'])) {
+                DeduplicationManager::markRefundTracked($refundData['id_order_slip'], $order->id, $refundData['value']);
+            }
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog('ps_gtm_datalayer hookActionOrderSlipAdd error: ' . $e->getMessage(), 2);
+            }
+        }
+    }
+
+    public function hookActionValidateOrder($params)
+    {
+        try {
+            if (Configuration::get('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') === '0') {
+                return;
+            }
+
+            $sgtmUrl = (string)Configuration::get('PS_SGTM_TRANSPORT_URL');
+            if (empty($sgtmUrl)) {
+                return;
+            }
+
+            $order = isset($params['order']) ? $params['order'] : null;
+            if (!$order || !Validate::isLoadedObject($order)) {
+                return;
+            }
+
+            // Deduplication check: if transaction was already tracked, ignore
+            if (DeduplicationManager::isTransactionTracked($order->id)) {
+                return;
+            }
+
+            // Check if order was placed in Back Office or via offline context
+            $isBackOffice = defined('_PS_ADMIN_DIR_') 
+                || (isset($this->context->controller) && $this->context->controller instanceof AdminController);
+
+            if ($isBackOffice) {
+                ServerSideWebhookDispatcher::dispatchOfflinePurchase($order, $sgtmUrl);
+                DeduplicationManager::markTransactionTracked($order->id, $order->reference);
+            }
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog('ps_gtm_datalayer hookActionValidateOrder error: ' . $e->getMessage(), 2);
+            }
         }
     }
 }

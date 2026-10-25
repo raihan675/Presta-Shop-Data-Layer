@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.29.0] - 2026-10-25
+
+### Added
+- **Server-to-Server Refund & Offline Order Webhooks to Server GTM (sGTM)**:
+  - Intercepts Back Office credit slip generation (`actionOrderSlipAdd`) to dispatch asynchronous server-to-server `refund` conversion events to Server-Side GTM (`/g/collect`), Stape.io, or custom tagging endpoints.
+  - Intercepts offline/Back Office order creation (`actionValidateOrder`) to dispatch server-to-server `purchase` events.
+  - Implemented `RefundDataResolver` extracting authoritative order, credit slip, variant combination items, prices, and tax directly from PrestaShop core models (Zero DOM).
+  - Implemented `ServerSideWebhookDispatcher` with non-blocking cURL HTTP POST (1500ms max timeout) and defensive error logging.
+  - Implemented SHA-256 customer PII normalization (email, phone, address) for Google Enhanced Conversions and Meta CAPI.
+  - Implemented strict idempotency deduplication with new `ps_gtm_refund_log` database table.
+  - Added dedicated Back Office switches for refund and offline order webhooks with accessible "Learn more" drawers.
+  - Created automated test suite `tests/serverSideWebhook.test.js` validating GA4/sGTM payload formatting and catalog strategy alignment.
+
+---
+
 ## [1.28.5] - 2026-10-25
 
 ### Removed

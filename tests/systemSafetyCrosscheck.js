@@ -228,7 +228,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.28.5', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.29.0', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Zero DOM Scraping Verification
 const adapterCode = fs.readFileSync(path.join(MODULE_ROOT, 'views', 'js', 'prestashop-adapter.js'), 'utf8');
@@ -635,6 +635,16 @@ if (fs.existsSync(upgrade1285Path)) {
   report('Upgrade function upgrade_module_1_28_5 properly declared', hasUpgradeFunction285 && returnsTrue285, 'Missing or invalid function signature in upgrade-1.28.5.php');
 } else {
   report('Upgrade script upgrade-1.28.5.php exists', false, 'Missing upgrade-1.28.5.php');
+}
+
+const upgrade1290Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.29.0.php');
+if (fs.existsSync(upgrade1290Path)) {
+  const upCode290 = fs.readFileSync(upgrade1290Path, 'utf8');
+  const hasUpgradeFunction290 = upCode290.includes('function upgrade_module_1_29_0($module)');
+  const returnsTrue290 = upCode290.includes('return true;');
+  report('Upgrade function upgrade_module_1_29_0 properly declared', hasUpgradeFunction290 && returnsTrue290, 'Missing or invalid function signature in upgrade-1.29.0.php');
+} else {
+  report('Upgrade script upgrade-1.29.0.php exists', false, 'Missing upgrade-1.29.0.php');
 }
 
 // -------------------------------------------------------------
