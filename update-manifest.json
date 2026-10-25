@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.31.0",
+    "latest_version":  "1.32.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.31.0/ps_gtm_datalayer.zip",
-    "checksum":  "328723b70a1b6215c4cacbb1a99a0eba0f7ccf632a0f717e89983d118744b9a7",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.32.0/ps_gtm_datalayer.zip",
+    "checksum":  "bd6c60bff73e65631f1c3516f08cbee67b364e622e08e249fb9ea12b637e341c",
     "release_type":  "minor",
-    "release_notes":  "1. Added Self-Healing Payment Revocation \u0026 Mistake Reversal Detection.\n2. Automatically signals payment_revoked and conversion_action: retract when an admin reverts a mistakenly paid order.\n3. Enables seamless Google Ads Conversion Retraction and GA4 Refund reconciliation."
+    "release_notes":  "1. Added native sGTM GA4 Client compatibility: Encodes webhooks into canonical GA4 beacon format when GA4 Measurement ID is provided, guaranteeing HTTP 200 acceptance.\n2. Added sGTM Debug / Preview Header support (X-Gtm-Server-Preview) for real-time live debugging inside GTM Server Preview mode.\n3. Automatic self-healing hook registration in Back Office to ensure zero missed webhook events."
 }

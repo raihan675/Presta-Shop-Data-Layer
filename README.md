@@ -307,6 +307,17 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
     * **`status_changed_unpaid`** (`conversion_action: "none"`): Informational status updates.
 * **Fail-Safe Performance**: Dispatched via asynchronous cURL with a strict **1500ms execution timeout**, ensuring Back Office administration is never slowed down.
 
+### 4. Native sGTM GA4 Client & Live Preview Debugging
+* **Native GA4 Client Compatibility (`PS_SGTM_GA4_MEASUREMENT_ID`)**:
+  * When your GA4 Measurement ID (`G-XXXXXXXXXX`) is entered in the module configuration, webhook payloads are automatically encoded in canonical GA4 beacon format (`v=2&tid=...&cid=...&en=...&pr1=...&ep.*`).
+  * Guarantees `HTTP 200 OK` acceptance by the default GA4 Client in Server GTM without needing custom clients or complex transformations.
+  * If left empty, payloads default to standard JSON for Stape Data Client.
+* **Live GTM Server Preview Mode (`PS_SGTM_PREVIEW_HEADER`)**:
+  * Copy your `X-Gtm-Server-Preview` token from Server GTM Preview (*Send requests manually*) into this field.
+  * The module automatically attaches the header to every outgoing webhook call, making every status change, refund, and offline order appear in real-time inside your Server GTM Preview window.
+* **PrestaShop System Audit Logs**:
+  * All webhook dispatches are recorded directly in **Advanced Parameters > Logs** (`PrestaShopLogger`), indicating the event name, endpoint URL, and HTTP status code (`200 OK` or errors).
+
 ---
 
 ## Installation & Setup

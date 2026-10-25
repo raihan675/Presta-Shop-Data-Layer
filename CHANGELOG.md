@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.32.0] - 2026-10-25
+
+### Added
+- **Native sGTM GA4 Client Compatibility (`PS_SGTM_GA4_MEASUREMENT_ID`)**:
+  - Automatically encodes server-to-server webhook payloads (`refund`, `purchase`, `order_status_update`) into canonical GA4 beacon format (`v=2&tid=...&cid=...&en=...&pr1=...&ep.*`) when a GA4 Measurement ID is configured.
+  - Guarantees immediate `HTTP 200 OK` acceptance by Google's native sGTM GA4 Client without requiring custom Data Clients or template installations.
+- **Server GTM Debug / Preview Header Injection (`PS_SGTM_PREVIEW_HEADER`)**:
+  - Added dedicated Back Office input to paste the `X-Gtm-Server-Preview` token from sGTM Debug window.
+  - Automatically attaches the header to all outgoing webhook cURL requests, allowing real-time inspection in the GTM Server Preview UI.
+- **Automatic Self-Healing Hook Registration**:
+  - Module constructor and Back Office configuration view automatically verify and register missing server hooks (`actionOrderStatusPostUpdate`, `actionOrderSlipAdd`, `actionValidateOrder`) in `ps_hook_module`.
+- **PrestaShop System Logger Integration**:
+  - Logs all webhook dispatches with event name, endpoint URL, HTTP response code, and cURL errors into PrestaShop's core log (`Advanced Parameters > Logs`) for effortless troubleshooting.
+
+---
+
 ## [1.31.0] - 2026-10-25
 
 ### Added
