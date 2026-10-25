@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.36.0] - 2026-10-25
+
+### Fixed
+- **Initial Checkout Order Creation Guard**:
+  - Suppressed premature `order_status_update` webhook dispatch during customer online order placement.
+  - Added strict transition guard (`$previousStatusId <= 0 || $previousStatusId === $newOrderStatus->id`), ensuring webhooks fire strictly when an existing order's status is legitimately changed or updated to a different status in the Back Office.
+
+---
+
 ## [1.35.0] - 2026-10-25
 
 ### Fixed

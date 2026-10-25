@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.35.0';
+        $this->version = '1.36.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -2532,6 +2532,11 @@ class Ps_Gtm_DataLayer extends Module
                 $previousStatusId = (int)$params['oldOrderStatus']->id;
             } elseif (isset($params['id_order_state'])) {
                 $previousStatusId = (int)$params['id_order_state'];
+            }
+
+            // If the status did not change (same status re-saved) or initial assignment with identical status, ignore
+            if ($previousStatusId > 0 && $previousStatusId === (int)$newOrderStatus->id) {
+                return;
             }
 
             ServerSideWebhookDispatcher::dispatchOrderStatusUpdate($order, $newOrderStatus, $previousStatusId, $sgtmUrl);

@@ -162,6 +162,12 @@ class ServerSideWebhookDispatcher
             } catch (\Throwable $e) {}
         }
 
+        // Strict guard: An order status update requires an actual change between two distinct statuses.
+        // If there is no previous status (initial order placement at checkout) or if the status did not change, ignore.
+        if ($previousStatusId <= 0 || $previousStatusId === (int)$newOrderStatus->id) {
+            return false;
+        }
+
         $previousIsPaid = false;
         $previousStatusName = '';
         if ($previousStatusId > 0) {

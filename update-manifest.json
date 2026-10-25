@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.35.0",
+    "latest_version":  "1.36.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.35.0/ps_gtm_datalayer.zip",
-    "checksum":  "78a484229b139efdd30c17635706b03baa38fab74eb3ffd8a424a763e53c3e9f",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.36.0/ps_gtm_datalayer.zip",
+    "checksum":  "6d5724042ca8522d0b89ec7482d74698366965a654fe1e27e4d12d4095b87a70",
     "release_type":  "minor",
-    "release_notes":  "1. Accurate Previous Status Resolution: Seamlessly extracts previous order state from oldOrderStatus parameter and historical order database log, eliminating previous_status_id: 0.\n2. Ironclad Refund \u0026 Cancel Classification: Order status updates to Refunded (ID 7, 20, 26) or Canceled (ID 6) always classify with transitionType: refund_issued / order_canceled and conversion_action: retract.\n3. Complete compatibility with GA4 offline purchase retraction, Google Ads offline adjustments, and Meta CAPI reversal workflows."
+    "release_notes":  "1. Initial Checkout Order Creation Guard: Suppressed premature order_status_update webhook during online customer checkout.\n2. Strict Transition Integrity: Webhooks fire strictly when an existing order\u0027s status is legitimately changed to a distinct new status in the Back Office (ignoring initial status assignment and no-op saves)."
 }

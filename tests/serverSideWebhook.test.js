@@ -433,4 +433,27 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(result.isCanceled, true);
   });
 
+  it('18. Should strictly ignore status update when previousStatusId is 0 (initial checkout) or identical to newStatusId', () => {
+    function shouldDispatchStatusUpdate(previousStatusId, newStatusId) {
+      if (previousStatusId <= 0 || previousStatusId === newStatusId) {
+        return false;
+      }
+      return true;
+    }
+
+    // Initial order placement at checkout (Bank wire, status 10)
+    assert.strictEqual(shouldDispatchStatusUpdate(0, 10), false);
+    assert.strictEqual(shouldDispatchStatusUpdate(10, 10), false);
+
+    // Initial order placement at checkout (Card paid, status 2)
+    assert.strictEqual(shouldDispatchStatusUpdate(0, 2), false);
+    assert.strictEqual(shouldDispatchStatusUpdate(2, 2), false);
+
+    // Legitimate status change in Back Office: Bank wire (10) -> Payment accepted (2)
+    assert.strictEqual(shouldDispatchStatusUpdate(10, 2), true);
+
+    // Legitimate status change in Back Office: Payment accepted (2) -> Refunded (7)
+    assert.strictEqual(shouldDispatchStatusUpdate(2, 7), true);
+  });
+
 });
