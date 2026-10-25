@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.1';
+        $this->version = '1.28.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1327,32 +1327,35 @@ class Ps_Gtm_DataLayer extends Module
                 font-weight: 700;
                 color: #0f172a;
             }
-            .ps-gtm-card-body {
-                padding-left: 28px;
-                font-size: 13px;
-                line-height: 1.6;
-                color: #334155;
+            .ps-gtm-strategy-body {
+                display: block !important;
+                padding-left: 28px !important;
+                font-size: 13px !important;
+                line-height: 1.6 !important;
+                color: #334155 !important;
             }
             .ps-gtm-when-box {
-                margin-bottom: 8px;
-                color: #1e293b;
-                font-size: 13px;
+                display: block !important;
+                margin-bottom: 8px !important;
+                color: #1e293b !important;
+                font-size: 13px !important;
             }
             .ps-gtm-example-box {
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-left: 4px solid #64748b;
-                padding: 10px 14px;
-                border-radius: 4px;
-                font-size: 12.5px;
-                color: #0f172a;
-                margin-top: 8px;
-                line-height: 1.7;
+                display: block !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                border-left: 4px solid #64748b !important;
+                padding: 10px 14px !important;
+                border-radius: 4px !important;
+                font-size: 12.5px !important;
+                color: #0f172a !important;
+                margin-top: 8px !important;
+                line-height: 1.7 !important;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-example-box {
-                background: #eaf8ef;
-                border-color: #bbf7d0;
-                border-left: 4px solid #16a34a;
+                background: #eaf8ef !important;
+                border-color: #bbf7d0 !important;
+                border-left: 4px solid #16a34a !important;
             }
         </style>';
 
@@ -1369,7 +1372,7 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . '" style="font-size: 11px; padding: 5px 12px; border-radius: 4px;">' . htmlspecialchars($s['badge']) . '</span>';
             $html .= '</div>';
 
-            $html .= '<div class="ps-gtm-card-body">';
+            $html .= '<div class="ps-gtm-strategy-body">';
             $html .= '<div class="ps-gtm-when-box"><strong>' . $this->l('When to use:') . '</strong> ' . $s['when_to_use'] . '</div>';
             $html .= '<div class="ps-gtm-example-box">';
             $html .= '<strong><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format:') . '</strong> <code>' . htmlspecialchars($s['format']) . '</code><br>';

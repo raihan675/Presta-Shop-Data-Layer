@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.2] - 2026-10-25
+
+### Fixed
+- **Product Catalog Identifier Strategy Description Visibility**:
+  - Isolated strategy card body CSS class by renaming to `.ps-gtm-strategy-body` with explicit `display: block !important;` to eliminate unintended CSS override collision with `.ps-gtm-card-body` from advertising accordion panels.
+  - Ensured all three strategy card descriptions, "When to use" guidance, and Back Office format examples render immediately visible on PrestaShop Back Office configuration page.
+
+---
+
 ## [1.28.1] - 2026-10-25
 
 ### Changed

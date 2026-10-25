@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.28.1",
+    "latest_version":  "1.28.2",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.1/ps_gtm_datalayer.zip",
-    "checksum":  "b6b7cc77fa26c0cf0fc87b20c648e81b8cceee59d21b752488b89985b2347b46",
-    "release_type":  "minor",
-    "release_notes":  "1. Enhanced Product Catalog Identifier Strategy UI: Full-width, high-contrast select dropdown styling preventing text truncation (max-width: 720px).\n2. Redesigned 3 interactive strategy cards with permanent, always-visible descriptions and practical examples.\n3. Included real PrestaShop Back Office ID format specifications and examples for combinations (Product #68 + Variant #299) vs simple products (Product #15)."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.2/ps_gtm_datalayer.zip",
+    "checksum":  "589b23b5c27fb719ebd1a032d27045eab158e1a39a335f46b2639cb0b7b887a1",
+    "release_type":  "patch",
+    "release_notes":  "1. Fixed Product Catalog Identifier Strategy description visibility by isolating CSS classes (.ps-gtm-strategy-body) to prevent style collision with advertising accordion panels.\n2. Ensured all three strategy cards and their Back Office product ID format examples render with clear visibility on PrestaShop Back Office."
 }
