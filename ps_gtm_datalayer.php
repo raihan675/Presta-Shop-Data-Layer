@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.0';
+        $this->version = '1.28.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -502,15 +502,15 @@ class Ps_Gtm_DataLayer extends Module
                             'query' => [
                                 [
                                     'id' => 'composite',
-                                    'name' => $this->l('Composite Database ID: {id_product}_{id_product_attribute} (Recommended / PrestaShop Standard)'),
+                                    'name' => $this->l('Option 1: Composite ID {id_product}_{id_product_attribute} (Recommended for 90% of stores)'),
                                 ],
                                 [
                                     'id' => 'id_product',
-                                    'name' => $this->l('Base Product ID: {id_product} (Always parent database ID)'),
+                                    'name' => $this->l('Option 2: Base Product ID {id_product} (Parent-only catalogs)'),
                                 ],
                                 [
                                     'id' => 'reference_sku',
-                                    'name' => $this->l('Reference / SKU: {sku} (Matches physical barcode or catalog SKU)'),
+                                    'name' => $this->l('Option 3: Reference / SKU {sku} (ERP & Barcode feeds)'),
                                 ],
                             ],
                             'id' => 'id',
@@ -1249,95 +1249,114 @@ class Ps_Gtm_DataLayer extends Module
                 'name' => 'Option 1: Composite Database ID: {id_product}_{id_product_attribute}',
                 'badge' => $this->l('Recommended for 90% of stores'),
                 'badge_class' => 'label-success',
-                'when_to_use' => $this->l('When to use: Select this if your feed module (e.g., Google Merchant Center Pro, Meta Catalog, TikTok, Channable) exports variants/combinations as separate unique rows in your feed.'),
-                'example' => $this->l('Real Example: A T-Shirt (Product #1012) in Blue (Combination #299) sends content_id / id: "1012_299". If the product has no combinations, it cleanly sends "1012". Perfect for variant-level dynamic remarketing.')
+                'when_to_use' => $this->l('Select this if your advertising product feed (Google Merchant Center Pro, Meta/Facebook Catalog, TikTok, Channable) exports variants/combinations as separate unique rows in your feed. Ensures exact 1:1 catalog matching for variant-level dynamic remarketing.'),
+                'format' => '{id_product}_{id_product_attribute}',
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Sends id: "68_299" (e.g. Sip-N-Snack Cup in Stahlblau)'),
+                'simple_example' => $this->l('Simple Product (e.g. Product #15 without combinations): Sends id: "15" (falls back cleanly to base database ID)')
             ],
             'id_product' => [
                 'id' => 'id_product',
                 'name' => 'Option 2: Base Product ID: {id_product}',
                 'badge' => $this->l('Parent-only catalogs'),
                 'badge_class' => 'label-warning',
-                'when_to_use' => $this->l('When to use: Select this if your feed exports only parent products (1 row per product, ignoring size/color combinations) or if your advertising catalog only lists base IDs.'),
-                'example' => $this->l('Real Example: Whether the customer views Small, Medium, or Large Blue T-Shirt, content_id / id is always strictly "1012". Guarantees 100% catalog match rate if your feed does not index combinations.')
+                'when_to_use' => $this->l('Select this if your advertising feed exports only parent products (1 row per product, ignoring size/color combinations) or if your advertising catalog only lists base PrestaShop product IDs.'),
+                'format' => '{id_product}',
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Always sends parent id: "68" regardless of chosen variant'),
+                'simple_example' => $this->l('Simple Product (e.g. Product #15): Sends parent id: "15"')
             ],
             'reference_sku' => [
                 'id' => 'reference_sku',
                 'name' => 'Option 3: Reference / SKU: {sku}',
                 'badge' => $this->l('ERP / Barcode feeds'),
                 'badge_class' => 'label-info',
-                'when_to_use' => $this->l('When to use: Select this if your store is synchronized with an external ERP, POS, or warehouse system (like SAP, NetSuite, Odoo) and your advertising feed items are indexed by physical Reference/SKU.'),
-                'example' => $this->l('Real Example: The Blue T-Shirt combination sends reference "TSHIRT-BLUE-M". (If an item has no reference specified in PrestaShop, it automatically falls back gracefully to its database ID).')
+                'when_to_use' => $this->l('Select this if your store is synchronized with an external ERP, POS, or warehouse system (like SAP, NetSuite, JTL, Odoo) and your advertising feed items are indexed by physical Reference/SKU codes.'),
+                'format' => '{reference}',
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299, Reference BHK125-B): Sends id: "BHK125-B"'),
+                'simple_example' => $this->l('Fallback Rule: If an item has no reference configured in PrestaShop Back Office, it automatically falls back gracefully to its database ID.')
             ],
         ];
 
         $html = '<style>
+            #PS_GTM_CATALOG_ID_STRATEGY,
             select[name="PS_GTM_CATALOG_ID_STRATEGY"] {
                 width: 100% !important;
-                max-width: 650px !important;
-                font-size: 13px !important;
-                padding: 7px 10px !important;
-                height: 38px !important;
-                display: inline-block !important;
+                max-width: 720px !important;
+                min-width: 480px !important;
+                height: 42px !important;
+                line-height: 42px !important;
+                font-size: 13.5px !important;
+                font-weight: 600 !important;
+                color: #1e293b !important;
+                background-color: #ffffff !important;
+                border: 1.5px solid #cbd5e1 !important;
+                border-radius: 6px !important;
+                padding: 6px 12px !important;
+                display: block !important;
+                margin-bottom: 14px !important;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
             }
             .ps-gtm-strategy-card {
-                padding: 14px 16px;
+                padding: 16px 18px;
                 background: #ffffff;
                 border: 2px solid #e2e8f0;
                 border-radius: 8px;
                 cursor: pointer;
-                transition: all 0.2s ease;
-                margin-bottom: 12px;
+                transition: all 0.2s ease-in-out;
+                margin-bottom: 14px;
             }
             .ps-gtm-strategy-card:hover {
-                border-color: #cbd5e1;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+                border-color: #94a3b8;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
             }
             .ps-gtm-strategy-card.selected {
                 background: #f0fdf4 !important;
                 border-color: #16a34a !important;
-                box-shadow: 0 3px 10px rgba(22, 163, 74, 0.12) !important;
+                box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15) !important;
             }
             .ps-gtm-strategy-header {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 8px;
+                margin-bottom: 10px;
             }
             .ps-gtm-strategy-title {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                font-size: 14px;
+                font-size: 14.5px;
                 font-weight: 700;
-                color: #1e293b;
+                color: #0f172a;
             }
             .ps-gtm-card-body {
                 padding-left: 28px;
-                font-size: 12px;
+                font-size: 13px;
                 line-height: 1.6;
-                color: #475569;
+                color: #334155;
             }
             .ps-gtm-when-box {
-                margin-bottom: 4px;
-                color: #334155;
+                margin-bottom: 8px;
+                color: #1e293b;
+                font-size: 13px;
             }
             .ps-gtm-example-box {
                 background: #f8fafc;
-                border-left: 3px solid #64748b;
-                padding: 6px 12px;
-                border-radius: 0 4px 4px 0;
-                font-family: monospace, sans-serif;
-                font-size: 11.5px;
+                border: 1px solid #e2e8f0;
+                border-left: 4px solid #64748b;
+                padding: 10px 14px;
+                border-radius: 4px;
+                font-size: 12.5px;
                 color: #0f172a;
-                margin-top: 6px;
+                margin-top: 8px;
+                line-height: 1.7;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-example-box {
-                background: #e7f8ee;
-                border-left-color: #16a34a;
+                background: #eaf8ef;
+                border-color: #bbf7d0;
+                border-left: 4px solid #16a34a;
             }
         </style>';
 
-        $html .= '<div id="ps-gtm-strategies-container" style="margin-top: 14px; max-width: 800px;">';
+        $html .= '<div id="ps-gtm-strategies-container" style="margin-top: 10px; max-width: 820px;">';
         $html .= '<p class="text-muted" style="margin-bottom: 12px; font-size: 13px; font-weight: 600;">' . $this->l('Click any card below or select in the dropdown above to choose your catalog identifier strategy:') . '</p>';
 
         foreach ($strategies as $key => $s) {
@@ -1347,12 +1366,16 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<i class="icon-circle-blank ps-gtm-card-radio" style="font-size: 18px; color: #94a3b8;"></i>';
             $html .= '<span>' . htmlspecialchars($s['name']) . '</span>';
             $html .= '</div>';
-            $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . '" style="font-size: 11px; padding: 4px 10px; border-radius: 4px;">' . htmlspecialchars($s['badge']) . '</span>';
+            $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . '" style="font-size: 11px; padding: 5px 12px; border-radius: 4px;">' . htmlspecialchars($s['badge']) . '</span>';
             $html .= '</div>';
 
             $html .= '<div class="ps-gtm-card-body">';
-            $html .= '<div class="ps-gtm-when-box"><strong>' . $s['when_to_use'] . '</strong></div>';
-            $html .= '<div class="ps-gtm-example-box">' . $s['example'] . '</div>';
+            $html .= '<div class="ps-gtm-when-box"><strong>' . $this->l('When to use:') . '</strong> ' . $s['when_to_use'] . '</div>';
+            $html .= '<div class="ps-gtm-example-box">';
+            $html .= '<strong><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format:') . '</strong> <code>' . htmlspecialchars($s['format']) . '</code><br>';
+            $html .= '&bull; ' . $s['comb_example'] . '<br>';
+            $html .= '&bull; ' . $s['simple_example'];
+            $html .= '</div>';
             $html .= '</div>';
             $html .= '</div>';
         }
@@ -1361,7 +1384,20 @@ class Ps_Gtm_DataLayer extends Module
 
         $html .= '<script type="text/javascript">
             (function() {
+                function applySelectStyles() {
+                    var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
+                    if (select) {
+                        select.style.setProperty("width", "100%", "important");
+                        select.style.setProperty("max-width", "720px", "important");
+                        select.style.setProperty("min-width", "480px", "important");
+                        select.style.setProperty("height", "42px", "important");
+                        select.style.setProperty("font-size", "13.5px", "important");
+                        select.style.setProperty("font-weight", "600", "important");
+                    }
+                }
+
                 function syncStrategyCards() {
+                    applySelectStyles();
                     var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
                     if (!select) return;
                     var selectedVal = select.value || "composite";
@@ -1387,6 +1423,7 @@ class Ps_Gtm_DataLayer extends Module
                 }
 
                 function setupCardListeners() {
+                    applySelectStyles();
                     var cards = document.querySelectorAll(".ps-gtm-strategy-card");
                     var select = document.querySelector("select[name=\'PS_GTM_CATALOG_ID_STRATEGY\']");
                     for (var i = 0; i < cards.length; i++) {

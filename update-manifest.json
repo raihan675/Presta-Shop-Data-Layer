@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.28.0",
-    "release_date":  "2026-10-24",
+    "latest_version":  "1.28.1",
+    "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.0/ps_gtm_datalayer.zip",
-    "checksum":  "3d273d766b68cdfa1197312a4cc9b972d27087934a1adea8df30011c9b2b2241",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.1/ps_gtm_datalayer.zip",
+    "checksum":  "b6b7cc77fa26c0cf0fc87b20c648e81b8cceee59d21b752488b89985b2347b46",
     "release_type":  "minor",
-    "release_notes":  "1. Universal Theme Independence: Completely eliminated all DOM scraping, class listeners, and HTML text parsing across all ecommerce events.\n2. Cart Delta Engine: Authoritatively tracks add_to_cart and remove_from_cart via mathematical cart state diffing and core controller network interception.\n3. Omitted fragile select_item link scraping in favor of clean catalog separation (view_item_list and view_item).\n4. Native blockwishlist support and backend-hydrated checkout carrier and payment tracking."
+    "release_notes":  "1. Enhanced Product Catalog Identifier Strategy UI: Full-width, high-contrast select dropdown styling preventing text truncation (max-width: 720px).\n2. Redesigned 3 interactive strategy cards with permanent, always-visible descriptions and practical examples.\n3. Included real PrestaShop Back Office ID format specifications and examples for combinations (Product #68 + Variant #299) vs simple products (Product #15)."
 }

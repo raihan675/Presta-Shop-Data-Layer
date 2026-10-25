@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.1] - 2026-10-25
+
+### Changed
+- **Enhanced Product Catalog Identifier Strategy UI**:
+  - Full-width, high-contrast select dropdown styling preventing text truncation (`max-width: 720px`).
+  - Redesigned 3 interactive strategy cards with permanent, always-visible descriptions and practical examples.
+  - Included real PrestaShop Back Office ID format specifications and examples for combinations (Product #68 + Variant #299) vs simple products (Product #15).
+
+---
+
 ## [1.28.0] - 2026-10-24
 
 ### Changed
