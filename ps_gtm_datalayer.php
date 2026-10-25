@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.4';
+        $this->version = '1.28.5';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -75,7 +75,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_GTM_RAW_HEAD_CODE', '', true)
             && Configuration::updateValue('PS_GTM_RAW_BODY_CODE', '', true)
-            && Configuration::updateValue('PS_GTM_CONSENT_MODE', '1')
             && Configuration::updateValue('PS_GTM_EVENT_PREFIX', '')
             && Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', 'composite')
             && Configuration::updateValue('PS_GTM_ADV_MASTER_ENABLED', '1')
@@ -101,7 +100,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_GTM_RAW_HEAD_CODE')
             && Configuration::deleteByName('PS_GTM_RAW_BODY_CODE')
-            && Configuration::deleteByName('PS_GTM_CONSENT_MODE')
             && Configuration::deleteByName('PS_GTM_EVENT_PREFIX')
             && Configuration::deleteByName('PS_GTM_CATALOG_ID_STRATEGY')
             && Configuration::deleteByName('PS_GTM_ADV_MASTER_ENABLED')
@@ -185,7 +183,6 @@ class Ps_Gtm_DataLayer extends Module
             if (Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
                 $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
                 $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
-                $consent = (int)Tools::getValue('PS_GTM_CONSENT_MODE');
                 $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
                 $prefix = self::normalizePrefix($rawPrefix);
                 $catalogStrategy = trim((string)Tools::getValue('PS_GTM_CATALOG_ID_STRATEGY'));
@@ -206,7 +203,6 @@ class Ps_Gtm_DataLayer extends Module
                     if ($rawBodyCode !== false) {
                         Configuration::updateValue('PS_GTM_RAW_BODY_CODE', $rawBodyCode, true);
                     }
-                    Configuration::updateValue('PS_GTM_CONSENT_MODE', $consent);
                     Configuration::updateValue('PS_GTM_EVENT_PREFIX', $prefix);
                     Configuration::updateValue('PS_GTM_CATALOG_ID_STRATEGY', $catalogStrategy);
                     $output .= $this->displayConfirmation($this->l('Google Tag Manager & DataLayer settings successfully saved.'));
@@ -497,7 +493,6 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
                 'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
-                'PS_GTM_CONSENT_MODE' => Configuration::get('PS_GTM_CONSENT_MODE'),
                 'PS_GTM_CATALOG_ID_STRATEGY' => Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite',
                 'PS_GTM_ADV_MASTER_ENABLED' => Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0' ? 1 : 0,
@@ -631,26 +626,6 @@ class Ps_Gtm_DataLayer extends Module
                         ),
                         'cols' => 60,
                         'rows' => 4,
-                    ],
-                    [
-                        'type' => 'switch',
-                        'label' => $this->l('Enable Google Consent Mode v2'),
-                        'name' => 'PS_GTM_CONSENT_MODE',
-                        'hint' => $this->l('Initializes default denied consent states prior to tag loading for GDPR and DMA compliance.'),
-                        'is_bool' => true,
-                        'desc' => $this->renderSettingHelp(
-                            'consent_mode',
-                            $this->l('Enforces default denied consent states prior to tag execution for GDPR and DMA compliance.'),
-                            $this->l('Initializes gtag consent default denied for ad_storage, analytics_storage, ad_user_data, and ad_personalization before GTM loads.'),
-                            $this->l('Mandatory under Google EU User Consent Policy and Digital Markets Act (DMA) to preserve remarketing audiences and conversion modeling.'),
-                            $this->l('Google tags fire in cookieless ping mode until the user grants explicit permission in your cookie banner.'),
-                            $this->l('Enable for all stores serving European Union / EEA shoppers or operating a Cookie Consent Management Platform (CMP).'),
-                            'Default: ad_storage: denied, analytics_storage: denied, ad_user_data: denied, ad_personalization: denied'
-                        ),
-                        'values' => [
-                            ['id' => 'active_on', 'value' => 1, 'label' => $this->l('Enabled')],
-                            ['id' => 'active_off', 'value' => 0, 'label' => $this->l('Disabled')],
-                        ],
                     ],
                 ],
                 'submit' => [
@@ -1969,7 +1944,6 @@ class Ps_Gtm_DataLayer extends Module
             $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
             $sgtmUrl = Configuration::get('PS_SGTM_TRANSPORT_URL');
             $rawHeadCode = Configuration::get('PS_GTM_RAW_HEAD_CODE');
-            $consentEnabled = (bool)Configuration::get('PS_GTM_CONSENT_MODE');
             $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
 
             $controller = isset($this->context->controller->php_self) ? $this->context->controller->php_self : '';
@@ -2236,7 +2210,6 @@ class Ps_Gtm_DataLayer extends Module
                 'gtm_id' => $gtmId,
                 'sgtm_url' => $sgtmUrl,
                 'raw_head_code' => $rawHeadCode,
-                'consent_mode_enabled' => $consentEnabled,
                 'event_prefix' => $eventPrefix,
                 'currency_precision' => $currencyPrecision,
                 'ajax_url' => $ajaxUrl,

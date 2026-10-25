@@ -6,7 +6,7 @@
 
 An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, **Google Ads Dynamic Remarketing (Retail vertical)**, and **Microsoft Advertising (Bing Ads) & UET** with zero client-side transformation required in Google Tag Manager.
 
-Includes **Server-Side GTM (sGTM)** support, **Google Consent Mode v2**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
+Includes **Server-Side GTM (sGTM)** support and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
 ---
 
@@ -261,7 +261,6 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
   2. **Base Product ID**: `{id_product}` (e.g., `68` or `1033`).
   3. **Reference / Physical SKU**: Authoritative combination/product reference (e.g., `BHK125-B`).
 * **Server-Side GTM Transport URL**: Custom domain endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com`).
-* **Enable Google Consent Mode v2**: Automatically injects GDPR/DMA compliant default denied consent flags before GTM loads.
 
 ### Advertising Platform DataLayer Settings
 * **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`, `microsoft_ads`) across all events in a single click.

@@ -1,21 +1,6 @@
 {*
- * Header hook template: Google Consent Mode v2 + Web / sGTM Container loader
+ * Header hook template: Web / sGTM Container loader
  *}
-{if $consent_mode_enabled}
-<script type="text/javascript">
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
-  
-  gtag('consent', 'default', {
-    'ad_storage': 'denied',
-    'analytics_storage': 'denied',
-    'ad_user_data': 'denied',
-    'ad_personalization': 'denied',
-    'wait_for_update': 500
-  });
-</script>
-{/if}
-
 {if $gtm_id}
 <script type="text/javascript">
 (function(w,d,s,l,i){

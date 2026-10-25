@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.28.4",
+    "latest_version":  "1.28.5",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.4/ps_gtm_datalayer.zip",
-    "checksum":  "9f72a5ec4cfc01b29a32532f862e96270faa6dcbeaa86c8b106cf9ec3fe45d96",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.5/ps_gtm_datalayer.zip",
+    "checksum":  "1d5a0a6e06aeb4a8a5a14a50979d1988288995d53ee4f69dd4c0d1877d61d1e5",
     "release_type":  "patch",
-    "release_notes":  "1. Updated Product Catalog Identifier Strategy \u0027Learn more\u0027 drawers with exact formatted guidance and examples for Option 1 (Composite), Option 2 (Base ID), and Option 3 (Reference/SKU).\n2. Enhanced Back Office ID format specifications and fallback rules."
+    "release_notes":  "1. Removed Google Consent Mode v2 toggle and associated default denied template tags to prevent conflicts with merchant CMPs.\n2. Cleaned up configuration schema and template outputs."
 }

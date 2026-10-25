@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.5] - 2026-10-25
+
+### Removed
+- **Removed Google Consent Mode v2 Switch and Template Injection**:
+  - Completely removed the "Enable Google Consent Mode v2" toggle and its configuration from the Back Office Core Settings form.
+  - Removed database configuration handling for `PS_GTM_CONSENT_MODE` in installation, uninstallation, form submission, and upgrade routines (`upgrade-1.28.5.php`).
+  - Removed default denied consent script tag injection from `gtm_head.tpl` to allow dedicated Consent Management Platforms (CMPs) or GTM to handle consent without conflicts or race conditions.
+
+---
+
 ## [1.28.4] - 2026-10-25
 
 ### Changed
