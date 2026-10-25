@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.37.0] - 2026-10-25
+
+### Added
+- **Unified 6-Tab Back Office UI/UX Architecture**:
+  - **Overview**: Executive tracking health summary, active channel metrics, canonical event counters, and one-click quick navigator.
+  - **Configuration**: Streamlined card-based technical settings grouping GTM & DataLayer Core, Server-Side Tracking & Webhooks (sGTM), and Advanced Script Injection.
+  - **Events Manager**: Dedicated catalog table with real-time search, category filter pills (Discovery, Interaction, Cart, Checkout, Orders & Returns), status filters, and one-click schema inspection.
+  - **Platform Routing Matrix**: Cross-grid matrix view (Events rows × Platforms columns) with column-level toggle-all controls and dual-view switcher for detailed platform accordions with Google Ads Cart Data and Merchant ID configuration.
+  - **Data Mapping Inspector**: Authoritative parameter mapping inspector displaying source GA4 fields versus mapped parameters across Meta Pixel/CAPI, Google Ads, TikTok, Pinterest, and Microsoft Advertising (Bing Ads), accompanied by copyable verified JSON payloads.
+  - **Diagnostics & Testing**: Integrated health audit and real-time Server-Side GTM transport URL ping test executing non-blocking diagnostic probes directly from the server with response latency measurement.
+
+---
+
 ## [1.36.0] - 2026-10-25
 
 ### Fixed

@@ -252,29 +252,54 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 
 ---
 
-## Configuration Settings & Back Office Controls
+## Unified 6-Tab Back Office Configuration Architecture
 
-In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLayer > Configure**):
+In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLayer > Configure**), the module features a modern 6-tab navigation layout designed for enterprise manageability and zero vertical scrolling:
 
-### Core DataLayer Settings
-* **GTM Container ID**: Web container ID (`GTM-XXXXXXX`).
-* **Data Layer Event Prefix**: Custom prefix for events (e.g. `raihan`, `shop`) or leave empty for standard GA4 event names.
-* **Product Catalog Identifier Strategy**: Choose how product IDs match your merchant feeds:
-  1. **Composite Database ID**: `{id_product}_{id_product_attribute}` (e.g., `68_299` or `1033`). **(Recommended)**
-  2. **Base Product ID**: `{id_product}` (e.g., `68` or `1033`).
-  3. **Reference / Physical SKU**: Authoritative combination/product reference (e.g., `BHK125-B`).
-* **Server-Side GTM Transport URL**: Custom domain or Stape.io endpoint for Server-side GTM tagging server (e.g., `https://gtm.yourdomain.com` or `https://xxxxxx.stape.io`).
-* **Server-to-Server Refund Webhooks**: Automatically captures Back Office credit slips (`actionOrderSlipAdd`) and sends authoritative `refund` events to sGTM / GA4 / Meta CAPI / Google Ads via non-blocking cURL.
-* **Server-to-Server Offline Order Webhooks**: Automatically dispatches `purchase` events for offline or admin-created orders validated in the Back Office (`actionValidateOrder`).
-* **Server-to-Server Order Status Change Webhooks**: Automatically dispatches `order_status_update` events to sGTM whenever an order/payment status changes in the Back Office (`actionOrderStatusPostUpdate`), carrying `new_status_id`, `new_status_name`, `is_paid`, `is_shipped`, items, and hashed customer PII.
+### 1. Overview Tab
+* **Executive Metrics Grid**: Real-time status cards displaying GTM Web Container status, Server-Side GTM status, active advertising channels (X / 5 active), and canonical tracked event count.
+* **Channel Status Overview**: High-level health cards for Meta, Google Ads, TikTok, Pinterest, Microsoft Advertising, and Server-to-Server Webhooks.
+* **Configuration Warning Callouts**: Immediate notifications for missing Container IDs, unconfigured transport URLs, or misconfigured routes.
+* **Quick Configuration Navigator**: Direct jump tiles to any technical subsection with one click.
 
-### Advertising Platform DataLayer Settings
-* **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces (`meta`, `pinterest`, `tiktok`, `google_ads`, `microsoft_ads`) across all events in a single click.
-* **Platform-Based Expandable Routing Panels**: Each supported advertising platform (**Meta**, **Google Ads**, **TikTok**, **Pinterest**, and **Microsoft Advertising**) features its own expandable accordion panel.
-* **Independent Platform Master Toggles**: Enable or disable data layer output for an individual platform directly on its header card. Disabling a platform preserves its underlying event selections.
-* **Granular Event-Level Toggles**: Expand any platform to view its supported ecommerce events, payload specifications, and independently toggle data layer dispatch per event.
-* **Platform-Specific Bulk Actions**: Each expanded panel includes instant "Enable all events" and "Disable all events" buttons scoped exclusively to that platform.
-* **Global Controls**: Quick "Expand All", "Collapse All", "Enable All Platforms", and "Disable All Platforms" toolbar buttons.
+### 2. Configuration Tab
+* **Google Tag Manager & DataLayer Core**:
+  * **GTM Container ID**: Web container ID (`GTM-XXXXXXX`).
+  * **Data Layer Event Prefix**: Custom prefix for events (e.g. `raihan`, `ps`) or leave empty for standard GA4 event names. Canonical GA4 name is always retained in `original_event`.
+  * **Product Catalog Identifier Strategy**:
+    1. **Composite Database ID**: `{id_product}_{id_product_attribute}` (e.g., `68_299` or `1033`). **(Recommended)**
+    2. **Base Product ID**: `{id_product}` (e.g., `68` or `1033`).
+    3. **Reference / Physical SKU**: Authoritative combination/product reference (e.g., `BHK125-B`).
+* **Server-Side Tracking & Webhooks (sGTM)**:
+  * **Server-Side GTM Transport URL**: Custom domain or Stape.io endpoint for Server-side GTM container (e.g., `https://gtm.yourdomain.com`).
+  * **Server GTM Webhook Path**: Claimed path for Server GTM Client (default: `/ps-webhook`; enter `/data` for Stape Data Client).
+  * **Server-to-Server Refund Webhooks**: Dispatches `refund` conversions upon Credit Slip creation (`actionOrderSlipAdd`).
+  * **Server-to-Server Offline Order Webhooks**: Dispatches `purchase` conversions for manual/offline orders (`actionValidateOrder`).
+  * **Server-to-Server Order Status Change Webhooks**: Dispatches `order_status_update` events on order and payment status transitions (`actionOrderStatusPostUpdate`).
+* **Advanced Script Injection (Collapsible)**:
+  * **Raw GTM `<head>` Code**: Injects agency custom scripts before closing `</head>`.
+  * **Raw GTM `<body>` Code**: Injects `<noscript>` fallback iframe immediately after opening `<body>`.
+
+### 3. Events Tab
+* **Interactive Events Catalog**: All 14 canonical ecommerce events with formatted event names, categories, descriptions, and storefront lifecycle triggers.
+* **Real-Time Search & Category Filters**: Search by event name, label, or description. Filter pills for **Discovery**, **Interaction**, **Cart**, **Checkout**, and **Orders & Returns**.
+* **Status Filter & Bulk Controls**: Single-click "Enable All Events" and "Disable All Events" buttons.
+* **One-Click Schema Inspector**: Click "Inspect" on any event row to open the complete parameter schema and payload modal.
+
+### 4. Platform Routing Tab
+* **Master Switch (`PS_GTM_ADV_MASTER_ENABLED`)**: Global switch to enable or suppress all advertising namespaces across all events in a single click.
+* **Dual View Mode Switcher**:
+  * **Matrix View**: Cross-grid table (Events rows × Platforms columns) with individual switches and column-level "Toggle All" buttons for Meta, Google Ads, TikTok, Pinterest, and Microsoft Ads.
+  * **Platform Cards View**: Expandable accordion panels with per-platform master switches, specifications, and Google Ads Conversions with Cart Data (Basket Reporting) & Merchant Center ID settings.
+
+### 5. Data Mapping Tab
+* **Authoritative Parameter Inspector**: Inspect each event's parameter mapping between source GA4 ecommerce fields and destination platform specifications (Meta Pixel/CAPI, Google Ads, TikTok Events API, Pinterest Tag, and Microsoft UET).
+* **Live JSON Payload Viewer**: Formatted, verified JSON payload preview with a one-click "Copy JSON" button.
+
+### 6. Diagnostics & Testing Tab
+* **Interactive Server-Side GTM Ping Test**: Test connectivity directly from your PrestaShop server to the configured sGTM transport URL and webhook path with real-time latency measurement (`ms`) and HTTP response code validation.
+* **System Health Audit**: Real-time checks verifying GTM Container ID format, Catalog Strategy resolution, `gtm_purchase_log` database deduplication table status, and PrestaShop lifecycle hooks.
+* **Server Runtime Environment**: Verifies PHP version, cURL extension, OpenSSL (TLS 1.3), and memory limit.
 
 ---
 
@@ -310,7 +335,7 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
 ### 4. Dedicated PrestaShop Webhook Client Template for sGTM
 To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a purpose-built **Server GTM Client Template** (`prestashop-client-template.tpl`):
 
-* 📥 **Download Template**: [**Download `prestashop-client-template.tpl`**](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.36.0/prestashop-client-template.tpl) *(or inspect the [Source Code in Repository](https://github.com/raihan675/Presta-Shop-Data-Layer/blob/main/templates/prestashop-client-template.tpl))*.
+* 📥 **Download Template**: [**Download `prestashop-client-template.tpl`**](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.37.0/prestashop-client-template.tpl) *(or inspect the [Source Code in Repository](https://github.com/raihan675/Presta-Shop-Data-Layer/blob/main/templates/prestashop-client-template.tpl))*.
 * **Step 1: Import Template into sGTM**: In your Server GTM container, navigate to **Templates** &rarr; **Client Templates** &rarr; click **New** &rarr; click the **three vertical dots (⋮)** in the top right &rarr; select **Import** &rarr; select `prestashop-client-template.tpl` &rarr; click **Save**.
 * **Step 2: Create the Client**: Navigate to **Clients** &rarr; click **New** &rarr; select **PrestaShop Webhook Client** &rarr; keep Default Claimed Path as `/ps-webhook` &rarr; click **Save**.
 * **Step 3: Publish**: Click **Submit** &rarr; **Publish** in Server GTM so your container processes webhooks live with `HTTP 200 OK`.

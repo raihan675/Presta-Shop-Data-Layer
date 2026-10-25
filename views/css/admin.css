@@ -1,0 +1,721 @@
+/**
+ * PrestaShop DataLayer - Back Office Administration Stylesheet
+ * Scoped under #ps-gtm-admin-wrapper for zero interference with core back office styles.
+ */
+
+#ps-gtm-admin-wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #2c3e50;
+  margin: 0 0 40px 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#ps-gtm-admin-wrapper * {
+  box-sizing: border-box;
+}
+
+/* Header & Module Brand Banner */
+.ps-gtm-header-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #ffffff;
+  border-radius: 8px 8px 0 0;
+  padding: 22px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.ps-gtm-brand-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.ps-gtm-logo-box {
+  width: 48px;
+  height: 48px;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ps-gtm-logo-box img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.ps-gtm-brand-titles h2 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.ps-gtm-brand-subtitle {
+  color: #94a3b8;
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.ps-gtm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ps-gtm-version-badge {
+  background: rgba(255, 255, 255, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+/* Tab Navigation Bar */
+.ps-gtm-nav-tabs-bar {
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ps-gtm-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none !important;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ps-gtm-nav-tab:hover {
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.ps-gtm-nav-tab.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: #ffffff;
+}
+
+.ps-gtm-nav-tab i {
+  font-size: 15px;
+}
+
+.ps-gtm-tab-badge {
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 2px;
+}
+
+.ps-gtm-nav-tab.active .ps-gtm-tab-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Tab Content Areas */
+.ps-gtm-tab-pane {
+  display: none;
+  background: #f8fafc;
+  padding: 24px;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+}
+
+.ps-gtm-tab-pane.active {
+  display: block;
+}
+
+/* Cards & Panels */
+.ps-gtm-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.ps-gtm-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ps-gtm-card-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 18px;
+}
+
+/* Metric / Stat Tiles */
+.ps-gtm-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ps-gtm-stat-tile {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ps-gtm-stat-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+}
+
+.ps-gtm-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ps-gtm-stat-icon.blue { background: #e0f2fe; color: #0284c7; }
+.ps-gtm-stat-icon.green { background: #dcfce7; color: #16a34a; }
+.ps-gtm-stat-icon.amber { background: #fef3c7; color: #d97706; }
+.ps-gtm-stat-icon.purple { background: #f3e8ff; color: #9333ea; }
+
+.ps-gtm-stat-info {
+  flex: 1;
+}
+
+.ps-gtm-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+
+.ps-gtm-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 2px;
+}
+
+.ps-gtm-stat-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Switch Component */
+.ps-gtm-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  margin: 0;
+  vertical-align: middle;
+}
+
+.ps-gtm-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.ps-gtm-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: .2s ease;
+  border-radius: 24px;
+}
+
+.ps-gtm-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.ps-gtm-switch input:checked + .ps-gtm-slider {
+  background-color: #10b981;
+}
+
+.ps-gtm-switch input:checked + .ps-gtm-slider:before {
+  transform: translateX(20px);
+}
+
+.ps-gtm-switch-sm {
+  width: 36px;
+  height: 20px;
+}
+
+.ps-gtm-switch-sm .ps-gtm-slider:before {
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+}
+
+.ps-gtm-switch-sm input:checked + .ps-gtm-slider:before {
+  transform: translateX(16px);
+}
+
+/* Forms & Fields */
+.ps-gtm-form-group {
+  margin-bottom: 20px;
+}
+
+.ps-gtm-form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 6px;
+}
+
+.ps-gtm-form-label .req {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.ps-gtm-form-control {
+  width: 100%;
+  max-width: 580px;
+  padding: 9px 13px;
+  font-size: 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #0f172a;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ps-gtm-form-control:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.ps-gtm-help-block {
+  font-size: 11px;
+  color: #64748b;
+  margin-top: 5px;
+}
+
+/* Search and Filter Bar */
+.ps-gtm-filters-bar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ps-gtm-search-box {
+  position: relative;
+  min-width: 260px;
+  flex: 1;
+  max-width: 380px;
+}
+
+.ps-gtm-search-box i {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.ps-gtm-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  font-size: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}
+
+.ps-gtm-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ps-gtm-filter-pill {
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ps-gtm-filter-pill:hover {
+  background: #e2e8f0;
+}
+
+.ps-gtm-filter-pill.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+/* Tables */
+.ps-gtm-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ps-gtm-table th {
+  background: #f8fafc;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.ps-gtm-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  font-size: 12px;
+}
+
+.ps-gtm-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ps-gtm-table tr:hover td {
+  background: #fcfdfe;
+}
+
+/* Category Badges */
+.ps-gtm-cat-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ps-gtm-cat-badge.discovery { background: #e0f2fe; color: #0369a1; }
+.ps-gtm-cat-badge.interaction { background: #f3e8ff; color: #7e22ce; }
+.ps-gtm-cat-badge.cart { background: #fef3c7; color: #b45309; }
+.ps-gtm-cat-badge.checkout { background: #ffedd5; color: #c2410c; }
+.ps-gtm-cat-badge.purchase { background: #dcfce7; color: #15803d; }
+
+/* Platform Tags */
+.ps-gtm-plat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  margin: 2px 3px 2px 0;
+}
+
+.ps-gtm-plat-tag.meta { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.ps-gtm-plat-tag.gads { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.ps-gtm-plat-tag.tiktok { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
+.ps-gtm-plat-tag.pinterest { background: #fff1f2; color: #be123c; border-color: #fecdd3; }
+.ps-gtm-plat-tag.microsoft { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+.ps-gtm-plat-tag.sgtm { background: #faf5ff; color: #7e22ce; border-color: #e9d5ff; }
+
+/* Matrix Table Specifics */
+.ps-gtm-matrix-table th {
+  text-align: center;
+  font-size: 11px;
+}
+
+.ps-gtm-matrix-table td {
+  text-align: center;
+}
+
+.ps-gtm-matrix-table td.event-cell {
+  text-align: left;
+}
+
+/* Modal Dialog */
+.ps-gtm-modal-backdrop {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ps-gtm-modal-backdrop.open {
+  display: flex;
+}
+
+.ps-gtm-modal-dialog {
+  background: #ffffff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 780px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.ps-gtm-modal-header {
+  padding: 16px 22px;
+  background: #0f172a;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ps-gtm-modal-header h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.ps-gtm-modal-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.ps-gtm-modal-close:hover {
+  color: #ffffff;
+}
+
+.ps-gtm-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.ps-gtm-modal-footer {
+  padding: 12px 22px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Code Preview Box */
+.ps-gtm-code-box {
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 14px;
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-x: auto;
+  max-height: 320px;
+  position: relative;
+}
+
+/* Diagnostics Checks */
+.ps-gtm-diag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ps-gtm-diag-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ps-gtm-diag-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ps-gtm-diag-status-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ps-gtm-diag-status-icon.success { background: #dcfce7; color: #16a34a; }
+.ps-gtm-diag-status-icon.warning { background: #fef3c7; color: #d97706; }
+.ps-gtm-diag-status-icon.danger { background: #fee2e2; color: #dc2626; }
+.ps-gtm-diag-status-icon.info { background: #e0f2fe; color: #0284c7; }
+
+/* Sticky Save Bar */
+.ps-gtm-save-bar {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 20px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.ps-gtm-btn-save {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ps-gtm-btn-save:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+/* Setting Explainer Accordion */
+.ps-gtm-setting-explainer {
+  margin-top: 6px;
+}
+
+.ps-gtm-short-desc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ps-gtm-short-desc {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ps-gtm-learn-more-btn {
+  background: none;
+  border: none;
+  color: #2563eb;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ps-gtm-expanded-explanation {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-top: 8px;
+}
+
+.ps-gtm-exp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.ps-gtm-exp-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 2px;
+}
+
+.ps-gtm-exp-val {
+  font-size: 11px;
+  color: #334155;
+  line-height: 1.4;
+}

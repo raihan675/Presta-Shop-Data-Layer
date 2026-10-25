@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.36.0';
+        $this->version = '1.37.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -209,8 +209,24 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
+        // Handle AJAX Diagnostic Ping
+        if (Tools::getValue('ajax') && Tools::getValue('action') === 'testSgtmPing') {
+            header('Content-Type: application/json; charset=utf-8');
+            $testUrl = Tools::getValue('PS_SGTM_TRANSPORT_URL');
+            $pingResult = ServerSideWebhookDispatcher::testPing($testUrl);
+            die(json_encode($pingResult, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        // Enqueue Back Office Styles and Scripts
+        if (isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
+            $this->context->controller->addCSS($this->_path . 'views/css/admin.css');
+            $this->context->controller->addJS($this->_path . 'views/js/admin.js');
+        }
+
         // Handle Settings Submission
         if (Tools::isSubmit('submit' . $this->name)) {
+            $settingsSaved = false;
+
             // 1. Process Core Settings if submitted
             if (Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
                 $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
@@ -242,7 +258,7 @@ class Ps_Gtm_DataLayer extends Module
                     Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_REFUND_ENABLED') ? '1' : '0');
                     Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') ? '1' : '0');
                     Configuration::updateValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED', Tools::getValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') ? '1' : '0');
-                    $output .= $this->displayConfirmation($this->l('Google Tag Manager & DataLayer settings successfully saved.'));
+                    $settingsSaved = true;
                 }
             }
 
@@ -292,14 +308,18 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($pinterestEvts));
                 Configuration::updateValue('PS_GTM_ADV_MICROSOFT_EVENTS', json_encode($microsoftEvts));
 
-                $output .= $this->displayConfirmation($this->l('Advertising platform dataLayer settings successfully saved.'));
+                $settingsSaved = true;
+            }
+
+            if ($settingsSaved) {
+                $output .= $this->displayConfirmation($this->l('E-Commerce DataLayer settings successfully saved.'));
             }
         }
 
         $updateInfo = $updateManager->checkForUpdates(true);
         $output .= $this->renderUpdateBanner($updateInfo);
 
-        return $output . $this->renderForm();
+        return $output . $this->renderAdminTabs();
     }
 
     private function renderUpdateBanner($updateInfo)
@@ -505,6 +525,653 @@ class Ps_Gtm_DataLayer extends Module
         $html .= '</div>';
 
         return $html;
+    }
+
+    public function renderAdminTabs()
+    {
+        $eventsCatalog = self::getCanonicalEventsCatalog();
+        $supportedAdvEvents = self::getSupportedEvents();
+
+        $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
+        $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
+        $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
+        $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
+        $rawMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS');
+
+        $metaActive = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys($supportedAdvEvents);
+        $tiktokActive = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys($supportedAdvEvents);
+        $gadsActive = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys($supportedAdvEvents);
+        $pinterestActive = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys($supportedAdvEvents);
+        $microsoftActive = ($rawMicrosoft !== false && $rawMicrosoft !== null) ? json_decode($rawMicrosoft, true) : array_keys($supportedAdvEvents);
+
+        if (!is_array($metaActive)) {
+            $metaActive = array_keys($supportedAdvEvents);
+        }
+        if (!is_array($tiktokActive)) {
+            $tiktokActive = array_keys($supportedAdvEvents);
+        }
+        if (!is_array($gadsActive)) {
+            $gadsActive = array_keys($supportedAdvEvents);
+        }
+        if (!is_array($pinterestActive)) {
+            $pinterestActive = array_keys($supportedAdvEvents);
+        }
+        if (!is_array($microsoftActive)) {
+            $microsoftActive = array_keys($supportedAdvEvents);
+        }
+
+        // Active platforms calculation
+        $advMaster = Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0';
+        $activePlatformsCount = 0;
+        if ($advMaster) {
+            if (Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0') $activePlatformsCount++;
+            if (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0') $activePlatformsCount++;
+            if (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0') $activePlatformsCount++;
+            if (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') $activePlatformsCount++;
+            if (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0') $activePlatformsCount++;
+        }
+
+        // Diagnostics metrics
+        $gtmId = trim((string)Configuration::get('PS_GTM_CONTAINER_ID'));
+        $gtmIdValid = !empty($gtmId) && preg_match('/^GTM-[A-Z0-9]+$/', $gtmId);
+        $gtmIdMsg = empty($gtmId)
+            ? $this->l('No GTM Container ID configured. Web tracking is inactive.')
+            : ($gtmIdValid
+                ? sprintf($this->l('Container ID %s is properly formatted and injecting into storefront.'), htmlspecialchars($gtmId))
+                : $this->l('Invalid format. GTM Container ID must match GTM-XXXXXXX.'));
+
+        $sgtmUrl = trim((string)Configuration::get('PS_SGTM_TRANSPORT_URL'));
+        $endpointPath = trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) ?: '/ps-webhook';
+        $targetEndpoint = !empty($sgtmUrl) ? (rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/')) : 'Not configured';
+
+        $catalogStrategy = Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite';
+        $sampleCatalogId = ($catalogStrategy === 'composite') ? '68_299' : (($catalogStrategy === 'reference_sku') ? 'SNACK-BLAU' : '68');
+
+        $purchaseLogCount = 0;
+        try {
+            if (class_exists('Db')) {
+                $purchaseLogCount = (int)Db::getInstance()->getValue('SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'gtm_purchase_log`');
+            }
+        } catch (\Throwable $e) {}
+
+        $requiredHooks = [
+            'displayHeader',
+            'displayOrderConfirmation',
+            'actionCartUpdateQuantityBefore',
+            'actionOrderSlipAdd',
+            'actionOrderStatusPostUpdate',
+            'actionValidateOrder',
+            'actionCarrierProcess',
+            'displayBackOfficeTop',
+            'displayBackOfficeHeader',
+        ];
+        $registeredHooksCount = 0;
+        foreach ($requiredHooks as $hk) {
+            if ($this->isRegisteredInHook($hk)) {
+                $registeredHooksCount++;
+            }
+        }
+
+        // Event Schemas for modal inspector
+        $schemasJsonMap = [];
+        foreach ($eventsCatalog as $evt) {
+            $schemasJsonMap[$evt['name']] = [
+                'name' => $evt['name'],
+                'label' => $evt['label'],
+                'desc' => $evt['desc'],
+                'example' => json_decode($evt['example_json'], true),
+            ];
+        }
+
+        $activeTab = Tools::getValue('active_tab', 'tab-overview');
+
+        $this->context->smarty->assign([
+            'module_name' => $this->name,
+            'module_display_name' => $this->displayName,
+            'module_version' => $this->version,
+            'module_logo' => $this->_path . 'logo.png',
+            'module_path' => $this->_path,
+            'form_action' => $this->context->link->getAdminLink('AdminModules', false)
+                . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name,
+            'ajax_admin_url' => $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name,
+            'active_tab' => $activeTab,
+            'config_values' => [
+                'PS_GTM_CONTAINER_ID' => $gtmId,
+                'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
+                'PS_GTM_CATALOG_ID_STRATEGY' => $catalogStrategy,
+                'PS_SGTM_TRANSPORT_URL' => $sgtmUrl,
+                'PS_SGTM_WEBHOOK_ENDPOINT_PATH' => $endpointPath,
+                'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
+                'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
+                'PS_GTM_WEBHOOK_REFUND_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') !== '0',
+                'PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') !== '0',
+                'PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') !== '0',
+                'PS_GTM_ADV_MASTER_ENABLED' => $advMaster,
+                'PS_GTM_ADV_META_ENABLED' => Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0',
+                'PS_GTM_ADV_TIKTOK_ENABLED' => Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0',
+                'PS_GTM_ADV_GADS_ENABLED' => Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0',
+                'PS_GTM_ADV_GADS_CART_DATA' => Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0',
+                'PS_GTM_ADV_GADS_MERCHANT_ID' => (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID'),
+                'PS_GTM_ADV_PINTEREST_ENABLED' => Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0',
+                'PS_GTM_ADV_MICROSOFT_ENABLED' => Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0',
+            ],
+            'canonical_events' => $eventsCatalog,
+            'events_total' => count($eventsCatalog),
+            'active_platforms_count' => $activePlatformsCount,
+            'meta_events_count' => count($metaActive),
+            'gads_events_count' => count($gadsActive),
+            'tiktok_events_count' => count($tiktokActive),
+            'pinterest_events_count' => count($pinterestActive),
+            'microsoft_events_count' => count($microsoftActive),
+            'meta_active_events' => $metaActive,
+            'gads_active_events' => $gadsActive,
+            'tiktok_active_events' => $tiktokActive,
+            'pinterest_active_events' => $pinterestActive,
+            'microsoft_active_events' => $microsoftActive,
+            'platform_cards_html' => $this->renderAdvertisingMatrixTable(),
+            'diagnostics' => [
+                'gtm_id_valid' => $gtmIdValid,
+                'gtm_id_msg' => $gtmIdMsg,
+                'target_endpoint' => $targetEndpoint,
+                'sample_catalog_id' => $sampleCatalogId,
+                'purchase_log_count' => $purchaseLogCount,
+                'php_version' => PHP_VERSION,
+                'curl_status' => function_exists('curl_init') ? 'Enabled (cURL ready)' : 'Disabled',
+                'openssl_status' => extension_loaded('openssl') ? 'Enabled (TLS 1.3)' : 'Disabled',
+                'memory_limit' => ini_get('memory_limit') ?: '256M',
+                'registered_hooks_count' => $registeredHooksCount,
+            ],
+            'events_schemas_json' => json_encode($schemasJsonMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        ]);
+
+        return $this->display(__FILE__, 'views/templates/admin/configuration.tpl');
+    }
+
+    public static function getCanonicalEventsCatalog()
+    {
+        return [
+            [
+                'name' => 'page_view',
+                'label' => 'Page View',
+                'category' => 'discovery',
+                'category_label' => 'Discovery',
+                'desc' => 'Global storefront page browsing with page title, URL path, and user identifiers',
+                'trigger_hook' => 'hookDisplayHeader (All storefront pages)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'page_location', 'type' => 'string', 'source' => 'window.location.href', 'destinations' => 'GA4: page_location, Meta: dl, TikTok: page_url, UET: page_path', 'desc' => 'Full URL of currently rendered page'],
+                    ['name' => 'page_title', 'type' => 'string', 'source' => 'document.title', 'destinations' => 'GA4: page_title, Meta: title', 'desc' => 'Storefront HTML document title'],
+                    ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (Hashed)', 'destinations' => 'GA4 user_data, Meta CAPI em/ph, TikTok, UET pid', 'desc' => 'SHA-256 encrypted customer identity for advanced matching'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'page_view',
+                    'original_event' => 'page_view',
+                    'page_location' => 'https://example.com/en/summer-collection',
+                    'page_title' => 'Summer Collection - Store',
+                    'user_data' => [
+                        'email_address' => '343d1c9d5c5f5daf60fe4c3ef34c0e8869e4153a4697392fa2900617771759c1',
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'view_item_list',
+                'label' => 'View Item List',
+                'category' => 'discovery',
+                'category_label' => 'Discovery',
+                'desc' => 'Viewing category, search results, brand/manufacturer, or catalog listing',
+                'trigger_hook' => 'hookDisplayHeader (CategoryController / ManufacturerController)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'item_list_id', 'type' => 'string', 'source' => 'category_{id_category}', 'destinations' => 'GA4: item_list_id, Meta: content_category', 'desc' => 'Unique category or listing identifier'],
+                    ['name' => 'item_list_name', 'type' => 'string', 'source' => 'Category::name', 'destinations' => 'GA4: item_list_name, Pinterest: category_name', 'desc' => 'Authoritative localized category name'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Backend product models', 'destinations' => 'GA4: items, Meta: contents, GAds: ecomm_prodid', 'desc' => 'Array of displayed catalog items'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'view_item_list',
+                    'ecommerce' => [
+                        'item_list_id' => 'category_3',
+                        'item_list_name' => 'Clothes',
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'item_brand' => 'Studio Design',
+                                'item_category' => 'Clothes',
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'view_search_results',
+                'label' => 'View Search Results',
+                'category' => 'discovery',
+                'category_label' => 'Discovery',
+                'desc' => 'Customer viewing on-site search results with search keyword and matching products',
+                'trigger_hook' => 'hookDisplayHeader (SearchController)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'search_term', 'type' => 'string', 'source' => 'Authoritative query string', 'destinations' => 'GA4: search_term, Meta: search_string, TikTok: query, Pinterest: search_query', 'desc' => 'Customer search term'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Search result product models', 'destinations' => 'GA4: items, GAds: ecomm_prodid', 'desc' => 'Matching search result items'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'view_search_results',
+                    'ecommerce' => [
+                        'search_term' => 't-shirt',
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'select_item',
+                'label' => 'Select Item',
+                'category' => 'discovery',
+                'category_label' => 'Discovery',
+                'desc' => 'Clicking on a product miniature or link in any listing',
+                'trigger_hook' => 'Zero-DOM product click event bus',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'item_id', 'type' => 'string', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: item_id, Meta: content_ids, GAds: ecomm_prodid', 'desc' => 'Catalog product identifier'],
+                    ['name' => 'item_name', 'type' => 'string', 'source' => 'Product::name', 'destinations' => 'GA4: item_name, Meta: content_name', 'desc' => 'Product title'],
+                    ['name' => 'item_list_id', 'type' => 'string', 'source' => 'Listing container ID', 'destinations' => 'GA4: item_list_id', 'desc' => 'Parent listing identifier'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'select_item',
+                    'ecommerce' => [
+                        'item_list_id' => 'category_3',
+                        'item_list_name' => 'Clothes',
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'view_item',
+                'label' => 'View Item (PDP & Variants)',
+                'category' => 'interaction',
+                'category_label' => 'Interaction',
+                'desc' => 'Product detail page visit and combination/variant selection',
+                'trigger_hook' => 'hookDisplayHeader (ProductController) / updatedProduct event bus',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'item_id', 'type' => 'string', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: item_id, Meta: content_ids, GAds: ecomm_prodid, TikTok: content_id', 'desc' => 'Catalog product identifier'],
+                    ['name' => 'item_name', 'type' => 'string', 'source' => 'Product::name', 'destinations' => 'GA4: item_name, Meta: content_name', 'desc' => 'Product title'],
+                    ['name' => 'price', 'type' => 'number', 'source' => 'PricingEngine', 'destinations' => 'GA4: price, Meta: value, Pinterest: value', 'desc' => 'Exact customer-facing price with tax'],
+                    ['name' => 'item_variant', 'type' => 'string', 'source' => 'Combination attributes', 'destinations' => 'GA4: item_variant', 'desc' => 'Combination attributes string'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'view_item',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 13.00,
+                        'items' => [
+                            [
+                                'item_id' => '68_299',
+                                'item_name' => 'Sip-N-Snack Cup',
+                                'item_variant' => 'Colour: Stahlblau',
+                                'price' => 13.00,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'add_to_wishlist',
+                'label' => 'Add to Wishlist',
+                'category' => 'interaction',
+                'category_label' => 'Interaction',
+                'desc' => 'Customer adding a product to wishlist/favorites via ps_wishlist or blockwishlist',
+                'trigger_hook' => 'WishlistIntegrationLayer interception',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'currency', 'type' => 'string', 'source' => 'Currency ISO code', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Active store currency'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'PricingEngine', 'destinations' => 'GA4, Meta, Pinterest', 'desc' => 'Financial value of added product'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Wishlist product item details'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'add_to_wishlist',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 23.90,
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'add_to_cart',
+                'label' => 'Add to Cart',
+                'category' => 'cart',
+                'category_label' => 'Cart',
+                'desc' => 'Adding a product or combination to the shopping cart',
+                'trigger_hook' => 'actionCartUpdateQuantityBefore / prestashop.on(updateCart)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest, UET', 'desc' => 'Currency code'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Added delta quantity * unit price', 'destinations' => 'GA4, Meta, Pinterest, UET', 'desc' => 'Monetary value of added items'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Backend resolved item delta', 'destinations' => 'GA4: items, Meta: contents, GAds: ecomm_prodid', 'desc' => 'Item array with quantity delta'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'add_to_cart',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 26.00,
+                        'items' => [
+                            [
+                                'item_id' => '68_299',
+                                'item_name' => 'Sip-N-Snack Cup',
+                                'item_variant' => 'Colour: Stahlblau',
+                                'price' => 13.00,
+                                'quantity' => 2,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'remove_from_cart',
+                'label' => 'Remove from Cart',
+                'category' => 'cart',
+                'category_label' => 'Cart',
+                'desc' => 'Removing an item or decrementing line item quantity in the cart',
+                'trigger_hook' => 'actionCartUpdateQuantityBefore / prestashop.on(updateCart)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Currency code'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Removed quantity * unit price', 'destinations' => 'GA4, Meta, Pinterest', 'desc' => 'Monetary value of removed items'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Backend resolved removal delta', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Subtracted item details'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'remove_from_cart',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 13.00,
+                        'items' => [
+                            [
+                                'item_id' => '68_299',
+                                'item_name' => 'Sip-N-Snack Cup',
+                                'price' => 13.00,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'view_cart',
+                'label' => 'View Cart',
+                'category' => 'cart',
+                'category_label' => 'Cart',
+                'desc' => 'Visiting the shopping cart summary page (/cart)',
+                'trigger_hook' => 'hookDisplayHeader (CartController)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest, UET', 'desc' => 'Cart currency'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Cart::getOrderTotal(true)', 'destinations' => 'GA4, Meta, Pinterest, UET', 'desc' => 'Cart gross total value'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Cart::getProducts()', 'destinations' => 'GA4: items, GAds: ecomm_prodid', 'desc' => 'All items currently in cart'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'view_cart',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 36.90,
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                            [
+                                'item_id' => '68_299',
+                                'item_name' => 'Sip-N-Snack Cup',
+                                'price' => 13.00,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'begin_checkout',
+                'label' => 'Begin Checkout',
+                'category' => 'checkout',
+                'category_label' => 'Checkout',
+                'desc' => 'Customer proceeding to checkout funnel step 1 (/order)',
+                'trigger_hook' => 'hookDisplayHeader (OrderController)',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta: InitiateCheckout, TikTok, Pinterest, UET', 'desc' => 'Order currency'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Cart total tax incl', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Gross checkout value'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'begin_checkout',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 36.90,
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'add_shipping_info',
+                'label' => 'Add Shipping Info',
+                'category' => 'checkout',
+                'category_label' => 'Checkout',
+                'desc' => 'Selecting a carrier or delivery method in checkout step 3',
+                'trigger_hook' => 'actionCarrierProcess / delivery step selection',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'shipping_tier', 'type' => 'string', 'source' => 'Carrier::name', 'destinations' => 'GA4: shipping_tier', 'desc' => 'Selected delivery provider name'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Cart total with delivery', 'destinations' => 'GA4, Meta: AddShippingInfo', 'desc' => 'Total order gross value'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'add_shipping_info',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 41.90,
+                        'shipping_tier' => 'DHL Express',
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'add_payment_info',
+                'label' => 'Add Payment Info',
+                'category' => 'checkout',
+                'category_label' => 'Checkout',
+                'desc' => 'Selecting a payment gateway or option in checkout step 4',
+                'trigger_hook' => 'Payment gateway selection',
+                'has_sgtm_webhook' => false,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'payment_type', 'type' => 'string', 'source' => 'Payment module / method name', 'destinations' => 'GA4: payment_type', 'desc' => 'Gateway name (e.g. PayPal, Bank Wire)'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Cart total gross', 'destinations' => 'GA4, Meta: AddPaymentInfo', 'desc' => 'Order gross value'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'add_payment_info',
+                    'ecommerce' => [
+                        'currency' => 'EUR',
+                        'value' => 41.90,
+                        'payment_type' => 'Credit Card (Stripe)',
+                        'items' => [
+                            [
+                                'item_id' => '1_1',
+                                'item_name' => 'Hummingbird Printed T-Shirt',
+                                'price' => 23.90,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'purchase',
+                'label' => 'Purchase',
+                'category' => 'purchase',
+                'category_label' => 'Orders & Returns',
+                'desc' => 'Storefront & offline order completed with order_id, line items, and hashed user_data',
+                'trigger_hook' => 'hookDisplayOrderConfirmation / actionValidateOrder',
+                'has_sgtm_webhook' => true,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'transaction_id', 'type' => 'string', 'source' => 'Order::id / reference', 'destinations' => 'GA4, Meta: order_id, GAds, TikTok, Pinterest, UET', 'desc' => 'Unique order identifier with deduplication logging'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'Order::total_paid_tax_incl', 'destinations' => 'GA4, Meta, GAds, TikTok, Pinterest, UET', 'desc' => 'Net financial revenue'],
+                    ['name' => 'tax', 'type' => 'number', 'source' => 'Order total tax', 'destinations' => 'GA4: tax, UET: tax', 'desc' => 'Tax amount'],
+                    ['name' => 'shipping', 'type' => 'number', 'source' => 'Order shipping tax incl', 'destinations' => 'GA4: shipping, UET: shipping', 'desc' => 'Shipping cost'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'Order line items', 'destinations' => 'GA4: items, Meta: contents, GAds: items', 'desc' => 'Purchased products with unit prices and quantities'],
+                    ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (SHA-256)', 'destinations' => 'GA4, Meta CAPI, TikTok, Pinterest, UET', 'desc' => 'Encrypted email, name, phone, postal code, and country'],
+                ],
+                'example_json' => json_encode([
+                    'event' => 'purchase',
+                    'ecommerce' => [
+                        'transaction_id' => '1255',
+                        'value' => 17.50,
+                        'currency' => 'EUR',
+                        'tax' => 2.50,
+                        'shipping' => 2.00,
+                        'items' => [
+                            [
+                                'item_id' => '68_299',
+                                'item_name' => 'Sip-N-Snack Cup (Colour: Stahlblau)',
+                                'price' => 13.00,
+                                'quantity' => 1,
+                            ],
+                        ],
+                    ],
+                    'user_data' => [
+                        'email_address' => '343d1c9d5c5f5daf60fe4c3ef34c0e8869e4153a4697392fa2900617771759c1',
+                        'first_name' => '5c6b0208d4104931bb46f713ad38130f31ff160a5e320d63a9c7fb660c6c167b',
+                        'last_name' => 'd751f76b33d539f5f12db4e3c006e7f05821591487321469f847312936f2dd4a',
+                        'phone_number' => 'aefd09421ab405e7d1b4850f3e37b314cb8dd5a5a18a658064f1bbecf5efcc0c',
+                        'address' => [
+                            'city' => 'Comilla',
+                            'postal_code' => '84125',
+                            'country' => 'DE',
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'refund',
+                'label' => 'Refund (Credit Slip)',
+                'category' => 'purchase',
+                'category_label' => 'Orders & Returns',
+                'desc' => 'Dispatched to Server GTM when a Credit Slip is issued in the Back Office',
+                'trigger_hook' => 'actionOrderSlipAdd -> ServerSideWebhookDispatcher',
+                'has_sgtm_webhook' => true,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'transaction_id', 'type' => 'string', 'source' => 'Order::id', 'destinations' => 'sGTM Webhook Client, GA4 refund, Meta CAPI Refund', 'desc' => 'Original transaction ID to retract or adjust'],
+                    ['name' => 'value', 'type' => 'number', 'source' => 'OrderSlip total refunded amount', 'destinations' => 'GA4: value, Meta CAPI: value', 'desc' => 'Refunded financial amount'],
+                    ['name' => 'conversion_action', 'type' => 'string', 'source' => '"retract"', 'destinations' => 'Google Ads Offline Retraction, GA4 refund', 'desc' => 'Retraction command for advertising attribution models'],
+                    ['name' => 'items', 'type' => 'array', 'source' => 'RefundDataResolver slip items', 'destinations' => 'GA4: items', 'desc' => 'Refunded items and quantities'],
+                ],
+                'example_json' => json_encode([
+                    'event_name' => 'refund',
+                    'transaction_id' => '1255',
+                    'value' => 17.50,
+                    'currency' => 'EUR',
+                    'conversion_action' => 'retract',
+                    'status_transition_type' => 'refund_issued',
+                    'items' => [
+                        [
+                            'item_id' => '68_299',
+                            'item_name' => 'Sip-N-Snack Cup (Colour: Stahlblau)',
+                            'price' => 13.00,
+                            'quantity' => 1,
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+            [
+                'name' => 'order_status_update',
+                'label' => 'Order Status Update',
+                'category' => 'purchase',
+                'category_label' => 'Orders & Returns',
+                'desc' => 'Dispatched to Server GTM on order status transitions (e.g. Bank wire to Payment Accepted)',
+                'trigger_hook' => 'actionOrderStatusPostUpdate -> ServerSideWebhookDispatcher',
+                'has_sgtm_webhook' => true,
+                'is_active' => true,
+                'schema_fields' => [
+                    ['name' => 'status_transition_type', 'type' => 'string', 'source' => '"payment_confirmed" | "refund_issued" | "order_canceled"', 'destinations' => 'sGTM Webhook Client router', 'desc' => 'Status transition classification'],
+                    ['name' => 'conversion_action', 'type' => 'string', 'source' => '"record" | "retract" | "none"', 'destinations' => 'Google Ads offline conversion adjustments', 'desc' => 'Action required by advertising platform'],
+                    ['name' => 'new_status_name', 'type' => 'string', 'source' => 'OrderState::name', 'destinations' => 'sGTM Server container event parameter', 'desc' => 'Human-readable new order status'],
+                    ['name' => 'is_paid', 'type' => 'boolean', 'source' => 'OrderState::paid flag', 'destinations' => 'sGTM parameter', 'desc' => 'True if order is now financially confirmed'],
+                    ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (SHA-256)', 'destinations' => 'Google Ads Enhanced Conversions, Meta CAPI', 'desc' => 'Hashed customer email, name, phone, address'],
+                ],
+                'example_json' => json_encode([
+                    'event_name' => 'order_status_update',
+                    'transaction_id' => '1255',
+                    'order_reference' => 'FTHQKZNUA',
+                    'status_transition_type' => 'payment_confirmed',
+                    'conversion_action' => 'record',
+                    'new_status_id' => 2,
+                    'new_status_name' => 'Payment accepted',
+                    'is_paid' => true,
+                    'currency' => 'EUR',
+                    'value' => 17.50,
+                    'items' => [
+                        [
+                            'item_id' => '68_299',
+                            'item_name' => 'Sip-N-Snack Cup (Colour: Stahlblau)',
+                            'price' => 13.00,
+                            'quantity' => 1,
+                        ],
+                    ],
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+            ],
+        ];
     }
 
     protected function renderForm()

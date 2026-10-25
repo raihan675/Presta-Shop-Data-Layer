@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.36.0",
+    "latest_version":  "1.37.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.36.0/ps_gtm_datalayer.zip",
-    "checksum":  "6d5724042ca8522d0b89ec7482d74698366965a654fe1e27e4d12d4095b87a70",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.37.0/ps_gtm_datalayer.zip",
+    "checksum":  "e2f507226a9c42e71c4ec9a88c966bf9bf859461bb27821fd5be43cea36c7a56",
     "release_type":  "minor",
-    "release_notes":  "1. Initial Checkout Order Creation Guard: Suppressed premature order_status_update webhook during online customer checkout.\n2. Strict Transition Integrity: Webhooks fire strictly when an existing order\u0027s status is legitimately changed to a distinct new status in the Back Office (ignoring initial status assignment and no-op saves)."
+    "release_notes":  "1. Unified 6-Tab Back Office UI/UX Architecture: Overview, Configuration, Events Manager, Platform Routing Matrix, Data Mapping Inspector, and Diagnostics \u0026 Testing.\n2. Server-to-Server sGTM Diagnostics Ping: Direct real-time latency and connectivity testing tool directly from the Back Office.\n3. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas across Meta, Google Ads, TikTok, Pinterest, and Microsoft Advertising."
 }

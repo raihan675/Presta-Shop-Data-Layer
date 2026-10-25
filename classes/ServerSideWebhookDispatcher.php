@@ -386,4 +386,119 @@ class ServerSideWebhookDispatcher
             return false;
         }
     }
+
+    /**
+     * Diagnostic ping method to verify reachability and latency of the Server-Side GTM container.
+     *
+     * @param string|null $sgtmUrl Optional override URL
+     * @return array Result array with success, http_code, latency_ms, endpoint, and error
+     */
+    public static function testPing($sgtmUrl = null)
+    {
+        if (empty($sgtmUrl)) {
+            $sgtmUrl = class_exists('Configuration') ? (string)Configuration::get('PS_SGTM_TRANSPORT_URL') : '';
+        }
+
+        $sgtmUrl = trim((string)$sgtmUrl);
+        if (empty($sgtmUrl)) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => '',
+                'error' => 'No Server-Side GTM Transport URL configured.',
+                'message' => 'Please enter a valid Transport URL in Configuration.',
+            ];
+        }
+
+        if (!filter_var($sgtmUrl, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $sgtmUrl)) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => $sgtmUrl,
+                'error' => 'Invalid URL format.',
+                'message' => 'The Transport URL must be a valid HTTP or HTTPS URL (e.g. https://gtm.yourdomain.com).',
+            ];
+        }
+
+        $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
+        if (empty($endpointPath)) {
+            $endpointPath = '/ps-webhook';
+        }
+
+        $parsedUrl = parse_url($sgtmUrl);
+        if (!empty($parsedUrl['path']) && $parsedUrl['path'] !== '/') {
+            $endpoint = $sgtmUrl;
+        } else {
+            $endpoint = rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/');
+        }
+
+        if (!function_exists('curl_init')) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => $endpoint,
+                'error' => 'cURL PHP extension is not installed or enabled.',
+                'message' => 'PHP cURL extension required for server-side dispatching.',
+            ];
+        }
+
+        $testPayload = [
+            'event_name' => 'test_ping',
+            'client_id' => 'diagnostic_ping.' . time(),
+            'timestamp' => time(),
+            'source' => 'ps_gtm_datalayer_diagnostic',
+            'events' => [
+                [
+                    'name' => 'test_ping',
+                    'params' => [
+                        'diagnostic' => true,
+                        'timestamp' => time(),
+                    ],
+                ],
+            ],
+        ];
+
+        $body = json_encode($testPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $headers = [
+            'Content-Type: application/json',
+            'X-PrestaShop-Source: ps_gtm_datalayer',
+            'X-Event-Type: test_ping',
+            'X-Diagnostic-Ping: 1',
+        ];
+
+        $startTime = microtime(true);
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 4000);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 2500);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $response = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+
+        $isSuccess = ($httpCode >= 200 && $httpCode < 400);
+        $message = $isSuccess
+            ? 'Endpoint reached successfully (' . $latencyMs . ' ms, HTTP ' . $httpCode . ')'
+            : (!empty($curlError) ? 'Connection failed: ' . $curlError : 'HTTP ' . $httpCode . ' response from endpoint');
+
+        return [
+            'success' => $isSuccess,
+            'http_code' => $httpCode,
+            'latency_ms' => $latencyMs,
+            'endpoint' => $endpoint,
+            'error' => $curlError,
+            'message' => $message,
+            'raw_response' => substr((string)$response, 0, 300),
+        ];
+    }
 }
