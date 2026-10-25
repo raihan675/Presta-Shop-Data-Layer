@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.4] - 2026-10-25
+
+### Changed
+- **Refined Strategy Cards Learn More Explanations**:
+  - Updated Option 1 (Composite Database ID) explanation with exact criteria for variant-level feed rows and Back Office composite format examples (`68_299` vs `15`).
+  - Updated Option 2 (Base Product ID) explanation with parent-only catalog matching guidance (`68` vs `15`).
+  - Updated Option 3 (Reference / SKU) explanation with ERP/warehouse inventory feed guidance (`BHK125-B` with clean database ID fallback).
+
+---
+
 ## [1.28.3] - 2026-10-25
 
 ### Added

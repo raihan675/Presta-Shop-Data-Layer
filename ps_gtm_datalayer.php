@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.3';
+        $this->version = '1.28.4';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1351,45 +1351,36 @@ class Ps_Gtm_DataLayer extends Module
         $strategies = [
             'composite' => [
                 'id' => 'composite',
-                'name' => $this->l('Option 1: Composite Database ID: {id_product}_{id_product_attribute}'),
+                'name' => 'Option 1: Composite Database ID: {id_product}_{id_product_attribute}',
                 'badge' => $this->l('Recommended for 90% of stores'),
                 'badge_class' => 'label-success',
                 'short_desc' => $this->l('Variant-level composite identifiers ensuring exact 1:1 catalog matching for dynamic remarketing.'),
-                'what_it_does' => $this->l('Emits combination-specific composite keys (e.g. <code>68_299</code>) for variant products, and base ID (e.g. <code>15</code>) for simple products across all advertising arrays.'),
-                'why_it_matters' => $this->l('Google Merchant Center, Meta Catalog, and TikTok dynamic remarketing ads display the exact variant, size, and color the customer interacted with.'),
-                'tracking_behavior' => $this->l('Populates GA4 item_id, Meta content_ids, TikTok content_id, Google Ads id, and Pinterest product_id with variant granularity.'),
-                'when_to_use' => $this->l('Select this if your advertising product feed (Google Merchant Center Pro, Meta/Facebook Catalog, TikTok, Channable) exports variants/combinations as separate unique rows.'),
+                'when_to_use' => $this->l('Choose this if your advertising product feed (Google Merchant Center Pro, Meta/Facebook Catalog, TikTok, Channable) exports each combination/variant as an individual row. Ensures exact 1:1 catalog matching for variant-level dynamic remarketing.'),
                 'format' => '{id_product}_{id_product_attribute}',
-                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Sends id: "68_299" (e.g. Sip-N-Snack Cup in Stahlblau)'),
-                'simple_example' => $this->l('Simple Product (e.g. Product #15 without combinations): Sends id: "15" (clean base database ID fallback)')
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Sends ID: "68_299" (e.g. Sip-N-Snack Cup in Stahlblau)'),
+                'simple_example' => $this->l('Simple Product (e.g. Product #15 without combinations): Sends ID: "15" (automatically falls back cleanly to base database ID)')
             ],
             'id_product' => [
                 'id' => 'id_product',
-                'name' => $this->l('Option 2: Base Product ID: {id_product}'),
+                'name' => 'Option 2: Base Product ID: {id_product}',
                 'badge' => $this->l('Parent-only catalogs'),
                 'badge_class' => 'label-warning',
                 'short_desc' => $this->l('Parent-level tracking that maps all variants strictly to base PrestaShop product IDs.'),
-                'what_it_does' => $this->l('Always outputs the parent product database ID (<code>id_product</code>), stripping variant attribute IDs.'),
-                'why_it_matters' => $this->l('Prevents "Product ID not found in catalog" remarketing errors when your advertising feed only contains parent products without variant rows.'),
-                'tracking_behavior' => $this->l('Every variant of a product emits the same parent product ID in all advertising tags.'),
-                'when_to_use' => $this->l('Select this if your advertising feed exports only parent products (1 row per product, ignoring size/color combinations) or if your advertising catalog only lists base PrestaShop product IDs.'),
+                'when_to_use' => $this->l('Choose this if your advertising feed exports only parent products (1 row per product, ignoring size/color combinations) or if your catalog only lists base database IDs.'),
                 'format' => '{id_product}',
-                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Always sends parent id: "68" regardless of chosen variant'),
-                'simple_example' => $this->l('Simple Product (e.g. Product #15): Sends parent id: "15"')
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Always sends parent ID: "68" regardless of which variant or color is viewed'),
+                'simple_example' => $this->l('Simple Product (e.g. Product #15): Sends parent ID: "15"')
             ],
             'reference_sku' => [
                 'id' => 'reference_sku',
-                'name' => $this->l('Option 3: Reference / SKU: {sku}'),
+                'name' => 'Option 3: Reference / SKU: {sku}',
                 'badge' => $this->l('ERP / Barcode feeds'),
                 'badge_class' => 'label-info',
                 'short_desc' => $this->l('Alphanumeric SKU tracking for stores synchronized with external ERP, POS, or warehouse feeds.'),
-                'what_it_does' => $this->l('Transmits the configured Reference/SKU code rather than internal database numeric IDs.'),
-                'why_it_matters' => $this->l('Crucial when product catalogs are indexed by manufacturer SKU or physical barcode numbers from an external ERP/POS system.'),
-                'tracking_behavior' => $this->l('Replaces numeric database IDs with alphanumeric reference strings in all advertising payloads.'),
-                'when_to_use' => $this->l('Select this if your store is synchronized with an external ERP, POS, or warehouse system (like SAP, NetSuite, JTL, Odoo) and your advertising feed items are indexed by physical Reference/SKU codes.'),
+                'when_to_use' => $this->l('Choose this if your store is synchronized with an external ERP, POS, or inventory system (such as SAP, NetSuite, JTL, Odoo) and your feed items are indexed by SKU.'),
                 'format' => '{reference}',
-                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299, Reference BHK125-B): Sends id: "BHK125-B"'),
-                'simple_example' => $this->l('Fallback Rule: If an item has no reference configured in PrestaShop Back Office, it automatically falls back gracefully to its database ID (68_299 or 15).')
+                'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299, Reference BHK125-B): Sends ID: "BHK125-B"'),
+                'simple_example' => $this->l('Fallback Rule: If an item has no reference configured in PrestaShop Back Office, it automatically falls back gracefully to its database ID ("68_299" or "68").')
             ],
         ];
 
@@ -1491,7 +1482,7 @@ class Ps_Gtm_DataLayer extends Module
             .ps-gtm-strategy-drawer {
                 border-top: 1px solid #edf2f7;
                 background: #fafbfc;
-                padding: 16px 20px 16px 46px;
+                padding: 14px 20px 14px 46px;
                 font-size: 13px;
                 line-height: 1.6;
                 color: #334155;
@@ -1500,51 +1491,57 @@ class Ps_Gtm_DataLayer extends Module
                 background: #f8fdf9;
                 border-top-color: #dcfce7;
             }
-            .ps-gtm-drawer-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 14px 20px;
+            .ps-gtm-drawer-section {
+                margin-bottom: 12px;
             }
-            @media (max-width: 768px) {
-                .ps-gtm-drawer-grid {
-                    grid-template-columns: 1fr;
-                }
+            .ps-gtm-drawer-section-last {
+                margin-bottom: 0;
             }
-            .ps-gtm-drawer-item {
-                font-size: 12.5px;
-                line-height: 1.6;
-                margin-bottom: 8px;
-            }
-            .ps-gtm-drawer-item strong {
-                color: #0f172a;
+            .ps-gtm-section-title {
                 display: block;
-                margin-bottom: 2px;
-                font-size: 12px;
+                font-size: 12.5px;
+                font-weight: 700;
+                color: #0f172a;
+                margin-bottom: 4px;
             }
-            .ps-gtm-drawer-item p {
+            .ps-gtm-section-title i {
+                color: #3b82f6;
+                margin-right: 4px;
+            }
+            .ps-gtm-strategy-card.selected .ps-gtm-section-title i {
+                color: #10b981;
+            }
+            .ps-gtm-section-text {
                 margin: 0;
-                color: #475569;
+                color: #334155;
+                font-size: 13px;
+                line-height: 1.6;
             }
             .ps-gtm-example-box {
                 background: #ffffff;
                 border: 1px solid #e2e8f0;
                 border-left: 4px solid #64748b;
                 border-radius: 6px;
-                padding: 12px 14px;
-                font-size: 12px;
-                color: #0f172a;
+                padding: 10px 14px;
+                margin-top: 5px;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-example-box {
                 border-left-color: #10b981;
                 background: #ffffff;
             }
             .ps-gtm-example-list {
-                margin: 6px 0 0 0;
-                padding-left: 18px;
+                margin: 0;
+                padding-left: 0;
+                list-style: none;
+                color: #334155;
+                font-size: 12.5px;
+                line-height: 1.7;
             }
             .ps-gtm-example-list li {
                 margin-bottom: 4px;
-                line-height: 1.5;
+            }
+            .ps-gtm-example-list li:last-child {
+                margin-bottom: 0;
             }
 
             /* Common Setting Explainer & Learn More Styles */
@@ -1671,26 +1668,24 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '</div>'; // .ps-gtm-strategy-main
 
             $html .= '<div id="' . $drawerId . '" class="ps-gtm-strategy-drawer" style="display: none;" role="region">';
-            $html .= '<div class="ps-gtm-drawer-grid">';
 
-            $html .= '<div class="ps-gtm-drawer-col">';
-            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-info-sign"></i> ' . $this->l('What it does:') . '</strong><p>' . $s['what_it_does'] . '</p></div>';
-            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-lightbulb"></i> ' . $this->l('Why it matters:') . '</strong><p>' . $s['why_it_matters'] . '</p></div>';
-            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-exchange"></i> ' . $this->l('Tracking behavior:') . '</strong><p>' . $s['tracking_behavior'] . '</p></div>';
-            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-check-circle"></i> ' . $this->l('When to use:') . '</strong><p>' . $s['when_to_use'] . '</p></div>';
+            // When to use section
+            $html .= '<div class="ps-gtm-drawer-section">';
+            $html .= '<strong class="ps-gtm-section-title"><i class="icon-info-circle"></i> ' . $this->l('When to use:') . '</strong>';
+            $html .= '<p class="ps-gtm-section-text">' . $s['when_to_use'] . '</p>';
             $html .= '</div>';
 
-            $html .= '<div class="ps-gtm-drawer-col ps-gtm-drawer-examples">';
+            // Examples section
+            $html .= '<div class="ps-gtm-drawer-section ps-gtm-drawer-section-last">';
+            $html .= '<strong class="ps-gtm-section-title"><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format & Examples:') . '</strong>';
             $html .= '<div class="ps-gtm-example-box">';
-            $html .= '<strong><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format:') . '</strong> <code>' . htmlspecialchars($s['format']) . '</code>';
             $html .= '<ul class="ps-gtm-example-list">';
-            $html .= '<li><strong>' . $this->l('Combination Product:') . '</strong> ' . $s['comb_example'] . '</li>';
-            $html .= '<li><strong>' . $this->l('Simple Product:') . '</strong> ' . $s['simple_example'] . '</li>';
+            $html .= '<li>' . $s['comb_example'] . '</li>';
+            $html .= '<li>' . $s['simple_example'] . '</li>';
             $html .= '</ul>';
             $html .= '</div>';
             $html .= '</div>';
 
-            $html .= '</div>'; // .ps-gtm-drawer-grid
             $html .= '</div>'; // .ps-gtm-strategy-drawer
 
             $html .= '</div>'; // .ps-gtm-strategy-card

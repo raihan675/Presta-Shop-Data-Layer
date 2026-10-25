@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.28.3",
+    "latest_version":  "1.28.4",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.3/ps_gtm_datalayer.zip",
-    "checksum":  "d707d110dce2a8793442e202099b0ae1099814abc244d750dcaea7e00b3a2920",
-    "release_type":  "minor",
-    "release_notes":  "1. Professional Settings Cards Redesign: Modern 5-tier card visual hierarchy across all Core Settings and Product Catalog Identifier Strategy cards.\n2. Interactive Learn More Controls: Expandable explanations covering What it does, Why it matters, Tracking behavior, When to use, and practical PrestaShop Back Office format examples.\n3. Keyboard accessibility (Tab/Space/Enter navigation) and aria attributes."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.28.4/ps_gtm_datalayer.zip",
+    "checksum":  "9f72a5ec4cfc01b29a32532f862e96270faa6dcbeaa86c8b106cf9ec3fe45d96",
+    "release_type":  "patch",
+    "release_notes":  "1. Updated Product Catalog Identifier Strategy \u0027Learn more\u0027 drawers with exact formatted guidance and examples for Option 1 (Composite), Option 2 (Base ID), and Option 3 (Reference/SKU).\n2. Enhanced Back Office ID format specifications and fallback rules."
 }
