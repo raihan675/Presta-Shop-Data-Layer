@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.28.3] - 2026-10-25
+
+### Added
+- **Modern Settings Cards UI/UX & Interactive Learn More Drawers**:
+  - Implemented 5-tier card structure (Setting title, Short description, Setting control, Learn more interactive control, Expanded explanation drawer) across all Core Settings and Product Catalog Identifier Strategy cards.
+  - Interactive "Learn more" pill controls revealing rich guidance: What it does, Why it matters, Tracking behavior, When to use, and practical PrestaShop Back Office ID format examples.
+  - Fully accessible keyboard navigation (`Tab`, `Space`, `Enter`) with proper `aria-expanded`, `aria-controls`, and `role="region"` attributes.
+  - Clean visual states: subtle `#f8fafc` explanation drawer backgrounds, emerald green active selection borders, smooth slide animations, and zero layout shift.
+
+---
+
 ## [1.28.2] - 2026-10-25
 
 ### Fixed

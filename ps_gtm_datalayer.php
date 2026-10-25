@@ -25,7 +25,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.28.2';
+        $this->version = '1.28.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -425,6 +425,55 @@ class Ps_Gtm_DataLayer extends Module
         return $prefix . '_' . (string)$originalEventName;
     }
 
+    private function renderSettingHelp($key, $shortDesc, $whatItDoes, $whyItMatters, $trackingBehavior, $whenToUse, $example = null)
+    {
+        $id = 'ps-gtm-exp-' . preg_replace('/[^a-zA-Z0-9_\-]/', '', $key);
+
+        $html = '<div class="ps-gtm-setting-explainer">';
+        $html .= '<div class="ps-gtm-short-desc-row">';
+        $html .= '<span class="ps-gtm-short-desc">' . htmlspecialchars($shortDesc) . '</span>';
+        $html .= '<button type="button" class="ps-gtm-learn-more-btn" data-target="' . $id . '" aria-expanded="false" aria-controls="' . $id . '">';
+        $html .= '<i class="icon-info-circle"></i> <span>' . $this->l('Learn more') . '</span> <i class="icon-angle-down ps-gtm-chevron"></i>';
+        $html .= '</button>';
+        $html .= '</div>';
+
+        $html .= '<div id="' . $id . '" class="ps-gtm-expanded-explanation" style="display: none;" role="region">';
+        $html .= '<div class="ps-gtm-exp-grid">';
+
+        $html .= '<div class="ps-gtm-exp-item">';
+        $html .= '<span class="ps-gtm-exp-label"><i class="icon-info-sign"></i> ' . $this->l('What it does') . '</span>';
+        $html .= '<div class="ps-gtm-exp-val">' . $whatItDoes . '</div>';
+        $html .= '</div>';
+
+        $html .= '<div class="ps-gtm-exp-item">';
+        $html .= '<span class="ps-gtm-exp-label"><i class="icon-lightbulb"></i> ' . $this->l('Why it matters') . '</span>';
+        $html .= '<div class="ps-gtm-exp-val">' . $whyItMatters . '</div>';
+        $html .= '</div>';
+
+        $html .= '<div class="ps-gtm-exp-item">';
+        $html .= '<span class="ps-gtm-exp-label"><i class="icon-exchange"></i> ' . $this->l('Tracking behavior') . '</span>';
+        $html .= '<div class="ps-gtm-exp-val">' . $trackingBehavior . '</div>';
+        $html .= '</div>';
+
+        $html .= '<div class="ps-gtm-exp-item">';
+        $html .= '<span class="ps-gtm-exp-label"><i class="icon-check-circle"></i> ' . $this->l('When to use') . '</span>';
+        $html .= '<div class="ps-gtm-exp-val">' . $whenToUse . '</div>';
+        $html .= '</div>';
+
+        if (!empty($example)) {
+            $html .= '<div class="ps-gtm-exp-item ps-gtm-exp-example" style="grid-column: 1 / -1;">';
+            $html .= '<span class="ps-gtm-exp-label"><i class="icon-tag"></i> ' . $this->l('Practical Example') . '</span>';
+            $html .= '<div class="ps-gtm-exp-val"><code>' . htmlspecialchars($example) . '</code></div>';
+            $html .= '</div>';
+        }
+
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        return $html;
+    }
+
     protected function renderForm()
     {
         $helper = new HelperForm();
@@ -479,7 +528,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_CONTAINER_ID',
                         'label' => $this->l('GTM Container ID'),
                         'hint' => $this->l('Enter your primary web container ID from Google Tag Manager (e.g. GTM-XXXXXXX).'),
-                        'desc' => $this->l('Your primary web container ID (e.g., GTM-XXXXXXX).'),
+                        'desc' => $this->renderSettingHelp(
+                            'container_id',
+                            $this->l('Primary Google Tag Manager web container identifier.'),
+                            $this->l('Injects the official Google Tag Manager container script into the HTML of all storefront pages.'),
+                            $this->l('Required to load GTM tags, GA4 ecommerce events, Meta Pixel, and third-party marketing tags.'),
+                            $this->l('Enables execution of your GTM container; all dataLayer events wait for this container to fire associated tags.'),
+                            $this->l('Enter your container ID from Google Tag Manager (tagmanager.google.com). Required for standard web tracking.'),
+                            'GTM-T8W93L4K'
+                        ),
                         'size' => 20,
                         'required' => true,
                     ],
@@ -488,7 +545,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_EVENT_PREFIX',
                         'label' => $this->l('Data Layer Event Prefix'),
                         'hint' => $this->l('Custom prefix prepended to all dataLayer event names (e.g. raihan_view_item). Leave empty for standard GA4 event names.'),
-                        'desc' => $this->l('Custom prefix for dataLayer events (e.g. raihan, masum, client_a). Leave blank for standard GA4 event names.'),
+                        'desc' => $this->renderSettingHelp(
+                            'event_prefix',
+                            $this->l('Optional prefix added before standard GA4 event names (e.g. ps_view_item).'),
+                            $this->l('Prefixes storefront events (e.g. ps_purchase, raihan_view_item) while preserving canonical GA4 names in original_event.'),
+                            $this->l('Prevents event collisions when running multiple tracking modules, themes, or agency containers on the same store.'),
+                            $this->l('All standard events (view_item, add_to_cart, purchase) fire with your prefix. GTM triggers should match this event name.'),
+                            $this->l('Enter an alphanumeric prefix if you need isolated event triggers. Leave empty for default GA4 event names.'),
+                            'ps (produces ps_view_item, ps_purchase)'
+                        ),
                         'placeholder' => $this->l('Enter your custom prefix (e.g., raihan)'),
                         'size' => 30,
                     ],
@@ -522,7 +587,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_SGTM_TRANSPORT_URL',
                         'label' => $this->l('Server-Side GTM Transport URL (Optional)'),
                         'hint' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint).'),
-                        'desc' => $this->l('Custom domain endpoint for Server-Side GTM (e.g. https://gtm.yourdomain.com or Stape endpoint).'),
+                        'desc' => $this->renderSettingHelp(
+                            'sgtm_transport_url',
+                            $this->l('First-party domain endpoint for routing dataLayer events through Server-Side GTM.'),
+                            $this->l('Re-routes web GTM library requests and event beacons through your first-party server container instead of googletagmanager.com.'),
+                            $this->l('Protects tracking from ad blockers, extends Safari ITP cookie lifetime, and enhances user data privacy.'),
+                            $this->l('Automatically sets the custom transport URL in the GTM loader script.'),
+                            $this->l('Configure only if you have a running Server-Side GTM container (e.g. Stape.io or Google Cloud Run). Leave blank for client-side GTM.'),
+                            'https://gtm.yourdomain.com'
+                        ),
                         'size' => 50,
                     ],
                     [
@@ -530,7 +603,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_RAW_HEAD_CODE',
                         'label' => $this->l('Raw GTM <head> Code (Optional)'),
                         'hint' => $this->l('Paste raw Google Tag Manager container script to inject into HTML head.'),
-                        'desc' => $this->l('Paste your custom GTM script tag here. Automatically injected directly into HTML head on all front-office pages.'),
+                        'desc' => $this->renderSettingHelp(
+                            'raw_head_code',
+                            $this->l('Custom JavaScript script tag injected into the HTML <head> section of all pages.'),
+                            $this->l('Injects raw JavaScript directly into the HTML <head> without modifying theme template files.'),
+                            $this->l('Allows agencies to deploy custom initialization scripts, Consent Management Platforms, or non-standard container snippets.'),
+                            $this->l('Executes early in the page load lifecycle before storefront styles and other tracking scripts.'),
+                            $this->l('Use only for custom agency scripts. If GTM Container ID is entered above, the standard script is generated automatically.'),
+                            '<script>(function(w,d,s,l,i){...})(window,document,\'script\',\'dataLayer\',\'GTM-XXXXX\');</script>'
+                        ),
                         'cols' => 60,
                         'rows' => 5,
                     ],
@@ -539,7 +620,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_RAW_BODY_CODE',
                         'label' => $this->l('Raw GTM <body> Code (Optional)'),
                         'hint' => $this->l('Paste raw Google Tag Manager noscript tag to inject right after opening body tag.'),
-                        'desc' => $this->l('Paste your custom GTM noscript iframe tag here. Automatically injected immediately after body tag on all front-office pages.'),
+                        'desc' => $this->renderSettingHelp(
+                            'raw_body_code',
+                            $this->l('Custom noscript iframe fallback injected immediately after the opening <body> tag.'),
+                            $this->l('Inserts a <noscript> iframe snippet for visitors or bots with JavaScript disabled in their browsers.'),
+                            $this->l('Provides fallback basic page-view verification in non-JavaScript browsing environments.'),
+                            $this->l('Executed only when the client browser does not support or has disabled JavaScript.'),
+                            $this->l('Use if your GTM setup requires a custom noscript iframe. Otherwise managed automatically when GTM ID is set.'),
+                            '<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXX" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>'
+                        ),
                         'cols' => 60,
                         'rows' => 4,
                     ],
@@ -549,7 +638,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_CONSENT_MODE',
                         'hint' => $this->l('Initializes default denied consent states prior to tag loading for GDPR and DMA compliance.'),
                         'is_bool' => true,
-                        'desc' => $this->l('Initialize default denied consent states prior to tag loading for GDPR/DMA compliance.'),
+                        'desc' => $this->renderSettingHelp(
+                            'consent_mode',
+                            $this->l('Enforces default denied consent states prior to tag execution for GDPR and DMA compliance.'),
+                            $this->l('Initializes gtag consent default denied for ad_storage, analytics_storage, ad_user_data, and ad_personalization before GTM loads.'),
+                            $this->l('Mandatory under Google EU User Consent Policy and Digital Markets Act (DMA) to preserve remarketing audiences and conversion modeling.'),
+                            $this->l('Google tags fire in cookieless ping mode until the user grants explicit permission in your cookie banner.'),
+                            $this->l('Enable for all stores serving European Union / EEA shoppers or operating a Cookie Consent Management Platform (CMP).'),
+                            'Default: ad_storage: denied, analytics_storage: denied, ad_user_data: denied, ad_personalization: denied'
+                        ),
                         'values' => [
                             ['id' => 'active_on', 'value' => 1, 'label' => $this->l('Enabled')],
                             ['id' => 'active_off', 'value' => 0, 'label' => $this->l('Disabled')],
@@ -580,7 +677,15 @@ class Ps_Gtm_DataLayer extends Module
                         'name' => 'PS_GTM_ADV_MASTER_ENABLED',
                         'hint' => $this->l('Master toggle. When disabled, all advertising platform namespaces (meta, google_ads, tiktok, pinterest, microsoft_ads) are suppressed from the dataLayer across all events.'),
                         'is_bool' => true,
-                        'desc' => $this->l('Master switch to enable or disable Meta, Pinterest, TikTok, Google Ads, and Microsoft Advertising namespaces across all events.'),
+                        'desc' => $this->renderSettingHelp(
+                            'adv_master_enabled',
+                            $this->l('Master switch controlling Meta, Pinterest, TikTok, Google Ads, and Microsoft Advertising payloads.'),
+                            $this->l('Globally activates or suppresses all advertising-specific namespaces from window.dataLayer across all ecommerce events.'),
+                            $this->l('Allows single-click global control over all third-party ad network payloads without losing individual platform event routing preferences.'),
+                            $this->l('When enabled, rich advertising payloads are attached. When disabled, only clean GA4 ecommerce payloads are pushed.'),
+                            $this->l('Keep Enabled for multi-channel marketing campaigns; Disable if you strictly track Google Analytics 4.'),
+                            'meta: { event_name: "InitiateCheckout", ... } attached alongside ecommerce'
+                        ),
                         'values' => [
                             ['id' => 'adv_master_on', 'value' => 1, 'label' => $this->l('Enabled')],
                             ['id' => 'adv_master_off', 'value' => 0, 'label' => $this->l('Disabled')],
@@ -1246,19 +1351,27 @@ class Ps_Gtm_DataLayer extends Module
         $strategies = [
             'composite' => [
                 'id' => 'composite',
-                'name' => 'Option 1: Composite Database ID: {id_product}_{id_product_attribute}',
+                'name' => $this->l('Option 1: Composite Database ID: {id_product}_{id_product_attribute}'),
                 'badge' => $this->l('Recommended for 90% of stores'),
                 'badge_class' => 'label-success',
-                'when_to_use' => $this->l('Select this if your advertising product feed (Google Merchant Center Pro, Meta/Facebook Catalog, TikTok, Channable) exports variants/combinations as separate unique rows in your feed. Ensures exact 1:1 catalog matching for variant-level dynamic remarketing.'),
+                'short_desc' => $this->l('Variant-level composite identifiers ensuring exact 1:1 catalog matching for dynamic remarketing.'),
+                'what_it_does' => $this->l('Emits combination-specific composite keys (e.g. <code>68_299</code>) for variant products, and base ID (e.g. <code>15</code>) for simple products across all advertising arrays.'),
+                'why_it_matters' => $this->l('Google Merchant Center, Meta Catalog, and TikTok dynamic remarketing ads display the exact variant, size, and color the customer interacted with.'),
+                'tracking_behavior' => $this->l('Populates GA4 item_id, Meta content_ids, TikTok content_id, Google Ads id, and Pinterest product_id with variant granularity.'),
+                'when_to_use' => $this->l('Select this if your advertising product feed (Google Merchant Center Pro, Meta/Facebook Catalog, TikTok, Channable) exports variants/combinations as separate unique rows.'),
                 'format' => '{id_product}_{id_product_attribute}',
                 'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Sends id: "68_299" (e.g. Sip-N-Snack Cup in Stahlblau)'),
-                'simple_example' => $this->l('Simple Product (e.g. Product #15 without combinations): Sends id: "15" (falls back cleanly to base database ID)')
+                'simple_example' => $this->l('Simple Product (e.g. Product #15 without combinations): Sends id: "15" (clean base database ID fallback)')
             ],
             'id_product' => [
                 'id' => 'id_product',
-                'name' => 'Option 2: Base Product ID: {id_product}',
+                'name' => $this->l('Option 2: Base Product ID: {id_product}'),
                 'badge' => $this->l('Parent-only catalogs'),
                 'badge_class' => 'label-warning',
+                'short_desc' => $this->l('Parent-level tracking that maps all variants strictly to base PrestaShop product IDs.'),
+                'what_it_does' => $this->l('Always outputs the parent product database ID (<code>id_product</code>), stripping variant attribute IDs.'),
+                'why_it_matters' => $this->l('Prevents "Product ID not found in catalog" remarketing errors when your advertising feed only contains parent products without variant rows.'),
+                'tracking_behavior' => $this->l('Every variant of a product emits the same parent product ID in all advertising tags.'),
                 'when_to_use' => $this->l('Select this if your advertising feed exports only parent products (1 row per product, ignoring size/color combinations) or if your advertising catalog only lists base PrestaShop product IDs.'),
                 'format' => '{id_product}',
                 'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299): Always sends parent id: "68" regardless of chosen variant'),
@@ -1266,13 +1379,17 @@ class Ps_Gtm_DataLayer extends Module
             ],
             'reference_sku' => [
                 'id' => 'reference_sku',
-                'name' => 'Option 3: Reference / SKU: {sku}',
+                'name' => $this->l('Option 3: Reference / SKU: {sku}'),
                 'badge' => $this->l('ERP / Barcode feeds'),
                 'badge_class' => 'label-info',
+                'short_desc' => $this->l('Alphanumeric SKU tracking for stores synchronized with external ERP, POS, or warehouse feeds.'),
+                'what_it_does' => $this->l('Transmits the configured Reference/SKU code rather than internal database numeric IDs.'),
+                'why_it_matters' => $this->l('Crucial when product catalogs are indexed by manufacturer SKU or physical barcode numbers from an external ERP/POS system.'),
+                'tracking_behavior' => $this->l('Replaces numeric database IDs with alphanumeric reference strings in all advertising payloads.'),
                 'when_to_use' => $this->l('Select this if your store is synchronized with an external ERP, POS, or warehouse system (like SAP, NetSuite, JTL, Odoo) and your advertising feed items are indexed by physical Reference/SKU codes.'),
                 'format' => '{reference}',
                 'comb_example' => $this->l('Combination Product (e.g. Product #68 with Variant #299, Reference BHK125-B): Sends id: "BHK125-B"'),
-                'simple_example' => $this->l('Fallback Rule: If an item has no reference configured in PrestaShop Back Office, it automatically falls back gracefully to its database ID.')
+                'simple_example' => $this->l('Fallback Rule: If an item has no reference configured in PrestaShop Back Office, it automatically falls back gracefully to its database ID (68_299 or 15).')
             ],
         ];
 
@@ -1295,92 +1412,288 @@ class Ps_Gtm_DataLayer extends Module
                 margin-bottom: 14px !important;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
             }
+            #ps-gtm-strategies-container {
+                margin-top: 10px;
+                max-width: 820px;
+            }
             .ps-gtm-strategy-card {
-                padding: 16px 18px;
                 background: #ffffff;
-                border: 2px solid #e2e8f0;
+                border: 1.5px solid #e2e8f0;
                 border-radius: 8px;
+                margin-bottom: 12px;
                 cursor: pointer;
                 transition: all 0.2s ease-in-out;
-                margin-bottom: 14px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+                overflow: hidden;
+                outline: none;
             }
             .ps-gtm-strategy-card:hover {
                 border-color: #94a3b8;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            }
+            .ps-gtm-strategy-card:focus-visible {
+                border-color: #3b82f6 !important;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
             }
             .ps-gtm-strategy-card.selected {
                 background: #f0fdf4 !important;
-                border-color: #16a34a !important;
-                box-shadow: 0 4px 14px rgba(22, 163, 74, 0.15) !important;
+                border-color: #10b981 !important;
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12) !important;
             }
-            .ps-gtm-strategy-header {
+            .ps-gtm-strategy-main {
+                padding: 14px 18px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            .ps-gtm-strategy-top {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-bottom: 10px;
+                gap: 12px;
+                flex-wrap: wrap;
             }
-            .ps-gtm-strategy-title {
+            .ps-gtm-strategy-title-wrap {
                 display: flex;
                 align-items: center;
                 gap: 10px;
-                font-size: 14.5px;
+            }
+            .ps-gtm-strategy-title {
+                font-size: 14px;
                 font-weight: 700;
                 color: #0f172a;
             }
-            .ps-gtm-strategy-body {
-                display: block !important;
-                padding-left: 28px !important;
-                font-size: 13px !important;
-                line-height: 1.6 !important;
-                color: #334155 !important;
+            .ps-gtm-card-radio {
+                font-size: 18px;
+                color: #94a3b8;
+                transition: color 0.2s ease;
             }
-            .ps-gtm-when-box {
-                display: block !important;
-                margin-bottom: 8px !important;
-                color: #1e293b !important;
-                font-size: 13px !important;
+            .ps-gtm-strategy-card.selected .ps-gtm-card-radio {
+                color: #10b981;
+            }
+            .ps-gtm-strategy-badge {
+                font-size: 11px;
+                padding: 4px 10px;
+                border-radius: 12px;
+                font-weight: 600;
+            }
+            .ps-gtm-strategy-short-desc {
+                padding-left: 28px;
+                font-size: 13px;
+                color: #475569;
+                line-height: 1.5;
+            }
+            .ps-gtm-strategy-actions {
+                padding-left: 28px;
+                display: flex;
+                align-items: center;
+            }
+            .ps-gtm-strategy-drawer {
+                border-top: 1px solid #edf2f7;
+                background: #fafbfc;
+                padding: 16px 20px 16px 46px;
+                font-size: 13px;
+                line-height: 1.6;
+                color: #334155;
+            }
+            .ps-gtm-strategy-card.selected .ps-gtm-strategy-drawer {
+                background: #f8fdf9;
+                border-top-color: #dcfce7;
+            }
+            .ps-gtm-drawer-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 14px 20px;
+            }
+            @media (max-width: 768px) {
+                .ps-gtm-drawer-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+            .ps-gtm-drawer-item {
+                font-size: 12.5px;
+                line-height: 1.6;
+                margin-bottom: 8px;
+            }
+            .ps-gtm-drawer-item strong {
+                color: #0f172a;
+                display: block;
+                margin-bottom: 2px;
+                font-size: 12px;
+            }
+            .ps-gtm-drawer-item p {
+                margin: 0;
+                color: #475569;
             }
             .ps-gtm-example-box {
-                display: block !important;
-                background: #f8fafc !important;
-                border: 1px solid #e2e8f0 !important;
-                border-left: 4px solid #64748b !important;
-                padding: 10px 14px !important;
-                border-radius: 4px !important;
-                font-size: 12.5px !important;
-                color: #0f172a !important;
-                margin-top: 8px !important;
-                line-height: 1.7 !important;
+                background: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-left: 4px solid #64748b;
+                border-radius: 6px;
+                padding: 12px 14px;
+                font-size: 12px;
+                color: #0f172a;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-example-box {
-                background: #eaf8ef !important;
-                border-color: #bbf7d0 !important;
-                border-left: 4px solid #16a34a !important;
+                border-left-color: #10b981;
+                background: #ffffff;
+            }
+            .ps-gtm-example-list {
+                margin: 6px 0 0 0;
+                padding-left: 18px;
+            }
+            .ps-gtm-example-list li {
+                margin-bottom: 4px;
+                line-height: 1.5;
+            }
+
+            /* Common Setting Explainer & Learn More Styles */
+            .ps-gtm-setting-explainer {
+                margin-top: 6px;
+                font-size: 13px;
+                line-height: 1.5;
+            }
+            .ps-gtm-short-desc-row {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .ps-gtm-short-desc {
+                color: #475569;
+                font-size: 13px;
+            }
+            .ps-gtm-learn-more-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                background: #f1f5f9;
+                border: 1px solid #cbd5e1;
+                border-radius: 14px;
+                padding: 3px 10px;
+                font-size: 11.5px;
+                font-weight: 600;
+                color: #334155;
+                cursor: pointer;
+                text-decoration: none !important;
+                transition: all 0.2s ease;
+                outline: none;
+                line-height: 1.2;
+            }
+            .ps-gtm-learn-more-btn:hover,
+            .ps-gtm-learn-more-btn:focus {
+                background: #e2e8f0;
+                color: #0f172a;
+                border-color: #94a3b8;
+            }
+            .ps-gtm-learn-more-btn:focus-visible {
+                box-shadow: 0 0 0 2px #3b82f6;
+            }
+            .ps-gtm-learn-more-btn.is-active {
+                background: #e0e7ff;
+                border-color: #a5b4fc;
+                color: #3730a3;
+            }
+            .ps-gtm-learn-more-btn .ps-gtm-chevron {
+                transition: transform 0.25s ease;
+                font-size: 11px;
+            }
+            .ps-gtm-learn-more-btn.is-active .ps-gtm-chevron {
+                transform: rotate(180deg);
+            }
+            .ps-gtm-expanded-explanation {
+                margin-top: 10px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                padding: 14px 16px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            }
+            .ps-gtm-exp-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: 12px 20px;
+            }
+            .ps-gtm-exp-item {
+                font-size: 12.5px;
+                line-height: 1.6;
+            }
+            .ps-gtm-exp-label {
+                display: block;
+                font-weight: 700;
+                color: #0f172a;
+                margin-bottom: 3px;
+                font-size: 11.5px;
+                text-transform: uppercase;
+                letter-spacing: 0.3px;
+            }
+            .ps-gtm-exp-label i {
+                color: #3b82f6;
+                margin-right: 4px;
+            }
+            .ps-gtm-exp-val {
+                color: #334155;
+            }
+            .ps-gtm-exp-val code {
+                background: #e2e8f0;
+                color: #0f172a;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-size: 12px;
+                word-break: break-all;
             }
         </style>';
 
-        $html .= '<div id="ps-gtm-strategies-container" style="margin-top: 10px; max-width: 820px;">';
+        $html .= '<div id="ps-gtm-strategies-container">';
         $html .= '<p class="text-muted" style="margin-bottom: 12px; font-size: 13px; font-weight: 600;">' . $this->l('Click any card below or select in the dropdown above to choose your catalog identifier strategy:') . '</p>';
 
         foreach ($strategies as $key => $s) {
-            $html .= '<div class="ps-gtm-strategy-card" data-key="' . htmlspecialchars($key) . '">';
-            $html .= '<div class="ps-gtm-strategy-header">';
-            $html .= '<div class="ps-gtm-strategy-title">';
-            $html .= '<i class="icon-circle-blank ps-gtm-card-radio" style="font-size: 18px; color: #94a3b8;"></i>';
-            $html .= '<span>' . htmlspecialchars($s['name']) . '</span>';
+            $drawerId = 'ps-gtm-strat-drawer-' . $key;
+            $html .= '<div class="ps-gtm-strategy-card" data-key="' . htmlspecialchars($key) . '" tabindex="0" role="radio" aria-checked="false">';
+            $html .= '<div class="ps-gtm-strategy-main">';
+
+            $html .= '<div class="ps-gtm-strategy-top">';
+            $html .= '<div class="ps-gtm-strategy-title-wrap">';
+            $html .= '<i class="icon-circle-blank ps-gtm-card-radio"></i>';
+            $html .= '<span class="ps-gtm-strategy-title">' . htmlspecialchars($s['name']) . '</span>';
             $html .= '</div>';
-            $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . '" style="font-size: 11px; padding: 5px 12px; border-radius: 4px;">' . htmlspecialchars($s['badge']) . '</span>';
+            $html .= '<span class="label ' . htmlspecialchars($s['badge_class']) . ' ps-gtm-strategy-badge">' . htmlspecialchars($s['badge']) . '</span>';
             $html .= '</div>';
 
-            $html .= '<div class="ps-gtm-strategy-body">';
-            $html .= '<div class="ps-gtm-when-box"><strong>' . $this->l('When to use:') . '</strong> ' . $s['when_to_use'] . '</div>';
+            $html .= '<div class="ps-gtm-strategy-short-desc">' . htmlspecialchars($s['short_desc']) . '</div>';
+
+            $html .= '<div class="ps-gtm-strategy-actions">';
+            $html .= '<button type="button" class="ps-gtm-learn-more-btn" data-target="' . $drawerId . '" aria-expanded="false" aria-controls="' . $drawerId . '">';
+            $html .= '<i class="icon-info-circle"></i> <span>' . $this->l('Learn more & examples') . '</span> <i class="icon-angle-down ps-gtm-chevron"></i>';
+            $html .= '</button>';
+            $html .= '</div>';
+
+            $html .= '</div>'; // .ps-gtm-strategy-main
+
+            $html .= '<div id="' . $drawerId . '" class="ps-gtm-strategy-drawer" style="display: none;" role="region">';
+            $html .= '<div class="ps-gtm-drawer-grid">';
+
+            $html .= '<div class="ps-gtm-drawer-col">';
+            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-info-sign"></i> ' . $this->l('What it does:') . '</strong><p>' . $s['what_it_does'] . '</p></div>';
+            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-lightbulb"></i> ' . $this->l('Why it matters:') . '</strong><p>' . $s['why_it_matters'] . '</p></div>';
+            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-exchange"></i> ' . $this->l('Tracking behavior:') . '</strong><p>' . $s['tracking_behavior'] . '</p></div>';
+            $html .= '<div class="ps-gtm-drawer-item"><strong><i class="icon-check-circle"></i> ' . $this->l('When to use:') . '</strong><p>' . $s['when_to_use'] . '</p></div>';
+            $html .= '</div>';
+
+            $html .= '<div class="ps-gtm-drawer-col ps-gtm-drawer-examples">';
             $html .= '<div class="ps-gtm-example-box">';
-            $html .= '<strong><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format:') . '</strong> <code>' . htmlspecialchars($s['format']) . '</code><br>';
-            $html .= '&bull; ' . $s['comb_example'] . '<br>';
-            $html .= '&bull; ' . $s['simple_example'];
+            $html .= '<strong><i class="icon-tag"></i> ' . $this->l('PrestaShop Back Office ID Format:') . '</strong> <code>' . htmlspecialchars($s['format']) . '</code>';
+            $html .= '<ul class="ps-gtm-example-list">';
+            $html .= '<li><strong>' . $this->l('Combination Product:') . '</strong> ' . $s['comb_example'] . '</li>';
+            $html .= '<li><strong>' . $this->l('Simple Product:') . '</strong> ' . $s['simple_example'] . '</li>';
+            $html .= '</ul>';
             $html .= '</div>';
             $html .= '</div>';
-            $html .= '</div>';
+
+            $html .= '</div>'; // .ps-gtm-drawer-grid
+            $html .= '</div>'; // .ps-gtm-strategy-drawer
+
+            $html .= '</div>'; // .ps-gtm-strategy-card
         }
 
         $html .= '</div>';
@@ -1411,17 +1724,64 @@ class Ps_Gtm_DataLayer extends Module
                         var radio = card.querySelector(".ps-gtm-card-radio");
                         if (key === selectedVal) {
                             card.classList.add("selected");
+                            card.setAttribute("aria-checked", "true");
                             if (radio) {
                                 radio.className = "icon-check-circle ps-gtm-card-radio";
-                                radio.style.color = "#16a34a";
+                                radio.style.color = "#10b981";
                             }
                         } else {
                             card.classList.remove("selected");
+                            card.setAttribute("aria-checked", "false");
                             if (radio) {
                                 radio.className = "icon-circle-blank ps-gtm-card-radio";
                                 radio.style.color = "#94a3b8";
                             }
                         }
+                    }
+                }
+
+                function initLearnMoreToggles() {
+                    var buttons = document.querySelectorAll(".ps-gtm-learn-more-btn");
+                    for (var i = 0; i < buttons.length; i++) {
+                        (function(btn) {
+                            if (btn.getAttribute("data-initialized") === "1") return;
+                            btn.setAttribute("data-initialized", "1");
+
+                            btn.addEventListener("click", function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                var targetId = btn.getAttribute("data-target");
+                                var target = document.getElementById(targetId);
+                                if (!target) return;
+
+                                var isExpanded = btn.classList.contains("is-active");
+                                if (isExpanded) {
+                                    btn.classList.remove("is-active");
+                                    btn.setAttribute("aria-expanded", "false");
+                                    if (window.jQuery) {
+                                        $(target).slideUp(200);
+                                    } else {
+                                        target.style.display = "none";
+                                    }
+                                } else {
+                                    btn.classList.add("is-active");
+                                    btn.setAttribute("aria-expanded", "true");
+                                    if (window.jQuery) {
+                                        $(target).slideDown(200);
+                                    } else {
+                                        target.style.display = "block";
+                                    }
+                                }
+                            });
+
+                            btn.addEventListener("keydown", function(e) {
+                                if (e.key === "Enter" || e.key === " " || e.keyCode === 13 || e.keyCode === 32) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    btn.click();
+                                }
+                            });
+                        })(buttons[i]);
                     }
                 }
 
@@ -1432,6 +1792,9 @@ class Ps_Gtm_DataLayer extends Module
                     for (var i = 0; i < cards.length; i++) {
                         (function(card) {
                             card.addEventListener("click", function(e) {
+                                if (e.target.closest(".ps-gtm-learn-more-btn") || e.target.closest(".ps-gtm-strategy-drawer")) {
+                                    return;
+                                }
                                 var key = card.getAttribute("data-key");
                                 if (select && select.value !== key) {
                                     select.value = key;
@@ -1441,6 +1804,15 @@ class Ps_Gtm_DataLayer extends Module
                                     syncStrategyCards();
                                 }
                             });
+
+                            card.addEventListener("keydown", function(e) {
+                                if (e.key === "Enter" || e.key === " " || e.keyCode === 13 || e.keyCode === 32) {
+                                    if (!e.target.closest(".ps-gtm-learn-more-btn") && !e.target.closest(".ps-gtm-strategy-drawer")) {
+                                        e.preventDefault();
+                                        card.click();
+                                    }
+                                }
+                            });
                         })(cards[i]);
                     }
 
@@ -1448,6 +1820,7 @@ class Ps_Gtm_DataLayer extends Module
                         select.addEventListener("change", syncStrategyCards);
                     }
                     syncStrategyCards();
+                    initLearnMoreToggles();
                 }
 
                 if (document.readyState === "loading") {
