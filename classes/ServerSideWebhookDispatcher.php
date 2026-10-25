@@ -152,6 +152,16 @@ class ServerSideWebhookDispatcher
             ? (isset($newOrderStatus->name[$idLanguage]) ? $newOrderStatus->name[$idLanguage] : reset($newOrderStatus->name))
             : (string)$newOrderStatus->name;
 
+        // Resolve previous status from database order history if not directly passed by hook
+        if ($previousStatusId <= 0 && class_exists('Db') && !empty($order->id)) {
+            try {
+                $sql = 'SELECT `id_order_state` FROM `' . _DB_PREFIX_ . 'order_history` ' .
+                    'WHERE `id_order` = ' . (int)$order->id . ' AND `id_order_state` != ' . (int)$newOrderStatus->id . ' ' .
+                    'ORDER BY `date_add` DESC, `id_order_history` DESC';
+                $previousStatusId = (int)Db::getInstance()->getValue($sql);
+            } catch (\Throwable $e) {}
+        }
+
         $previousIsPaid = false;
         $previousStatusName = '';
         if ($previousStatusId > 0) {
@@ -166,8 +176,31 @@ class ServerSideWebhookDispatcher
 
         $isPaidNow = (bool)$newOrderStatus->paid;
 
+        $canceledId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_CANCELED') : 6;
+        $refundedId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_REFUND') : 7;
+        $newStatusId = (int)$newOrderStatus->id;
+        $statusNameLower = strtolower($statusName);
+
+        $isRefunded = ($newStatusId === $refundedId
+            || $newStatusId === 7
+            || $newStatusId === 20
+            || $newStatusId === 26
+            || strpos($statusNameLower, 'refund') !== false
+            || strpos($statusNameLower, 'erstattet') !== false);
+
+        $isCanceled = ($newStatusId === $canceledId
+            || $newStatusId === 6
+            || strpos($statusNameLower, 'cancel') !== false
+            || strpos($statusNameLower, 'storniert') !== false);
+
         // Classify the exact transition type for self-healing ad platform reconciliation
-        if (!$previousIsPaid && $isPaidNow) {
+        if ($isRefunded) {
+            $transitionType = 'refund_issued';
+            $conversionAction = 'retract';
+        } elseif ($isCanceled) {
+            $transitionType = 'order_canceled';
+            $conversionAction = 'retract';
+        } elseif (!$previousIsPaid && $isPaidNow) {
             $transitionType = 'payment_confirmed';
             $conversionAction = 'record';
         } elseif ($previousIsPaid && !$isPaidNow) {
@@ -180,11 +213,6 @@ class ServerSideWebhookDispatcher
             $transitionType = 'status_changed_unpaid';
             $conversionAction = 'none';
         }
-
-        $canceledId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_CANCELED') : 6;
-        $refundedId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_REFUND') : 7;
-        $isCanceled = ((int)$newOrderStatus->id === $canceledId);
-        $isRefunded = ((int)$newOrderStatus->id === $refundedId);
 
         $currency = new Currency((int)$order->id_currency);
         $currencyIso = Validate::isLoadedObject($currency) ? $currency->iso_code : 'EUR';

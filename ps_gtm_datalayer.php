@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.34.0';
+        $this->version = '1.35.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -2527,7 +2527,12 @@ class Ps_Gtm_DataLayer extends Module
                 return;
             }
 
-            $previousStatusId = isset($params['id_order_state']) ? (int)$params['id_order_state'] : 0;
+            $previousStatusId = 0;
+            if (isset($params['oldOrderStatus']) && Validate::isLoadedObject($params['oldOrderStatus'])) {
+                $previousStatusId = (int)$params['oldOrderStatus']->id;
+            } elseif (isset($params['id_order_state'])) {
+                $previousStatusId = (int)$params['id_order_state'];
+            }
 
             ServerSideWebhookDispatcher::dispatchOrderStatusUpdate($order, $newOrderStatus, $previousStatusId, $sgtmUrl);
         } catch (\Throwable $e) {

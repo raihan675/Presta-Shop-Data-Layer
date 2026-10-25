@@ -365,4 +365,72 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(payload.events[0].name, 'order_status_update');
   });
 
+  it('16. Should classify refund_issued with conversion_action: retract when order status changes to Refunded', () => {
+    function classifyTransitionWithOverrides(newStatusId, statusName, previousIsPaid, isPaidNow) {
+      const statusNameLower = (statusName || '').toLowerCase();
+      const isRefunded = (newStatusId === 7 || newStatusId === 20 || newStatusId === 26 ||
+        statusNameLower.includes('refund') || statusNameLower.includes('erstattet'));
+      const isCanceled = (newStatusId === 6 || statusNameLower.includes('cancel') || statusNameLower.includes('storniert'));
+
+      if (isRefunded) {
+        return { transitionType: 'refund_issued', conversionAction: 'retract', isRefunded: true, isCanceled: false };
+      } else if (isCanceled) {
+        return { transitionType: 'order_canceled', conversionAction: 'retract', isRefunded: false, isCanceled: true };
+      } else if (!previousIsPaid && isPaidNow) {
+        return { transitionType: 'payment_confirmed', conversionAction: 'record', isRefunded: false, isCanceled: false };
+      } else if (previousIsPaid && !isPaidNow) {
+        return { transitionType: 'payment_revoked', conversionAction: 'retract', isRefunded: false, isCanceled: false };
+      } else if (previousIsPaid && isPaidNow) {
+        return { transitionType: 'status_changed_while_paid', conversionAction: 'maintain', isRefunded: false, isCanceled: false };
+      } else {
+        return { transitionType: 'status_changed_unpaid', conversionAction: 'none', isRefunded: false, isCanceled: false };
+      }
+    }
+
+    // Changing from Payment accepted (ID 2, previously paid) to Refunded (ID 7)
+    const result1 = classifyTransitionWithOverrides(7, 'Refunded', true, false);
+    assert.strictEqual(result1.transitionType, 'refund_issued');
+    assert.strictEqual(result1.conversionAction, 'retract');
+    assert.strictEqual(result1.isRefunded, true);
+
+    // Changing from German Erstattet (ID 7) even if previous was unpaid bank wire
+    const result2 = classifyTransitionWithOverrides(7, 'Erstattet', false, false);
+    assert.strictEqual(result2.transitionType, 'refund_issued');
+    assert.strictEqual(result2.conversionAction, 'retract');
+    assert.strictEqual(result2.isRefunded, true);
+
+    // Mollie partial refund (ID 20)
+    const result3 = classifyTransitionWithOverrides(20, 'Partially refunded by Mollie', true, false);
+    assert.strictEqual(result3.transitionType, 'refund_issued');
+    assert.strictEqual(result3.conversionAction, 'retract');
+  });
+
+  it('17. Should classify order_canceled with conversion_action: retract when order status changes to Canceled', () => {
+    function classifyTransitionWithOverrides(newStatusId, statusName, previousIsPaid, isPaidNow) {
+      const statusNameLower = (statusName || '').toLowerCase();
+      const isRefunded = (newStatusId === 7 || newStatusId === 20 || newStatusId === 26 ||
+        statusNameLower.includes('refund') || statusNameLower.includes('erstattet'));
+      const isCanceled = (newStatusId === 6 || statusNameLower.includes('cancel') || statusNameLower.includes('storniert'));
+
+      if (isRefunded) {
+        return { transitionType: 'refund_issued', conversionAction: 'retract', isRefunded: true, isCanceled: false };
+      } else if (isCanceled) {
+        return { transitionType: 'order_canceled', conversionAction: 'retract', isRefunded: false, isCanceled: true };
+      } else if (!previousIsPaid && isPaidNow) {
+        return { transitionType: 'payment_confirmed', conversionAction: 'record', isRefunded: false, isCanceled: false };
+      } else if (previousIsPaid && !isPaidNow) {
+        return { transitionType: 'payment_revoked', conversionAction: 'retract', isRefunded: false, isCanceled: false };
+      } else if (previousIsPaid && isPaidNow) {
+        return { transitionType: 'status_changed_while_paid', conversionAction: 'maintain', isRefunded: false, isCanceled: false };
+      } else {
+        return { transitionType: 'status_changed_unpaid', conversionAction: 'none', isRefunded: false, isCanceled: false };
+      }
+    }
+
+    const result = classifyTransitionWithOverrides(6, 'Bestellung storniert', true, false);
+    assert.strictEqual(result.transitionType, 'order_canceled');
+    assert.strictEqual(result.conversionAction, 'retract');
+    assert.strictEqual(result.isCanceled, true);
+  });
+
 });

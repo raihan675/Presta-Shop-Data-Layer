@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.35.0] - 2026-10-25
+
+### Fixed
+- **Accurate Previous Order Status Resolution**:
+  - Fixed previous status detection in `actionOrderStatusPostUpdate` hook by inspecting `$params['oldOrderStatus']` and querying historical `ps_order_history` logs, resolving `previous_status_id: 0`.
+- **Ironclad Conversion Retraction for Refunds and Cancellations**:
+  - Overridden status transition classification so moving to **Refunded** (Status 7, 20, 26, or "Refunded" / "Erstattet") or **Canceled** (Status 6, or "Canceled" / "Storniert") ALWAYS outputs `conversion_action: "retract"`.
+  - Classifies `status_transition_type` as `refund_issued` or `order_canceled`, enabling automated offline conversion reversals in Google Ads, Meta CAPI, and GA4 without ambiguity.
+
+---
+
 ## [1.34.0] - 2026-10-25
 
 ### Changed
