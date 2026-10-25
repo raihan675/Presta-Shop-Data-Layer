@@ -152,6 +152,40 @@ class ServerSideWebhookDispatcher
             ? (isset($newOrderStatus->name[$idLanguage]) ? $newOrderStatus->name[$idLanguage] : reset($newOrderStatus->name))
             : (string)$newOrderStatus->name;
 
+        $previousIsPaid = false;
+        $previousStatusName = '';
+        if ($previousStatusId > 0) {
+            $prevOrderState = new OrderState((int)$previousStatusId);
+            if (Validate::isLoadedObject($prevOrderState)) {
+                $previousIsPaid = (bool)$prevOrderState->paid;
+                $previousStatusName = is_array($prevOrderState->name)
+                    ? (isset($prevOrderState->name[$idLanguage]) ? $prevOrderState->name[$idLanguage] : reset($prevOrderState->name))
+                    : (string)$prevOrderState->name;
+            }
+        }
+
+        $isPaidNow = (bool)$newOrderStatus->paid;
+
+        // Classify the exact transition type for self-healing ad platform reconciliation
+        if (!$previousIsPaid && $isPaidNow) {
+            $transitionType = 'payment_confirmed';
+            $conversionAction = 'record';
+        } elseif ($previousIsPaid && !$isPaidNow) {
+            $transitionType = 'payment_revoked';
+            $conversionAction = 'retract';
+        } elseif ($previousIsPaid && $isPaidNow) {
+            $transitionType = 'status_changed_while_paid';
+            $conversionAction = 'maintain';
+        } else {
+            $transitionType = 'status_changed_unpaid';
+            $conversionAction = 'none';
+        }
+
+        $canceledId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_CANCELED') : 6;
+        $refundedId = class_exists('Configuration') ? (int)Configuration::get('PS_OS_REFUND') : 7;
+        $isCanceled = ((int)$newOrderStatus->id === $canceledId);
+        $isRefunded = ((int)$newOrderStatus->id === $refundedId);
+
         $currency = new Currency((int)$order->id_currency);
         $currencyIso = Validate::isLoadedObject($currency) ? $currency->iso_code : 'EUR';
 
@@ -195,11 +229,17 @@ class ServerSideWebhookDispatcher
         $params = [
             'transaction_id' => (string)$order->id,
             'order_reference' => (string)$order->reference,
+            'status_transition_type' => $transitionType,
+            'conversion_action' => $conversionAction,
             'new_status_id' => (int)$newOrderStatus->id,
             'new_status_name' => (string)$statusName,
             'previous_status_id' => (int)$previousStatusId,
-            'is_paid' => (bool)$newOrderStatus->paid,
+            'previous_status_name' => (string)$previousStatusName,
+            'is_paid' => $isPaidNow,
+            'previous_is_paid' => $previousIsPaid,
             'is_shipped' => (bool)$newOrderStatus->shipped,
+            'is_canceled' => $isCanceled,
+            'is_refunded' => $isRefunded,
             'currency' => $currencyIso,
             'value' => round((float)$order->total_paid_tax_incl, 2),
             'payment_method' => (string)$order->payment,

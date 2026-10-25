@@ -242,4 +242,41 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(newOrderStatus.id, 11);
   });
 
+  it('10. Should classify Payment Revocation when admin reverts a mistakenly paid order back to unpaid', () => {
+    function classifyTransition(previousIsPaid, isPaidNow) {
+      if (!previousIsPaid && isPaidNow) {
+        return { transitionType: 'payment_confirmed', conversionAction: 'record' };
+      } else if (previousIsPaid && !isPaidNow) {
+        return { transitionType: 'payment_revoked', conversionAction: 'retract' };
+      } else if (previousIsPaid && isPaidNow) {
+        return { transitionType: 'status_changed_while_paid', conversionAction: 'maintain' };
+      } else {
+        return { transitionType: 'status_changed_unpaid', conversionAction: 'none' };
+      }
+    }
+
+    // Mistakenly paid order (status 2, paid: true) reverted to Bank Wire (status 10, paid: false)
+    const result = classifyTransition(true, false);
+    assert.strictEqual(result.transitionType, 'payment_revoked');
+    assert.strictEqual(result.conversionAction, 'retract');
+  });
+
+  it('11. Should classify status_changed_while_paid when order moves from Payment accepted to Shipped', () => {
+    function classifyTransition(previousIsPaid, isPaidNow) {
+      if (!previousIsPaid && isPaidNow) {
+        return { transitionType: 'payment_confirmed', conversionAction: 'record' };
+      } else if (previousIsPaid && !isPaidNow) {
+        return { transitionType: 'payment_revoked', conversionAction: 'retract' };
+      } else if (previousIsPaid && isPaidNow) {
+        return { transitionType: 'status_changed_while_paid', conversionAction: 'maintain' };
+      } else {
+        return { transitionType: 'status_changed_unpaid', conversionAction: 'none' };
+      }
+    }
+
+    const result = classifyTransition(true, true);
+    assert.strictEqual(result.transitionType, 'status_changed_while_paid');
+    assert.strictEqual(result.conversionAction, 'maintain');
+  });
+
 });

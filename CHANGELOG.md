@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.31.0] - 2026-10-25
+
+### Added
+- **Self-Healing Payment Revocation & Mistake Reversal Detection**:
+  - Automatically detects when a Back Office administrator mistakenly marks an order as paid and subsequently reverts it to an unpaid or canceled state.
+  - Compares `$previousOrderState->paid` with `$newOrderStatus->paid` to classify transitions:
+    - `payment_confirmed` (`conversion_action: "record"`) when unpaid &rarr; paid.
+    - `payment_revoked` (`conversion_action: "retract"`) when paid &rarr; unpaid/canceled.
+    - `status_changed_while_paid` (`conversion_action: "maintain"`).
+    - `status_changed_unpaid` (`conversion_action: "none"`).
+  - Supplies `conversion_action` and `status_transition_type` in the Server GTM payload, allowing Google Ads to execute Conversion Retractions and GA4 to issue refunds automatically for human errors.
+  - Added unit test cases 10 and 11 in `tests/serverSideWebhook.test.js`.
+
+---
+
 ## [1.30.0] - 2026-10-25
 
 ### Added
