@@ -228,7 +228,24 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.39.0', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.39.1', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+
+// Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
+const allTplFiles = [];
+function findTpls(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const ent of entries) {
+    const full = path.join(dir, ent.name);
+    if (ent.isDirectory()) findTpls(full);
+    else if (ent.name.endsWith('.tpl')) allTplFiles.push(full);
+  }
+}
+findTpls(path.join(MODULE_ROOT, 'views'));
+allTplFiles.forEach(tpl => {
+  const tplContent = fs.readFileSync(tpl, 'utf8');
+  const rel = path.relative(MODULE_ROOT, tpl);
+  report(`No illegal |implode Smarty modifier in ${rel}`, !tplContent.includes('|implode'), `Found illegal |implode modifier in ${rel}`);
+});
 
 // Zero DOM Scraping Verification
 const adapterCode = fs.readFileSync(path.join(MODULE_ROOT, 'views', 'js', 'prestashop-adapter.js'), 'utf8');
@@ -755,6 +772,16 @@ if (fs.existsSync(upgrade1390Path)) {
   report('Upgrade function upgrade_module_1_39_0 properly declared', hasUpgradeFunction390 && returnsTrue390, 'Missing or invalid function signature in upgrade-1.39.0.php');
 } else {
   report('Upgrade script upgrade-1.39.0.php exists', false, 'Missing upgrade-1.39.0.php');
+}
+
+const upgrade1391Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.39.1.php');
+if (fs.existsSync(upgrade1391Path)) {
+  const upCode391 = fs.readFileSync(upgrade1391Path, 'utf8');
+  const hasUpgradeFunction391 = upCode391.includes('function upgrade_module_1_39_1($module)');
+  const returnsTrue391 = upCode391.includes('return true;');
+  report('Upgrade function upgrade_module_1_39_1 properly declared', hasUpgradeFunction391 && returnsTrue391, 'Missing or invalid function signature in upgrade-1.39.1.php');
+} else {
+  report('Upgrade script upgrade-1.39.1.php exists', false, 'Missing upgrade-1.39.1.php');
 }
 
 // -------------------------------------------------------------

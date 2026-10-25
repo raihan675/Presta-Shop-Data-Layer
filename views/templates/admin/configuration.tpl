@@ -554,7 +554,7 @@
             </td>
             <td>
               <div class="ps-gtm-dest-cell" data-event="{$e.name|escape:'html':'UTF-8'}">
-                <span class="ps-gtm-dest-summary-pill" title="{$e.active_dest_names|implode:', '|escape:'html':'UTF-8'}">
+                <span class="ps-gtm-dest-summary-pill" title="{$e.active_dest_names_str|escape:'html':'UTF-8'}">
                   <i class="icon-share-alt"></i> <span class="dest-count-num">{$e.active_dest_count|escape:'html':'UTF-8'}</span> {l s='destinations' mod='ps_gtm_datalayer'}
                 </span>
                 {if $e.has_sgtm_webhook}

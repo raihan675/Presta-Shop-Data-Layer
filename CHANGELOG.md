@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.39.1] - 2026-10-25
+
+### Fixed
+- **PHP 8 / Smarty Fatal TypeError Hotfix**:
+  - Resolved Back Office HTTP 500 Internal Server Error caused by `{$e.active_dest_names|implode:', '}` in `views/templates/admin/configuration.tpl`. In PHP 8.0+, invoking PHP's `implode` via Smarty modifier syntax passes array as first argument (`implode($array, $glue)`), triggering a fatal `TypeError` in Symfony/PrestaShop.
+  - Pre-formatted active destination names into server-side string properties (`active_dest_names_str`) in `ps_gtm_datalayer.php` (`renderAdminTabs()`), eliminating all runtime template array transformation modifiers.
+- **Defensive Back Office Exception Guard**:
+  - Wrapped `getContent()` and `renderAdminTabs()` in comprehensive `try ... catch (\Throwable $e)` exception boundaries to intercept and gracefully log any unexpected rendering errors, preventing any 500 white-screen or Symfony crash in PrestaShop Back Office.
+
+---
+
 ## [1.39.0] - 2026-10-25
 
 ### Added

@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.39.0';
+        $this->version = '1.39.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -151,7 +151,8 @@ class Ps_Gtm_DataLayer extends Module
 
     public function getContent()
     {
-        // Keep database version synchronized and cache fresh
+        try {
+            // Keep database version synchronized and cache fresh
         PlatformAdapter::syncModuleDatabaseVersion($this->name, $this->version);
 
         // Auto-register displayBackOfficeTop if upgrading from earlier version
@@ -332,7 +333,21 @@ class Ps_Gtm_DataLayer extends Module
         $output .= $this->renderUpdateBanner($updateInfo);
 
         return $output . $this->renderAdminTabs();
+    } catch (\Throwable $e) {
+        if (class_exists('PrestaShopLogger')) {
+            PrestaShopLogger::addLog(
+                '[ps_gtm_datalayer] getContent() exception: ' . $e->getMessage(),
+                3,
+                null,
+                'ps_gtm_datalayer'
+            );
+        }
+        return $this->displayError(sprintf(
+            $this->l('An unexpected error occurred while loading module configuration: %s'),
+            htmlspecialchars($e->getMessage())
+        ));
     }
+}
 
     private function renderUpdateBanner($updateInfo)
     {
@@ -703,8 +718,10 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
+            $activeDestNamesStr = !empty($activeDestNames) ? implode(', ', $activeDestNames) : '';
             $evt['active_dest_count'] = $activeDestCount;
             $evt['active_dest_names'] = $activeDestNames;
+            $evt['active_dest_names_str'] = $activeDestNamesStr;
             $evt['dest_map'] = $destMap;
 
             $schemasJsonMap[$eName] = [
@@ -722,6 +739,7 @@ class Ps_Gtm_DataLayer extends Module
                 'destinations' => $destMap,
                 'active_dest_count' => $activeDestCount,
                 'active_dest_names' => $activeDestNames,
+                'active_dest_names_str' => $activeDestNamesStr,
                 'platform_mappings' => isset($evt['platform_mappings']) ? $evt['platform_mappings'] : [],
                 'example' => json_decode($evt['example_json'], true),
             ];
@@ -790,7 +808,22 @@ class Ps_Gtm_DataLayer extends Module
             'events_schemas_json' => json_encode($schemasJsonMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
         ]);
 
-        return $this->display(__FILE__, 'views/templates/admin/configuration.tpl');
+        try {
+            return $this->display(__FILE__, 'views/templates/admin/configuration.tpl');
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog(
+                    '[ps_gtm_datalayer] Smarty rendering exception: ' . $e->getMessage(),
+                    3,
+                    null,
+                    'ps_gtm_datalayer'
+                );
+            }
+            return $this->displayError(sprintf(
+                $this->l('Error rendering configuration template: %s'),
+                htmlspecialchars($e->getMessage())
+            ));
+        }
     }
 
     public static function isEventEnabled($eventName)
