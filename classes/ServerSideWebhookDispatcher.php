@@ -294,8 +294,31 @@ class ServerSideWebhookDispatcher
                 $body = self::buildGa4BeaconBody($measurementId, $clientId, $eventName, $params);
                 $contentType = 'text/plain';
             } else {
-                $endpoint = rtrim($sgtmUrl, '/') . '/g/collect?v=2';
-                $body = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
+                if (empty($endpointPath)) {
+                    $endpointPath = '/ps-webhook';
+                }
+
+                $parsedUrl = parse_url($sgtmUrl);
+                if (!empty($parsedUrl['path']) && $parsedUrl['path'] !== '/') {
+                    $endpoint = $sgtmUrl;
+                } else {
+                    $endpoint = rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/');
+                }
+
+                $jsonPayload = array_merge([
+                    'event_name' => $eventName,
+                    'client_id' => $clientId,
+                    'timestamp' => time(),
+                ], $params);
+                $jsonPayload['events'] = [
+                    [
+                        'name' => $eventName,
+                        'params' => $params,
+                    ]
+                ];
+
+                $body = json_encode($jsonPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                 $contentType = 'application/json';
             }
 

@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.32.0';
+        $this->version = '1.33.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -87,6 +87,7 @@ class Ps_Gtm_DataLayer extends Module
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
+            && Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', '/ps-webhook')
             && Configuration::updateValue('PS_SGTM_GA4_MEASUREMENT_ID', '')
             && Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', '')
             && Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', '1')
@@ -117,6 +118,7 @@ class Ps_Gtm_DataLayer extends Module
             && DeduplicationManager::dropDatabaseTable()
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
+            && Configuration::deleteByName('PS_SGTM_WEBHOOK_ENDPOINT_PATH')
             && Configuration::deleteByName('PS_SGTM_GA4_MEASUREMENT_ID')
             && Configuration::deleteByName('PS_SGTM_PREVIEW_HEADER')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_REFUND_ENABLED')
@@ -217,6 +219,7 @@ class Ps_Gtm_DataLayer extends Module
             if (Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
                 $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
                 $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
+                $sgtmEndpointPath = trim((string)Tools::getValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH'));
                 $sgtmMeasurementId = trim((string)Tools::getValue('PS_SGTM_GA4_MEASUREMENT_ID'));
                 $sgtmPreviewHeader = trim((string)Tools::getValue('PS_SGTM_PREVIEW_HEADER'));
                 $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
@@ -231,6 +234,7 @@ class Ps_Gtm_DataLayer extends Module
                 } else {
                     Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
                     Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
+                    Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', $sgtmEndpointPath ?: '/ps-webhook');
                     Configuration::updateValue('PS_SGTM_GA4_MEASUREMENT_ID', $sgtmMeasurementId);
                     Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', $sgtmPreviewHeader);
                     $rawHeadCode = Tools::getValue('PS_GTM_RAW_HEAD_CODE', false);
@@ -531,6 +535,7 @@ class Ps_Gtm_DataLayer extends Module
             'fields_value' => [
                 'PS_GTM_CONTAINER_ID' => Configuration::get('PS_GTM_CONTAINER_ID'),
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
+                'PS_SGTM_WEBHOOK_ENDPOINT_PATH' => Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH') ?: '/ps-webhook',
                 'PS_SGTM_GA4_MEASUREMENT_ID' => Configuration::get('PS_SGTM_GA4_MEASUREMENT_ID'),
                 'PS_SGTM_PREVIEW_HEADER' => Configuration::get('PS_SGTM_PREVIEW_HEADER'),
                 'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
@@ -638,6 +643,22 @@ class Ps_Gtm_DataLayer extends Module
                             'https://gtm.yourdomain.com'
                         ),
                         'size' => 50,
+                    ],
+                    [
+                        'type' => 'text',
+                        'name' => 'PS_SGTM_WEBHOOK_ENDPOINT_PATH',
+                        'label' => $this->l('Server GTM Webhook Path (Optional)'),
+                        'hint' => $this->l('HTTP path claimed by your sGTM Client. Default is /ps-webhook. If using Stape Data Client, enter /data.'),
+                        'desc' => $this->renderSettingHelp(
+                            'sgtm_webhook_endpoint_path',
+                            $this->l('Target URL path for Server-to-Server webhooks (refunds, offline orders, status updates).'),
+                            $this->l('Default is /ps-webhook for use with the dedicated PrestaShop Webhook Client template.'),
+                            $this->l('If you use Stape Data Client in sGTM, set this to /data to transmit pure JSON directly to Data Client.'),
+                            $this->l('Can be left blank or overridden with a custom endpoint path if your reverse proxy requires custom routing.'),
+                            $this->l('If your Transport URL above already includes a full path, this setting is bypassed automatically.'),
+                            '/ps-webhook'
+                        ),
+                        'size' => 30,
                     ],
                     [
                         'type' => 'text',

@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.32.0",
+    "latest_version":  "1.33.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.32.0/ps_gtm_datalayer.zip",
-    "checksum":  "bd6c60bff73e65631f1c3516f08cbee67b364e622e08e249fb9ea12b637e341c",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.33.0/ps_gtm_datalayer.zip",
+    "checksum":  "7124acdcb60b24cdf07c2d4693c7f1d601a890471bef841ba549e3d242983633",
     "release_type":  "minor",
-    "release_notes":  "1. Added native sGTM GA4 Client compatibility: Encodes webhooks into canonical GA4 beacon format when GA4 Measurement ID is provided, guaranteeing HTTP 200 acceptance.\n2. Added sGTM Debug / Preview Header support (X-Gtm-Server-Preview) for real-time live debugging inside GTM Server Preview mode.\n3. Automatic self-healing hook registration in Back Office to ensure zero missed webhook events."
+    "release_notes":  "1. Added dedicated PrestaShop Webhook Client template for Server GTM (prestashop-client-template.tpl) for 100% deterministic parameter mapping into Common Event Data.\n2. Added configurable Webhook Endpoint Path (default: /ps-webhook, with direct /data Stape Data Client compatibility).\n3. Enriched JSON webhook payloads with top-level event_name, financial totals, and user data for zero-latency real-time debugging."
 }

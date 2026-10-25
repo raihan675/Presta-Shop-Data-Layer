@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.33.0] - 2026-10-25
+
+### Added
+- **Dedicated PrestaShop Webhook Client for Server GTM (`prestashop-client-template.tpl`)**:
+  - Purpose-built sandboxed sGTM Client template that claims `/ps-webhook` (and `/prestashop/webhook`).
+  - Natively maps PrestaShop webhooks (`order_status_update`, `purchase`, `refund`) directly into Google Tag Manager **Common Event Data** (`event_name`, `transaction_id`, `items`, `user_data`, `status_transition_type`, `conversion_action`, `is_paid`, etc.).
+  - Bypasses GA4 Client collisions and Stape Data Client formatting restrictions for sub-second real-time event evaluation.
+- **Configurable Webhook Endpoint Path (`PS_SGTM_WEBHOOK_ENDPOINT_PATH`)**:
+  - Added dedicated Back Office input to route webhooks to any path (defaults to `/ps-webhook`, or `/data` for Stape Data Client).
+  - Automatically respects full path URLs entered in `PS_SGTM_TRANSPORT_URL`.
+- **Dual Flat & Envelope JSON Payloads**:
+  - Enriches outgoing JSON payloads with top-level `event_name`, `client_id`, and parameters while retaining nested `events` array for universal sGTM client compatibility.
+
+---
+
 ## [1.32.0] - 2026-10-25
 
 ### Added

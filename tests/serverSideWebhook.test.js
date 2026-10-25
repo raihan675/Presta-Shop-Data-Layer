@@ -371,4 +371,64 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(emptyHeaders['X-Gtm-Server-Preview'], undefined);
   });
 
+  it('14. Should resolve webhook endpoint with default /ps-webhook or custom endpoint path', () => {
+    function resolveEndpoint(sgtmUrl, customPath) {
+      const p = customPath ? customPath.trim() : '/ps-webhook';
+      try {
+        const u = new URL(sgtmUrl);
+        if (u.pathname && u.pathname !== '/') {
+          return sgtmUrl;
+        }
+        return `${sgtmUrl.replace(/\/+$/, '')}/${p.replace(/^\/+/, '')}`;
+      } catch (e) {
+        return `${sgtmUrl.replace(/\/+$/, '')}/${p.replace(/^\/+/, '')}`;
+      }
+    }
+
+    assert.strictEqual(
+      resolveEndpoint('https://qdktisyx.in.stape.io', '/ps-webhook'),
+      'https://qdktisyx.in.stape.io/ps-webhook'
+    );
+    assert.strictEqual(
+      resolveEndpoint('https://qdktisyx.in.stape.io', '/data'),
+      'https://qdktisyx.in.stape.io/data'
+    );
+    assert.strictEqual(
+      resolveEndpoint('https://qdktisyx.in.stape.io/custom-endpoint', '/ps-webhook'),
+      'https://qdktisyx.in.stape.io/custom-endpoint'
+    );
+  });
+
+  it('15. Should build dual flat & envelope JSON payload with top-level event_name for custom client', () => {
+    function buildDualJsonPayload(eventName, clientId, params) {
+      const payload = Object.assign({
+        event_name: eventName,
+        client_id: clientId,
+        timestamp: 1792918871
+      }, params);
+      payload.events = [
+        {
+          name: eventName,
+          params: params
+        }
+      ];
+      return payload;
+    }
+
+    const payload = buildDualJsonPayload('order_status_update', '1254.170000', {
+      transaction_id: '1254',
+      is_paid: true,
+      status_transition_type: 'payment_confirmed',
+      value: 17.50
+    });
+
+    assert.strictEqual(payload.event_name, 'order_status_update');
+    assert.strictEqual(payload.transaction_id, '1254');
+    assert.strictEqual(payload.is_paid, true);
+    assert.strictEqual(payload.status_transition_type, 'payment_confirmed');
+    assert.strictEqual(payload.value, 17.50);
+    assert.ok(Array.isArray(payload.events));
+    assert.strictEqual(payload.events[0].name, 'order_status_update');
+  });
+
 });

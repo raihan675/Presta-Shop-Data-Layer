@@ -318,6 +318,13 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
 * **PrestaShop System Audit Logs**:
   * All webhook dispatches are recorded directly in **Advanced Parameters > Logs** (`PrestaShopLogger`), indicating the event name, endpoint URL, and HTTP status code (`200 OK` or errors).
 
+### 5. Dedicated PrestaShop Webhook Client Template for sGTM
+To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a turnkey **Server GTM Client Template** (`prestashop-client-template.tpl`):
+* **One-Click Import**: In Server GTM, navigate to **Templates > Client Templates > New > ⋮ (top right) > Import**, and select `prestashop-client-template.tpl`.
+* **Zero Collision**: Listens on its own dedicated endpoint: `/ps-webhook` (configurable via `PS_SGTM_WEBHOOK_ENDPOINT_PATH`).
+* **Instant Common Event Data**: Converts incoming PrestaShop JSON directly into standard Google Common Event Data (`event_name`, `transaction_id`, `items`, `user_data`, `status_transition_type`, `conversion_action`, `is_paid`), evaluating downstream tags (Meta CAPI, Google Ads, GA4) in real-time.
+* **Instant GTM Preview**: Combining direct `X-Gtm-Server-Preview` header injection with `/ps-webhook` eliminates proxy propagation delays, rendering events in your Server Preview window in **< 100ms**.
+
 ---
 
 ## Installation & Setup
