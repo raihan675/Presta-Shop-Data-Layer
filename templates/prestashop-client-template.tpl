@@ -115,10 +115,9 @@ const rawBody = getRequestBody();
 let payload = {};
 
 if (rawBody) {
-  try {
-    payload = JSON.parse(rawBody);
-  } catch (e) {
-    payload = {};
+  const parsed = JSON.parse(rawBody);
+  if (parsed) {
+    payload = parsed;
   }
 }
 
