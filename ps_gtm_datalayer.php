@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.38.0';
+        $this->version = '1.39.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -308,6 +308,18 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($pinterestEvts));
                 Configuration::updateValue('PS_GTM_ADV_MICROSOFT_EVENTS', json_encode($microsoftEvts));
 
+                $settingsSaved = true;
+            }
+
+            // 3. Process Events Active/Enabled Status if submitted
+            if (Tools::getValue('PS_GTM_EVENTS_SUBMITTED') || Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
+                $activeEvents = [];
+                foreach (self::getCanonicalEventsCatalog() as $cEvt) {
+                    if (Tools::getValue('event_active_' . $cEvt['name'])) {
+                        $activeEvents[] = $cEvt['name'];
+                    }
+                }
+                Configuration::updateValue('PS_GTM_ACTIVE_EVENTS', json_encode($activeEvents));
                 $settingsSaved = true;
             }
 
@@ -612,16 +624,109 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
-        // Event Schemas for modal inspector
+        // Event Schemas and Live Destination Routing for inspect drawer and table
         $schemasJsonMap = [];
-        foreach ($eventsCatalog as $evt) {
-            $schemasJsonMap[$evt['name']] = [
-                'name' => $evt['name'],
+        foreach ($eventsCatalog as &$evt) {
+            $eName = $evt['name'];
+            $destMap = [
+                'meta' => [
+                    'key' => 'meta',
+                    'name' => 'Meta Pixel & Conversions API (CAPI)',
+                    'short_name' => 'Meta',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_META_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $metaActive),
+                    'code' => isset($evt['platform_mappings']['meta']) ? $evt['platform_mappings']['meta'] : '',
+                ],
+                'gads' => [
+                    'key' => 'gads',
+                    'name' => 'Google Ads Dynamic Remarketing',
+                    'short_name' => 'Google Ads',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $gadsActive),
+                    'code' => isset($evt['platform_mappings']['gads']) ? $evt['platform_mappings']['gads'] : '',
+                ],
+                'tiktok' => [
+                    'key' => 'tiktok',
+                    'name' => 'TikTok Pixel & Events API',
+                    'short_name' => 'TikTok',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $tiktokActive),
+                    'code' => isset($evt['platform_mappings']['tiktok']) ? $evt['platform_mappings']['tiktok'] : '',
+                ],
+                'pinterest' => [
+                    'key' => 'pinterest',
+                    'name' => 'Pinterest Tag & Conversions API (CAPI)',
+                    'short_name' => 'Pinterest',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $pinterestActive),
+                    'code' => isset($evt['platform_mappings']['pinterest']) ? $evt['platform_mappings']['pinterest'] : '',
+                ],
+                'microsoft' => [
+                    'key' => 'microsoft',
+                    'name' => 'Microsoft Advertising (Bing Ads) & UET',
+                    'short_name' => 'Microsoft Ads',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $microsoftActive),
+                    'code' => isset($evt['platform_mappings']['microsoft']) ? $evt['platform_mappings']['microsoft'] : '',
+                ],
+            ];
+            if (!empty($evt['has_sgtm_webhook'])) {
+                $destMap['sgtm'] = [
+                    'key' => 'sgtm',
+                    'name' => 'Server GTM Webhook Client',
+                    'short_name' => 'sGTM Webhook',
+                    'supported' => true,
+                    'globally_enabled' => !empty($sgtmUrl),
+                    'routed' => !empty($sgtmUrl),
+                    'code' => 'Server-to-server HTTP POST payload to ' . $targetEndpoint,
+                ];
+            }
+
+            $activeDestCount = 0;
+            $activeDestNames = [];
+            foreach ($destMap as $pk => $pdata) {
+                if ($pk === 'sgtm') {
+                    if ($pdata['globally_enabled']) {
+                        $activeDestCount++;
+                        $activeDestNames[] = $pdata['short_name'];
+                    }
+                } else {
+                    if ($pdata['supported'] && $pdata['globally_enabled'] && $pdata['routed']) {
+                        $activeDestCount++;
+                        $activeDestNames[] = $pdata['short_name'];
+                    }
+                }
+            }
+
+            $evt['active_dest_count'] = $activeDestCount;
+            $evt['active_dest_names'] = $activeDestNames;
+            $evt['dest_map'] = $destMap;
+
+            $schemasJsonMap[$eName] = [
+                'name' => $eName,
                 'label' => $evt['label'],
+                'icon' => isset($evt['icon']) ? $evt['icon'] : 'icon-bolt',
+                'category' => $evt['category'],
+                'category_label' => $evt['category_label'],
                 'desc' => $evt['desc'],
+                'trigger_hook' => $evt['trigger_hook'],
+                'dependencies' => isset($evt['dependencies']) ? $evt['dependencies'] : '',
+                'is_active' => !empty($evt['is_active']),
+                'has_sgtm_webhook' => !empty($evt['has_sgtm_webhook']),
+                'schema_fields' => isset($evt['schema_fields']) ? $evt['schema_fields'] : [],
+                'destinations' => $destMap,
+                'active_dest_count' => $activeDestCount,
+                'active_dest_names' => $activeDestNames,
+                'platform_mappings' => isset($evt['platform_mappings']) ? $evt['platform_mappings'] : [],
                 'example' => json_decode($evt['example_json'], true),
             ];
         }
+        unset($evt);
 
         $activeTab = Tools::getValue('active_tab', 'tab-overview');
 
@@ -688,22 +793,44 @@ class Ps_Gtm_DataLayer extends Module
         return $this->display(__FILE__, 'views/templates/admin/configuration.tpl');
     }
 
+    public static function isEventEnabled($eventName)
+    {
+        $raw = Configuration::get('PS_GTM_ACTIVE_EVENTS');
+        if ($raw === false || $raw === null) {
+            return true;
+        }
+        $active = json_decode($raw, true);
+        if (!is_array($active)) {
+            return true;
+        }
+        return in_array($eventName, $active, true);
+    }
+
     public static function getCanonicalEventsCatalog()
     {
         return [
             [
                 'name' => 'page_view',
                 'label' => 'Page View',
+                'icon' => 'icon-eye',
                 'category' => 'discovery',
                 'category_label' => 'Discovery',
                 'desc' => 'Global storefront page browsing with page title, URL path, and user identifiers',
                 'trigger_hook' => 'hookDisplayHeader (All storefront pages)',
+                'dependencies' => 'PrestaShop core DisplayHeader lifecycle hook',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('page_view'),
                 'schema_fields' => [
                     ['name' => 'page_location', 'type' => 'string', 'source' => 'window.location.href', 'destinations' => 'GA4: page_location, Meta: dl, TikTok: page_url, UET: page_path', 'desc' => 'Full URL of currently rendered page'],
                     ['name' => 'page_title', 'type' => 'string', 'source' => 'document.title', 'destinations' => 'GA4: page_title, Meta: title', 'desc' => 'Storefront HTML document title'],
                     ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (Hashed)', 'destinations' => 'GA4 user_data, Meta CAPI em/ph, TikTok, UET pid', 'desc' => 'SHA-256 encrypted customer identity for advanced matching'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'PageView');",
+                    'gads' => "gtag('event', 'page_view', { page_location: '...', page_title: '...' });",
+                    'tiktok' => "ttq.page();",
+                    'pinterest' => "pintrk('track', 'PageVisit');",
+                    'microsoft' => "uetq.push('event', 'page_view', { page_path: '...' });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'page_view',
@@ -718,16 +845,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'view_item_list',
                 'label' => 'View Item List',
+                'icon' => 'icon-th-list',
                 'category' => 'discovery',
                 'category_label' => 'Discovery',
                 'desc' => 'Viewing category, search results, brand/manufacturer, or catalog listing',
                 'trigger_hook' => 'hookDisplayHeader (CategoryController / ManufacturerController)',
+                'dependencies' => 'CategoryController, ManufacturerController, or SupplierController',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('view_item_list'),
                 'schema_fields' => [
                     ['name' => 'item_list_id', 'type' => 'string', 'source' => 'category_{id_category}', 'destinations' => 'GA4: item_list_id, Meta: content_category', 'desc' => 'Unique category or listing identifier'],
                     ['name' => 'item_list_name', 'type' => 'string', 'source' => 'Category::name', 'destinations' => 'GA4: item_list_name, Pinterest: category_name', 'desc' => 'Authoritative localized category name'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Backend product models', 'destinations' => 'GA4: items, Meta: contents, GAds: ecomm_prodid', 'desc' => 'Array of displayed catalog items'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('trackCustom', 'ViewCategory', { content_type: 'product_group', content_ids: ['...'], contents: [...] });",
+                    'gads' => "gtag('event', 'view_item_list', { item_list_id: 'category_3', items: [...] });",
+                    'tiktok' => "ttq.track('ViewContent', { content_type: 'product_group', contents: [...] });",
+                    'pinterest' => "pintrk('track', 'ViewCategory', { category_name: 'Clothes', line_items: [...] });",
+                    'microsoft' => "uetq.push('event', 'view_item_list', { ecomm_pagetype: 'category', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_item_list',
@@ -750,15 +886,24 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'view_search_results',
                 'label' => 'View Search Results',
+                'icon' => 'icon-search',
                 'category' => 'discovery',
                 'category_label' => 'Discovery',
                 'desc' => 'Customer viewing on-site search results with search keyword and matching products',
                 'trigger_hook' => 'hookDisplayHeader (SearchController)',
+                'dependencies' => 'SearchController or third-party search modules (Warehouse, Leo)',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('view_search_results'),
                 'schema_fields' => [
                     ['name' => 'search_term', 'type' => 'string', 'source' => 'Authoritative query string', 'destinations' => 'GA4: search_term, Meta: search_string, TikTok: query, Pinterest: search_query', 'desc' => 'Customer search term'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Search result product models', 'destinations' => 'GA4: items, GAds: ecomm_prodid', 'desc' => 'Matching search result items'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'Search', { search_string: 't-shirt', content_ids: ['1_1'] });",
+                    'gads' => "gtag('event', 'view_search_results', { search_term: 't-shirt', items: [...] });",
+                    'tiktok' => "ttq.track('Search', { query: 't-shirt', content_ids: ['1_1'] });",
+                    'pinterest' => "pintrk('track', 'Search', { search_query: 't-shirt', line_items: [...] });",
+                    'microsoft' => "uetq.push('event', 'view_search_results', { search_term: 't-shirt', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_search_results',
@@ -778,16 +923,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'select_item',
                 'label' => 'Select Item',
+                'icon' => 'icon-hand-pointer-o',
                 'category' => 'discovery',
                 'category_label' => 'Discovery',
                 'desc' => 'Clicking on a product miniature or link in any listing',
                 'trigger_hook' => 'Zero-DOM product click event bus',
+                'dependencies' => 'Storefront category/listing miniature cards & Zero-DOM Click Bus',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('select_item'),
                 'schema_fields' => [
                     ['name' => 'item_id', 'type' => 'string', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: item_id, Meta: content_ids, GAds: ecomm_prodid', 'desc' => 'Catalog product identifier'],
                     ['name' => 'item_name', 'type' => 'string', 'source' => 'Product::name', 'destinations' => 'GA4: item_name, Meta: content_name', 'desc' => 'Product title'],
                     ['name' => 'item_list_id', 'type' => 'string', 'source' => 'Listing container ID', 'destinations' => 'GA4: item_list_id', 'desc' => 'Parent listing identifier'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'ViewContent', { content_ids: ['1_1'], content_name: 'Hummingbird Printed T-Shirt' });",
+                    'gads' => "gtag('event', 'select_item', { item_list_id: 'category_3', items: [...] });",
+                    'tiktok' => "ttq.track('ViewContent', { content_id: '1_1', content_name: 'Hummingbird Printed T-Shirt' });",
+                    'pinterest' => "pintrk('track', 'PageVisit', { line_items: [{ product_id: '1_1' }] });",
+                    'microsoft' => "uetq.push('event', 'select_item', { ecomm_prodid: '1_1', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'select_item',
@@ -808,17 +962,26 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'view_item',
                 'label' => 'View Item (PDP & Variants)',
+                'icon' => 'icon-eye',
                 'category' => 'interaction',
                 'category_label' => 'Interaction',
-                'desc' => 'Product detail page visit and combination/variant selection',
+                'desc' => 'Product detail page viewed or a variant selected',
                 'trigger_hook' => 'hookDisplayHeader (ProductController) / updatedProduct event bus',
+                'dependencies' => 'ProductController, PrestaShop Combination Engine & prestashop.on(updatedProduct)',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('view_item'),
                 'schema_fields' => [
                     ['name' => 'item_id', 'type' => 'string', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: item_id, Meta: content_ids, GAds: ecomm_prodid, TikTok: content_id', 'desc' => 'Catalog product identifier'],
                     ['name' => 'item_name', 'type' => 'string', 'source' => 'Product::name', 'destinations' => 'GA4: item_name, Meta: content_name', 'desc' => 'Product title'],
                     ['name' => 'price', 'type' => 'number', 'source' => 'PricingEngine', 'destinations' => 'GA4: price, Meta: value, Pinterest: value', 'desc' => 'Exact customer-facing price with tax'],
                     ['name' => 'item_variant', 'type' => 'string', 'source' => 'Combination attributes', 'destinations' => 'GA4: item_variant', 'desc' => 'Combination attributes string'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'ViewContent', { content_ids: ['68_299'], content_name: 'Sip-N-Snack Cup', value: 13.00, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'view_item', { currency: 'EUR', value: 13.00, items: [{ id: '68_299', price: 13.00 }] });",
+                    'tiktok' => "ttq.track('ViewContent', { content_id: '68_299', content_name: 'Sip-N-Snack Cup', value: 13.00, currency: 'EUR' });",
+                    'pinterest' => "pintrk('track', 'PageVisit', { line_items: [{ product_id: '68_299' }], value: 13.00, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'view_item', { ecomm_prodid: '68_299', ecomm_totalvalue: 13.00, items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_item',
@@ -840,16 +1003,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'add_to_wishlist',
                 'label' => 'Add to Wishlist',
+                'icon' => 'icon-heart',
                 'category' => 'interaction',
                 'category_label' => 'Interaction',
                 'desc' => 'Customer adding a product to wishlist/favorites via ps_wishlist or blockwishlist',
                 'trigger_hook' => 'WishlistIntegrationLayer interception',
+                'dependencies' => 'WishlistIntegrationLayer with ps_wishlist or blockwishlist module',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('add_to_wishlist'),
                 'schema_fields' => [
                     ['name' => 'currency', 'type' => 'string', 'source' => 'Currency ISO code', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Active store currency'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'PricingEngine', 'destinations' => 'GA4, Meta, Pinterest', 'desc' => 'Financial value of added product'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Wishlist product item details'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'AddToWishlist', { content_ids: ['1_1'], value: 23.90, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'add_to_wishlist', { currency: 'EUR', value: 23.90, items: [{ id: '1_1' }] });",
+                    'tiktok' => "ttq.track('AddToWishlist', { content_id: '1_1', value: 23.90, currency: 'EUR' });",
+                    'pinterest' => "pintrk('track', 'AddToWishList', { line_items: [{ product_id: '1_1' }], value: 23.90, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'add_to_wishlist', { ecomm_prodid: '1_1', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_to_wishlist',
@@ -870,16 +1042,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'add_to_cart',
                 'label' => 'Add to Cart',
+                'icon' => 'icon-cart-plus',
                 'category' => 'cart',
                 'category_label' => 'Cart',
-                'desc' => 'Adding a product or combination to the shopping cart',
+                'desc' => 'A product is added to the shopping cart',
                 'trigger_hook' => 'actionCartUpdateQuantityBefore / prestashop.on(updateCart)',
+                'dependencies' => 'actionCartUpdateQuantityBefore hook & prestashop.on(updateCart) event bus',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('add_to_cart'),
                 'schema_fields' => [
                     ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest, UET', 'desc' => 'Currency code'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Added delta quantity * unit price', 'destinations' => 'GA4, Meta, Pinterest, UET', 'desc' => 'Monetary value of added items'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Backend resolved item delta', 'destinations' => 'GA4: items, Meta: contents, GAds: ecomm_prodid', 'desc' => 'Item array with quantity delta'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'AddToCart', { content_ids: ['68_299'], value: 26.00, currency: 'EUR', contents: [...] });",
+                    'gads' => "gtag('event', 'add_to_cart', { currency: 'EUR', value: 26.00, items: [{ id: '68_299', quantity: 2 }] });",
+                    'tiktok' => "ttq.track('AddToCart', { content_id: '68_299', value: 26.00, currency: 'EUR', contents: [...] });",
+                    'pinterest' => "pintrk('track', 'AddToCart', { line_items: [...], value: 26.00, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'add_to_cart', { revenue_value: 26.00, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_to_cart',
@@ -901,16 +1082,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'remove_from_cart',
                 'label' => 'Remove from Cart',
+                'icon' => 'icon-trash',
                 'category' => 'cart',
                 'category_label' => 'Cart',
                 'desc' => 'Removing an item or decrementing line item quantity in the cart',
                 'trigger_hook' => 'actionCartUpdateQuantityBefore / prestashop.on(updateCart)',
+                'dependencies' => 'actionCartUpdateQuantityBefore negative delta resolver',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('remove_from_cart'),
                 'schema_fields' => [
                     ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Currency code'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Removed quantity * unit price', 'destinations' => 'GA4, Meta, Pinterest', 'desc' => 'Monetary value of removed items'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Backend resolved removal delta', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Subtracted item details'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('trackCustom', 'RemoveFromCart', { content_ids: ['68_299'], value: 13.00, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'remove_from_cart', { currency: 'EUR', value: 13.00, items: [{ id: '68_299' }] });",
+                    'tiktok' => "ttq.trackCustom('RemoveFromCart', { content_id: '68_299', value: 13.00, currency: 'EUR' });",
+                    'pinterest' => "pintrk('trackCustom', 'RemoveFromCart', { line_items: [...], value: 13.00, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'remove_from_cart', { revenue_value: 13.00, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'remove_from_cart',
@@ -931,16 +1121,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'view_cart',
                 'label' => 'View Cart',
+                'icon' => 'icon-shopping-cart',
                 'category' => 'cart',
                 'category_label' => 'Cart',
                 'desc' => 'Visiting the shopping cart summary page (/cart)',
                 'trigger_hook' => 'hookDisplayHeader (CartController)',
+                'dependencies' => 'CartController (/cart summary page)',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('view_cart'),
                 'schema_fields' => [
                     ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta, TikTok, Pinterest, UET', 'desc' => 'Cart currency'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Cart::getOrderTotal(true)', 'destinations' => 'GA4, Meta, Pinterest, UET', 'desc' => 'Cart gross total value'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Cart::getProducts()', 'destinations' => 'GA4: items, GAds: ecomm_prodid', 'desc' => 'All items currently in cart'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'ViewContent', { content_type: 'product', content_ids: ['1_1', '68_299'], num_items: 2 });",
+                    'gads' => "gtag('event', 'view_cart', { currency: 'EUR', value: 36.90, items: [...] });",
+                    'tiktok' => "ttq.track('ViewContent', { content_type: 'product', contents: [...], quantity: 2 });",
+                    'pinterest' => "pintrk('trackCustom', 'ViewCart', { line_items: [...], value: 36.90, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'view_cart', { revenue_value: 36.90, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_cart',
@@ -967,16 +1166,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'begin_checkout',
                 'label' => 'Begin Checkout',
+                'icon' => 'icon-sign-in',
                 'category' => 'checkout',
                 'category_label' => 'Checkout',
                 'desc' => 'Customer proceeding to checkout funnel step 1 (/order)',
                 'trigger_hook' => 'hookDisplayHeader (OrderController)',
+                'dependencies' => 'OrderController (/order checkout step 1)',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('begin_checkout'),
                 'schema_fields' => [
                     ['name' => 'currency', 'type' => 'string', 'source' => 'Cart currency ISO', 'destinations' => 'GA4, Meta: InitiateCheckout, TikTok, Pinterest, UET', 'desc' => 'Order currency'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Cart total tax incl', 'destinations' => 'GA4, Meta, TikTok, Pinterest', 'desc' => 'Gross checkout value'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'InitiateCheckout', { content_ids: ['1_1'], num_items: 1, value: 36.90, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'begin_checkout', { currency: 'EUR', value: 36.90, items: [...] });",
+                    'tiktok' => "ttq.track('InitiateCheckout', { contents: [...], quantity: 1, value: 36.90, currency: 'EUR' });",
+                    'pinterest' => "pintrk('track', 'InitiateCheckout', { line_items: [...], value: 36.90, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'begin_checkout', { revenue_value: 36.90, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'begin_checkout',
@@ -997,16 +1205,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'add_shipping_info',
                 'label' => 'Add Shipping Info',
+                'icon' => 'icon-truck',
                 'category' => 'checkout',
                 'category_label' => 'Checkout',
                 'desc' => 'Selecting a carrier or delivery method in checkout step 3',
                 'trigger_hook' => 'actionCarrierProcess / delivery step selection',
+                'dependencies' => 'actionCarrierProcess hook & checkout delivery step',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('add_shipping_info'),
                 'schema_fields' => [
                     ['name' => 'shipping_tier', 'type' => 'string', 'source' => 'Carrier::name', 'destinations' => 'GA4: shipping_tier', 'desc' => 'Selected delivery provider name'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Cart total with delivery', 'destinations' => 'GA4, Meta: AddShippingInfo', 'desc' => 'Total order gross value'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'AddShippingInfo', { content_ids: ['1_1'], value: 41.90, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'add_shipping_info', { currency: 'EUR', value: 41.90, shipping_tier: 'DHL Express', items: [...] });",
+                    'tiktok' => "ttq.track('AddShippingInfo', { contents: [...], value: 41.90, currency: 'EUR' });",
+                    'pinterest' => "pintrk('trackCustom', 'AddShippingInfo', { line_items: [...], value: 41.90, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'add_shipping_info', { revenue_value: 41.90, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_shipping_info',
@@ -1028,16 +1245,25 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'add_payment_info',
                 'label' => 'Add Payment Info',
+                'icon' => 'icon-credit-card',
                 'category' => 'checkout',
                 'category_label' => 'Checkout',
                 'desc' => 'Selecting a payment gateway or option in checkout step 4',
                 'trigger_hook' => 'Payment gateway selection',
+                'dependencies' => 'Checkout payment step & payment gateway selection',
                 'has_sgtm_webhook' => false,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('add_payment_info'),
                 'schema_fields' => [
                     ['name' => 'payment_type', 'type' => 'string', 'source' => 'Payment module / method name', 'destinations' => 'GA4: payment_type', 'desc' => 'Gateway name (e.g. PayPal, Bank Wire)'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Cart total gross', 'destinations' => 'GA4, Meta: AddPaymentInfo', 'desc' => 'Order gross value'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Cart products', 'destinations' => 'GA4: items, Meta: contents', 'desc' => 'Checkout line items'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'AddPaymentInfo', { content_ids: ['1_1'], value: 41.90, currency: 'EUR' });",
+                    'gads' => "gtag('event', 'add_payment_info', { currency: 'EUR', value: 41.90, payment_type: 'Credit Card', items: [...] });",
+                    'tiktok' => "ttq.track('AddPaymentInfo', { contents: [...], value: 41.90, currency: 'EUR' });",
+                    'pinterest' => "pintrk('track', 'AddPaymentInfo', { line_items: [...], value: 41.90, currency: 'EUR' });",
+                    'microsoft' => "uetq.push('event', 'add_payment_info', { revenue_value: 41.90, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_payment_info',
@@ -1059,12 +1285,14 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'purchase',
                 'label' => 'Purchase',
+                'icon' => 'icon-check-square-o',
                 'category' => 'purchase',
                 'category_label' => 'Orders & Returns',
-                'desc' => 'Storefront & offline order completed with order_id, line items, and hashed user_data',
+                'desc' => 'Order completed with order ID and item data',
                 'trigger_hook' => 'hookDisplayOrderConfirmation / actionValidateOrder',
+                'dependencies' => 'hookDisplayOrderConfirmation, actionValidateOrder & gtm_purchase_log table',
                 'has_sgtm_webhook' => true,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('purchase'),
                 'schema_fields' => [
                     ['name' => 'transaction_id', 'type' => 'string', 'source' => 'Order::id / reference', 'destinations' => 'GA4, Meta: order_id, GAds, TikTok, Pinterest, UET', 'desc' => 'Unique order identifier with deduplication logging'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'Order::total_paid_tax_incl', 'destinations' => 'GA4, Meta, GAds, TikTok, Pinterest, UET', 'desc' => 'Net financial revenue'],
@@ -1072,6 +1300,13 @@ class Ps_Gtm_DataLayer extends Module
                     ['name' => 'shipping', 'type' => 'number', 'source' => 'Order shipping tax incl', 'destinations' => 'GA4: shipping, UET: shipping', 'desc' => 'Shipping cost'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'Order line items', 'destinations' => 'GA4: items, Meta: contents, GAds: items', 'desc' => 'Purchased products with unit prices and quantities'],
                     ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (SHA-256)', 'destinations' => 'GA4, Meta CAPI, TikTok, Pinterest, UET', 'desc' => 'Encrypted email, name, phone, postal code, and country'],
+                ],
+                'platform_mappings' => [
+                    'meta' => "fbq('track', 'Purchase', { content_ids: ['68_299'], value: 17.50, currency: 'EUR', order_id: '1255' });",
+                    'gads' => "gtag('event', 'purchase', { transaction_id: '1255', value: 17.50, currency: 'EUR', items: [...] });",
+                    'tiktok' => "ttq.track('CompletePayment', { content_id: '68_299', value: 17.50, currency: 'EUR', order_id: '1255' });",
+                    'pinterest' => "pintrk('track', 'Checkout', { order_id: '1255', value: 17.50, currency: 'EUR', line_items: [...] });",
+                    'microsoft' => "uetq.push('event', 'purchase', { transaction_id: '1255', revenue_value: 17.50, currency: 'EUR', items: [...] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'purchase',
@@ -1096,7 +1331,7 @@ class Ps_Gtm_DataLayer extends Module
                         'last_name' => 'd751f76b33d539f5f12db4e3c006e7f05821591487321469f847312936f2dd4a',
                         'phone_number' => 'aefd09421ab405e7d1b4850f3e37b314cb8dd5a5a18a658064f1bbecf5efcc0c',
                         'address' => [
-                            'city' => 'Comilla',
+                            'city' => 'Amsterdam',
                             'postal_code' => '84125',
                             'country' => 'DE',
                         ],
@@ -1106,17 +1341,26 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'refund',
                 'label' => 'Refund (Credit Slip)',
+                'icon' => 'icon-undo',
                 'category' => 'purchase',
                 'category_label' => 'Orders & Returns',
                 'desc' => 'Dispatched to Server GTM when a Credit Slip is issued in the Back Office',
                 'trigger_hook' => 'actionOrderSlipAdd -> ServerSideWebhookDispatcher',
+                'dependencies' => 'actionOrderSlipAdd hook & ServerSideWebhookDispatcher',
                 'has_sgtm_webhook' => true,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('refund'),
                 'schema_fields' => [
                     ['name' => 'transaction_id', 'type' => 'string', 'source' => 'Order::id', 'destinations' => 'sGTM Webhook Client, GA4 refund, Meta CAPI Refund', 'desc' => 'Original transaction ID to retract or adjust'],
                     ['name' => 'value', 'type' => 'number', 'source' => 'OrderSlip total refunded amount', 'destinations' => 'GA4: value, Meta CAPI: value', 'desc' => 'Refunded financial amount'],
                     ['name' => 'conversion_action', 'type' => 'string', 'source' => '"retract"', 'destinations' => 'Google Ads Offline Retraction, GA4 refund', 'desc' => 'Retraction command for advertising attribution models'],
                     ['name' => 'items', 'type' => 'array', 'source' => 'RefundDataResolver slip items', 'destinations' => 'GA4: items', 'desc' => 'Refunded items and quantities'],
+                ],
+                'platform_mappings' => [
+                    'meta' => 'Meta Conversions API (CAPI) Refund event with retract action',
+                    'gads' => 'Google Ads Offline Conversion Adjustment (Retraction) via sGTM',
+                    'tiktok' => 'TikTok Events API Order Retraction via sGTM',
+                    'pinterest' => 'Pinterest Conversions API Refund via sGTM',
+                    'microsoft' => 'Microsoft Advertising Offline Conversion Retraction',
                 ],
                 'example_json' => json_encode([
                     'event_name' => 'refund',
@@ -1138,18 +1382,27 @@ class Ps_Gtm_DataLayer extends Module
             [
                 'name' => 'order_status_update',
                 'label' => 'Order Status Update',
+                'icon' => 'icon-refresh',
                 'category' => 'purchase',
                 'category_label' => 'Orders & Returns',
                 'desc' => 'Dispatched to Server GTM on order status transitions (e.g. Bank wire to Payment Accepted)',
                 'trigger_hook' => 'actionOrderStatusPostUpdate -> ServerSideWebhookDispatcher',
+                'dependencies' => 'actionOrderStatusPostUpdate hook & ServerSideWebhookDispatcher',
                 'has_sgtm_webhook' => true,
-                'is_active' => true,
+                'is_active' => self::isEventEnabled('order_status_update'),
                 'schema_fields' => [
                     ['name' => 'status_transition_type', 'type' => 'string', 'source' => '"payment_confirmed" | "refund_issued" | "order_canceled"', 'destinations' => 'sGTM Webhook Client router', 'desc' => 'Status transition classification'],
                     ['name' => 'conversion_action', 'type' => 'string', 'source' => '"record" | "retract" | "none"', 'destinations' => 'Google Ads offline conversion adjustments', 'desc' => 'Action required by advertising platform'],
                     ['name' => 'new_status_name', 'type' => 'string', 'source' => 'OrderState::name', 'destinations' => 'sGTM Server container event parameter', 'desc' => 'Human-readable new order status'],
                     ['name' => 'is_paid', 'type' => 'boolean', 'source' => 'OrderState::paid flag', 'destinations' => 'sGTM parameter', 'desc' => 'True if order is now financially confirmed'],
                     ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (SHA-256)', 'destinations' => 'Google Ads Enhanced Conversions, Meta CAPI', 'desc' => 'Hashed customer email, name, phone, address'],
+                ],
+                'platform_mappings' => [
+                    'meta' => 'Meta Conversions API (CAPI) status transition trigger',
+                    'gads' => 'Google Ads Offline Conversion upload on payment_confirmed',
+                    'tiktok' => 'TikTok Events API server dispatch on payment_confirmed',
+                    'pinterest' => 'Pinterest Conversions API order confirmation dispatch',
+                    'microsoft' => 'Microsoft Advertising server offline conversion dispatch',
                 ],
                 'example_json' => json_encode([
                     'event_name' => 'order_status_update',
@@ -2614,6 +2867,10 @@ class Ps_Gtm_DataLayer extends Module
 
     public function queuePendingEvent($canonicalEvent, $item)
     {
+        if (!self::isEventEnabled($canonicalEvent)) {
+            return;
+        }
+
         $events = [];
         if (!empty($this->context->cookie->ps_gtm_pending_events)) {
             $decoded = json_decode($this->context->cookie->ps_gtm_pending_events, true);
@@ -2739,17 +2996,22 @@ class Ps_Gtm_DataLayer extends Module
 
             $initialPayloads = [];
             if ($isSearch) {
-                $searchQuery = PayloadBuilder::getSearchQuery();
-                if ($searchQuery !== '') {
-                    $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery, null, [], true);
-                    if ($searchPayload) {
-                        $initialPayloads[] = $searchPayload;
+                if (self::isEventEnabled('view_search_results')) {
+                    $searchQuery = PayloadBuilder::getSearchQuery();
+                    if ($searchQuery !== '') {
+                        $searchPayload = $payloadBuilder->buildViewSearchResultsPayload($searchQuery, null, [], true);
+                        if ($searchPayload) {
+                            $initialPayloads[] = $searchPayload;
+                        }
                     }
                 }
             } else {
                 $serverPayload = $payloadBuilder->buildPagePayload($controller, $params);
                 if ($serverPayload) {
-                    $initialPayloads[] = $serverPayload;
+                    $cEvt = !empty($serverPayload['original_event']) ? $serverPayload['original_event'] : (!empty($serverPayload['event']) ? $serverPayload['event'] : '');
+                    if (empty($cEvt) || self::isEventEnabled($cEvt)) {
+                        $initialPayloads[] = $serverPayload;
+                    }
                 }
             }
 
@@ -2766,6 +3028,12 @@ class Ps_Gtm_DataLayer extends Module
             }
 
             $pendingEvents = $this->getAndClearPendingEvents();
+            if (!empty($pendingEvents)) {
+                $pendingEvents = array_values(array_filter($pendingEvents, function ($p) {
+                    $cEvt = !empty($p['original_event']) ? $p['original_event'] : (!empty($p['event']) ? $p['event'] : '');
+                    return empty($cEvt) || self::isEventEnabled($cEvt);
+                }));
+            }
             $ajaxUrl = $this->context->link->getModuleLink($this->name, 'ajax', ['ajax' => 1]);
             $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
 
@@ -3062,6 +3330,10 @@ class Ps_Gtm_DataLayer extends Module
     public function hookDisplayOrderConfirmation($params)
     {
         try {
+            if (!self::isEventEnabled('purchase')) {
+                return '';
+            }
+
             $order = isset($params['order']) ? $params['order'] : null;
             if (!$order || !Validate::isLoadedObject($order)) {
                 return '';
@@ -3097,7 +3369,7 @@ class Ps_Gtm_DataLayer extends Module
     public function hookActionOrderSlipAdd($params)
     {
         try {
-            if (Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') === '0') {
+            if (!self::isEventEnabled('refund') || Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') === '0') {
                 return;
             }
 
@@ -3176,7 +3448,7 @@ class Ps_Gtm_DataLayer extends Module
     public function hookActionOrderStatusPostUpdate($params)
     {
         try {
-            if (Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') === '0') {
+            if (!self::isEventEnabled('order_status_update') || Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') === '0') {
                 return;
             }
 

@@ -459,16 +459,34 @@
     <!-- TAB 3: EVENTS                                                     -->
     <!-- ================================================================= -->
     <div id="tab-events" class="ps-gtm-tab-pane">
+      <input type="hidden" name="PS_GTM_EVENTS_SUBMITTED" value="1">
+
+      <!-- Events Tab Header -->
+      <div class="ps-gtm-tab-header-row" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 14px;">
+        <div>
+          <h3 style="margin: 0; font-size: 24px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 10px;">
+            <i class="icon-list text-primary"></i> {l s='Events' mod='ps_gtm_datalayer'}
+          </h3>
+          <div style="font-size: 14.5px; color: #64748b; margin-top: 4px;">
+            {l s='Manage tracking events and destinations' mod='ps_gtm_datalayer'}
+          </div>
+        </div>
+        <div>
+          <span class="ps-gtm-counter-pill" style="font-size: 14.5px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 6px 16px; border-radius: 20px; border: 1.5px solid #bae6fd; display: inline-block;">
+            {$events_total|escape:'html':'UTF-8'} {l s='events' mod='ps_gtm_datalayer'}
+          </span>
+        </div>
+      </div>
 
       <!-- Event Search & Filters Bar -->
-      <div class="ps-gtm-filters-bar">
-        <div class="ps-gtm-search-box">
+      <div class="ps-gtm-filters-bar" style="margin-bottom: 22px;">
+        <div class="ps-gtm-search-box" style="flex: 1; min-width: 240px;">
           <i class="icon-search"></i>
-          <input type="text" id="ps-gtm-event-search" class="ps-gtm-search-input" placeholder="{l s='Filter events by name, label, or description...' mod='ps_gtm_datalayer'}">
+          <input type="text" id="ps-gtm-event-search" class="ps-gtm-search-input" placeholder="{l s='Search events...' mod='ps_gtm_datalayer'}">
         </div>
 
         <div class="ps-gtm-filter-pills">
-          <button type="button" class="ps-gtm-filter-pill active" data-category="all">{l s='All Events' mod='ps_gtm_datalayer'} ({$events_total|escape:'html':'UTF-8'})</button>
+          <button type="button" class="ps-gtm-filter-pill active" data-category="all">{l s='All events' mod='ps_gtm_datalayer'} {$events_total|escape:'html':'UTF-8'}</button>
           <button type="button" class="ps-gtm-filter-pill" data-category="discovery">{l s='Discovery' mod='ps_gtm_datalayer'}</button>
           <button type="button" class="ps-gtm-filter-pill" data-category="interaction">{l s='Interaction' mod='ps_gtm_datalayer'}</button>
           <button type="button" class="ps-gtm-filter-pill" data-category="cart">{l s='Cart' mod='ps_gtm_datalayer'}</button>
@@ -476,18 +494,21 @@
           <button type="button" class="ps-gtm-filter-pill" data-category="purchase">{l s='Orders & Returns' mod='ps_gtm_datalayer'}</button>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <select id="ps-gtm-status-filter" class="form-control" style="width: 145px; font-size: 14px; height: 38px; padding: 6px 12px; color: #0f172a; border: 1.5px solid #cbd5e1; border-radius: 6px; display: inline-block;">
             <option value="all">{l s='All Statuses' mod='ps_gtm_datalayer'}</option>
             <option value="enabled">{l s='Enabled Only' mod='ps_gtm_datalayer'}</option>
             <option value="disabled">{l s='Disabled Only' mod='ps_gtm_datalayer'}</option>
           </select>
-          <button type="button" class="btn btn-default btn-sm" onclick="psGtmToggleAllEvents(true)" title="{l s='Enable All Events' mod='ps_gtm_datalayer'}" style="font-size: 14px; padding: 6px 12px;">
-            <i class="icon-check" style="color: #10b981;"></i>
-          </button>
-          <button type="button" class="btn btn-default btn-sm" onclick="psGtmToggleAllEvents(false)" title="{l s='Disable All Events' mod='ps_gtm_datalayer'}" style="font-size: 14px; padding: 6px 12px;">
-            <i class="icon-times" style="color: #ef4444;"></i>
-          </button>
+
+          <div class="ps-gtm-bulk-actions">
+            <button type="button" class="btn btn-default btn-sm ps-gtm-bulk-btn" onclick="psGtmToggleAllEvents(true)" title="{l s='Enable all tracking events' mod='ps_gtm_datalayer'}">
+              <i class="icon-check text-success"></i> {l s='Enable All' mod='ps_gtm_datalayer'}
+            </button>
+            <button type="button" class="btn btn-default btn-sm ps-gtm-bulk-btn" onclick="psGtmToggleAllEvents(false)" title="{l s='Disable all tracking events' mod='ps_gtm_datalayer'}">
+              <i class="icon-times text-danger"></i> {l s='Disable All' mod='ps_gtm_datalayer'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -495,26 +516,33 @@
       <table class="ps-gtm-table" id="ps-gtm-events-table">
         <thead>
           <tr>
-            <th style="width: 65px; text-align: center;">{l s='Active' mod='ps_gtm_datalayer'}</th>
-            <th style="width: 270px;">{l s='Event Name & Code' mod='ps_gtm_datalayer'}</th>
-            <th style="width: 130px;">{l s='Category' mod='ps_gtm_datalayer'}</th>
-            <th>{l s='Description & Storefront Trigger' mod='ps_gtm_datalayer'}</th>
-            <th style="width: 270px;">{l s='Destination Platforms' mod='ps_gtm_datalayer'}</th>
-            <th style="width: 120px; text-align: right;">{l s='Actions' mod='ps_gtm_datalayer'}</th>
+            <th style="width: 80px; text-align: center;">{l s='STATUS' mod='ps_gtm_datalayer'}</th>
+            <th style="width: 260px;">{l s='EVENT' mod='ps_gtm_datalayer'}</th>
+            <th style="width: 150px;">{l s='CATEGORY' mod='ps_gtm_datalayer'}</th>
+            <th>{l s='DESCRIPTION' mod='ps_gtm_datalayer'}</th>
+            <th style="width: 220px;">{l s='DESTINATIONS' mod='ps_gtm_datalayer'}</th>
+            <th style="width: 115px; text-align: right;">{l s='ACTIONS' mod='ps_gtm_datalayer'}</th>
           </tr>
         </thead>
         <tbody>
           {foreach from=$canonical_events item=e}
           <tr class="ps-gtm-event-row" data-name="{$e.name|escape:'html':'UTF-8'}" data-label="{$e.label|escape:'html':'UTF-8'}" data-desc="{$e.desc|escape:'html':'UTF-8'}" data-category="{$e.category|escape:'html':'UTF-8'}">
             <td style="text-align: center;">
-              <label class="ps-gtm-switch ps-gtm-switch-sm">
-                <input type="checkbox" name="event_active_{$e.name|escape:'html':'UTF-8'}" class="ps-gtm-evt-main-cb" value="1" {if !empty($e.is_active)}checked{/if}>
+              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle event active state' mod='ps_gtm_datalayer'}">
+                <input type="checkbox" name="event_active_{$e.name|escape:'html':'UTF-8'}" class="ps-gtm-evt-main-cb" value="1" data-event="{$e.name|escape:'html':'UTF-8'}" {if !empty($e.is_active)}checked{/if}>
                 <span class="ps-gtm-slider"></span>
               </label>
             </td>
             <td>
-              <strong style="color: #0f172a; font-size: 15.5px;">{$e.label|escape:'html':'UTF-8'}</strong><br>
-              <code style="font-size: 13.5px; font-weight: 600;">{if !empty($config_values.PS_GTM_EVENT_PREFIX)}{$config_values.PS_GTM_EVENT_PREFIX|escape:'html':'UTF-8'}_{/if}{$e.name|escape:'html':'UTF-8'}</code>
+              <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <div class="ps-gtm-table-event-icon">
+                  <i class="{$e.icon|escape:'html':'UTF-8'}"></i>
+                </div>
+                <div>
+                  <strong class="ps-gtm-event-name" style="color: #0f172a; font-size: 16px; font-weight: 700; display: block; line-height: 1.3;">{$e.label|escape:'html':'UTF-8'}</strong>
+                  <code class="ps-gtm-code-badge" style="font-size: 13.5px; font-weight: 600; color: #2563eb; background: #eff6ff; padding: 2px 7px; border-radius: 4px; border: 1px solid #bfdbfe; display: inline-block; margin-top: 4px;">{if !empty($config_values.PS_GTM_EVENT_PREFIX)}{$config_values.PS_GTM_EVENT_PREFIX|escape:'html':'UTF-8'}_{/if}{$e.name|escape:'html':'UTF-8'}</code>
+                </div>
+              </div>
             </td>
             <td>
               <span class="ps-gtm-cat-badge {$e.category|escape:'html':'UTF-8'}">
@@ -522,24 +550,23 @@
               </span>
             </td>
             <td>
-              <div style="font-size: 14px; color: #334155; line-height: 1.5;">{$e.desc|escape:'html':'UTF-8'}</div>
-              <div style="font-size: 13px; color: #475569; margin-top: 4px;">
-                <i class="icon-bolt"></i> {$e.trigger_hook|escape:'html':'UTF-8'}
-              </div>
+              <div style="font-size: 14.5px; color: #334155; line-height: 1.55;">{$e.desc|escape:'html':'UTF-8'}</div>
             </td>
             <td>
-              <span class="ps-gtm-plat-tag meta">Meta</span>
-              <span class="ps-gtm-plat-tag gads">Google Ads</span>
-              <span class="ps-gtm-plat-tag tiktok">TikTok</span>
-              <span class="ps-gtm-plat-tag pinterest">Pinterest</span>
-              <span class="ps-gtm-plat-tag microsoft">Microsoft</span>
-              {if $e.has_sgtm_webhook}
-                <span class="ps-gtm-plat-tag sgtm">sGTM Webhook</span>
-              {/if}
+              <div class="ps-gtm-dest-cell" data-event="{$e.name|escape:'html':'UTF-8'}">
+                <span class="ps-gtm-dest-summary-pill" title="{$e.active_dest_names|implode:', '|escape:'html':'UTF-8'}">
+                  <i class="icon-share-alt"></i> <span class="dest-count-num">{$e.active_dest_count|escape:'html':'UTF-8'}</span> {l s='destinations' mod='ps_gtm_datalayer'}
+                </span>
+                {if $e.has_sgtm_webhook}
+                  <span class="ps-gtm-plat-tag sgtm" style="margin-left: 4px;" title="{l s='Dispatched via Server GTM Webhook' mod='ps_gtm_datalayer'}">
+                    <i class="icon-cloud"></i> sGTM
+                  </span>
+                {/if}
+              </div>
             </td>
             <td style="text-align: right;">
-              <button type="button" class="btn btn-default btn-sm ps-gtm-inspect-btn" data-event="{$e.name|escape:'html':'UTF-8'}" title="{l s='Inspect Schema & Mapping' mod='ps_gtm_datalayer'}" style="font-size: 13.5px; font-weight: 600; padding: 6px 12px;">
-                <i class="icon-eye"></i> {l s='Inspect' mod='ps_gtm_datalayer'}
+              <button type="button" class="btn btn-default btn-sm ps-gtm-inspect-btn" data-event="{$e.name|escape:'html':'UTF-8'}" title="{l s='Inspect event schema, trigger, and platform destinations' mod='ps_gtm_datalayer'}" style="font-size: 14px; font-weight: 600; padding: 7px 14px;">
+                <i class="icon-sliders"></i> {l s='Inspect' mod='ps_gtm_datalayer'}
               </button>
             </td>
           </tr>
@@ -899,34 +926,166 @@
       </div>
     </div>
 
+    <!-- Unsaved Changes Floating Banner -->
+    <div id="ps-gtm-unsaved-alert" class="ps-gtm-unsaved-alert" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="icon-warning-sign" style="font-size: 20px; color: #f59e0b;"></i>
+        <div style="font-size: 14.5px; color: #0f172a;">
+          <strong>{l s='Unsaved Changes' mod='ps_gtm_datalayer'}:</strong> {l s='You have modified settings across your configuration. Click "Save All Settings" to apply.' mod='ps_gtm_datalayer'}
+        </div>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('ps-gtm-save-btn').click();" style="font-size: 13.5px; font-weight: 700; padding: 6px 16px;">
+        <i class="icon-save"></i> {l s='Save Now' mod='ps_gtm_datalayer'}
+      </button>
+    </div>
+
     <!-- Sticky Save Action Bar -->
     <div class="ps-gtm-save-bar">
-      <div style="font-size: 14px; color: #475569;">
+      <div style="font-size: 14.5px; color: #475569;">
         <i class="icon-info-circle text-primary"></i> {l s='All settings across all tabs are saved simultaneously with zero data loss.' mod='ps_gtm_datalayer'}
       </div>
-      <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="ps-gtm-btn-save">
-        <i class="icon-save"></i> {l s='Save All Settings' mod='ps_gtm_datalayer'}
+      <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" id="ps-gtm-save-btn" class="ps-gtm-btn-save">
+        <i class="icon-save"></i> <span>{l s='Save All Settings' mod='ps_gtm_datalayer'}</span>
       </button>
     </div>
 
   </form>
 
-  <!-- Modal Dialog: Event Schema Details -->
-  <div id="ps-gtm-schema-modal" class="ps-gtm-modal-backdrop" role="dialog" aria-modal="true">
-    <div class="ps-gtm-modal-dialog">
-      <div class="ps-gtm-modal-header">
-        <h4 id="ps-gtm-modal-title">{l s='Event Schema Inspector' mod='ps_gtm_datalayer'}</h4>
-        <button type="button" class="ps-gtm-modal-close" aria-label="Close">&times;</button>
+  <!-- Slide-Out Inspect Drawer -->
+  <div id="ps-gtm-inspect-drawer-backdrop" class="ps-gtm-drawer-backdrop" role="dialog" aria-modal="true">
+    <div class="ps-gtm-drawer">
+      <!-- Drawer Header -->
+      <div class="ps-gtm-drawer-header">
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <div class="ps-gtm-drawer-icon-box">
+            <i id="ps-gtm-drawer-icon" class="icon-eye"></i>
+          </div>
+          <div>
+            <h3 id="ps-gtm-drawer-title" style="margin: 0; font-size: 21px; font-weight: 700; color: #0f172a; line-height: 1.25;">View Item</h3>
+            <div style="font-size: 13.5px; color: #64748b; margin-top: 2px;">{l s='Event details and configuration' mod='ps_gtm_datalayer'}</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <span id="ps-gtm-drawer-status-pill" class="ps-gtm-status-pill enabled">{l s='Enabled' mod='ps_gtm_datalayer'}</span>
+          <button type="button" class="ps-gtm-drawer-close" aria-label="Close">&times;</button>
+        </div>
       </div>
-      <div class="ps-gtm-modal-body">
-        <div id="ps-gtm-modal-desc" style="font-size: 14.5px; color: #334155; margin-bottom: 18px; line-height: 1.6;"></div>
-        <strong style="display: block; font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
-          <i class="icon-code"></i> {l s='Verified JSON Payload Example' mod='ps_gtm_datalayer'}:
-        </strong>
-        <pre id="ps-gtm-modal-payload" class="ps-gtm-code-box"></pre>
+
+      <!-- Drawer Body -->
+      <div class="ps-gtm-drawer-body">
+
+        <!-- Section: Internal Event Name -->
+        <div class="ps-gtm-drawer-section">
+          <label class="ps-gtm-drawer-section-label">{l s='INTERNAL EVENT NAME' mod='ps_gtm_datalayer'}</label>
+          <div class="ps-gtm-drawer-code-row">
+            <code id="ps-gtm-drawer-event-code">view_item</code>
+            <button type="button" class="btn btn-default btn-xs" onclick="psGtmCopyDrawerCode()" title="{l s='Copy event name' mod='ps_gtm_datalayer'}" style="font-size: 12.5px; font-weight: 600;">
+              <i class="icon-copy"></i> {l s='Copy' mod='ps_gtm_datalayer'}
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Event Details -->
+        <div class="ps-gtm-drawer-section">
+          <label class="ps-gtm-drawer-section-label">{l s='EVENT DETAILS' mod='ps_gtm_datalayer'}</label>
+          <div class="ps-gtm-drawer-details-card">
+            <div class="ps-gtm-drawer-detail-item">
+              <span class="detail-label">{l s='Category' mod='ps_gtm_datalayer'}</span>
+              <span id="ps-gtm-drawer-category" class="ps-gtm-cat-badge interaction">Interaction</span>
+            </div>
+            <div class="ps-gtm-drawer-detail-item">
+              <span class="detail-label">{l s='Trigger' mod='ps_gtm_datalayer'}</span>
+              <span id="ps-gtm-drawer-trigger" class="detail-val">Product detail page or variant selection</span>
+            </div>
+            <div class="ps-gtm-drawer-detail-item">
+              <span class="detail-label">{l s='Source' mod='ps_gtm_datalayer'}</span>
+              <span id="ps-gtm-drawer-source" class="detail-val">hookDisplayHeader (ProductController) / updatedProduct bus</span>
+            </div>
+            <div class="ps-gtm-drawer-detail-item">
+              <span class="detail-label">{l s='Dependencies' mod='ps_gtm_datalayer'}</span>
+              <span id="ps-gtm-drawer-dependencies" class="detail-val">PrestaShop Core Product Model & Combination Engine</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Destination Routing -->
+        <div class="ps-gtm-drawer-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <div>
+              <label class="ps-gtm-drawer-section-label" style="margin: 0;">{l s='DESTINATION ROUTING' mod='ps_gtm_datalayer'}</label>
+              <div style="font-size: 13px; color: #64748b;">{l s='Platforms configured to receive this event payload' mod='ps_gtm_datalayer'}</div>
+            </div>
+          </div>
+          <div id="ps-gtm-drawer-dest-list" class="ps-gtm-drawer-dest-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Section: Data Parameters -->
+        <div class="ps-gtm-drawer-section">
+          <label class="ps-gtm-drawer-section-label">{l s='DATA PARAMETERS' mod='ps_gtm_datalayer'}</label>
+          <div style="font-size: 13px; color: #64748b; margin-top: -4px; margin-bottom: 8px;">
+            {l s='Authoritative PrestaShop backend parameters transmitted with this event' mod='ps_gtm_datalayer'}
+          </div>
+          <div class="ps-gtm-drawer-table-wrapper">
+            <table class="ps-gtm-drawer-table" id="ps-gtm-drawer-params-table">
+              <thead>
+                <tr>
+                  <th style="width: 26%;">{l s='Parameter' mod='ps_gtm_datalayer'}</th>
+                  <th style="width: 16%;">{l s='Type' mod='ps_gtm_datalayer'}</th>
+                  <th style="width: 28%;">{l s='Source' mod='ps_gtm_datalayer'}</th>
+                  <th style="width: 30%;">{l s='Purpose / Mapping' mod='ps_gtm_datalayer'}</th>
+                </tr>
+              </thead>
+              <tbody id="ps-gtm-drawer-params-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Section: Platform-Specific Formatted Code (Accordion) -->
+        <div class="ps-gtm-drawer-section">
+          <div class="ps-gtm-drawer-accordion">
+            <button type="button" class="ps-gtm-accordion-btn" onclick="psGtmToggleAccordion('ps-gtm-drawer-platform-code-box')">
+              <span><i class="icon-code"></i> {l s='Platform-Specific Formatted Code & Mappings' mod='ps_gtm_datalayer'}</span>
+              <i class="icon-chevron-down ps-gtm-chevron"></i>
+            </button>
+            <div id="ps-gtm-drawer-platform-code-box" class="ps-gtm-accordion-body" style="display: none;">
+              <div id="ps-gtm-drawer-platform-code-content"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Trigger & Zero-DOM Specifications (Accordion) -->
+        <div class="ps-gtm-drawer-section">
+          <div class="ps-gtm-drawer-accordion">
+            <button type="button" class="ps-gtm-accordion-btn" onclick="psGtmToggleAccordion('ps-gtm-drawer-trigger-details-box')">
+              <span><i class="icon-bolt"></i> {l s='Trigger & Zero-DOM Bus Specifications' mod='ps_gtm_datalayer'}</span>
+              <i class="icon-chevron-down ps-gtm-chevron"></i>
+            </button>
+            <div id="ps-gtm-drawer-trigger-details-box" class="ps-gtm-accordion-body" style="display: none;">
+              <div id="ps-gtm-drawer-trigger-details-content" style="font-size: 13.5px; color: #334155; line-height: 1.6;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Verified DataLayer JSON Payload -->
+        <div class="ps-gtm-drawer-section">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <label class="ps-gtm-drawer-section-label" style="margin: 0;">{l s='VERIFIED JSON PAYLOAD EXAMPLE' mod='ps_gtm_datalayer'}</label>
+            <button type="button" class="btn btn-default btn-xs" onclick="psGtmCopyDrawerJson()" style="font-size: 12.5px; font-weight: 600;">
+              <i class="icon-copy"></i> {l s='Copy JSON' mod='ps_gtm_datalayer'}
+            </button>
+          </div>
+          <pre id="ps-gtm-drawer-payload" class="ps-gtm-code-box" style="margin: 0;"></pre>
+        </div>
+
       </div>
-      <div class="ps-gtm-modal-footer">
-        <button type="button" class="btn btn-default" data-modal-dismiss="true" style="font-size: 14px; font-weight: 600; padding: 8px 18px;">{l s='Close' mod='ps_gtm_datalayer'}</button>
+
+      <!-- Drawer Footer -->
+      <div class="ps-gtm-drawer-footer">
+        <button type="button" class="btn btn-default" data-drawer-dismiss="true" style="font-size: 14.5px; font-weight: 600; padding: 9px 22px;">{l s='Close' mod='ps_gtm_datalayer'}</button>
       </div>
     </div>
   </div>
@@ -935,5 +1094,6 @@
 
 <script type="text/javascript">
   window.psGtmAjaxAdminUrl = "{$ajax_admin_url|escape:'javascript':'UTF-8'}";
+  window.psGtmEventPrefix = "{$config_values.PS_GTM_EVENT_PREFIX|escape:'javascript':'UTF-8'}";
   window.psGtmEventSchemas = {$events_schemas_json nofilter};
 </script>

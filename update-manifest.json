@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.38.0",
+    "latest_version":  "1.39.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.38.0/ps_gtm_datalayer.zip",
-    "checksum":  "ab6a0b6d4a2e29be6537565de170442267a705d94ead6ee310d357fe48858d82",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.39.0/ps_gtm_datalayer.zip",
+    "checksum":  "1137f8960dbc00da205ec44cc36e0e78ebeeb72eeabc0599dd3ae475a1c29bca",
     "release_type":  "minor",
-    "release_notes":  "1. Standardized module title to \"E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google \u0026 Microsoft Ads\" and resolved HTML entity double-escaping (\u0026amp; to \u0026).\n2. Comprehensive typography hierarchy \u0026 readability overhaul across all 6 Back Office tabs (28px title, 20-22px section headings, 15.5px labels, 15px form controls, zero text smaller than 13px).\n3. High-contrast color palette eliminating washed-out grays in favor of accessible dark slates (#0f172a / #1e293b / #475569).\n4. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas."
+    "release_notes":  "1. Redesigned Events Management Interface: Reorganized columns (STATUS, EVENT, CATEGORY, DESCRIPTION, DESTINATIONS, ACTIONS), category pills, and destination summary pills with tooltip breakdown.\n2. Slide-Out Inspect Drawer: Replaced modal dialog with modern right-side drawer featuring prefixed event code with copy, authoritative details, live destination routing quick-toggles, full parameter specifications, and platform tracking code blocks.\n3. Simplified Filter Toolbar: Labeled bulk action buttons ([Enable All] and [Disable All]) separated from category pills and status filter.\n4. Unsaved Changes Tracking: Real-time visual indicator and save progress feedback with double-submit prevention.\n5. Event Active State Persistence: Fully backed by backend PS_GTM_ACTIVE_EVENTS configuration key."
 }

@@ -1,16 +1,20 @@
 /**
  * PrestaShop DataLayer - Back Office Administration Script
  * Provides tabbed navigation, live search & filtering, interactive platform routing,
- * schema inspector, and diagnostics ping testing.
+ * schema inspector slide-out drawer, unsaved changes tracking, and diagnostics ping testing.
  */
 'use strict';
 
 (function () {
-  // Wait for DOM
+  var isFormDirty = false;
+  var currentInspectEvent = null;
+
+  // Wait for DOM ready
   document.addEventListener('DOMContentLoaded', function () {
     initTabs();
     initEventFilters();
-    initModal();
+    initInspectDrawer();
+    initUnsavedChangesTracker();
     initDiagnosticsPing();
     initSettingExplainers();
   });
@@ -137,49 +141,387 @@
         applyFilters();
       });
     }
+
+    // Dynamic row active switch syncing with drawer and status filter
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.classList.contains('ps-gtm-evt-main-cb')) {
+        markFormDirty();
+        var evtName = e.target.getAttribute('data-event');
+        if (currentInspectEvent === evtName) {
+          updateDrawerStatusPill(e.target.checked);
+        }
+        applyFilters();
+      }
+    });
   }
 
   /**
-   * Modal Dialog for Event Schema Details
+   * Slide-Out Inspect Drawer
    */
-  function initModal() {
-    var backdrop = document.getElementById('ps-gtm-schema-modal');
+  function initInspectDrawer() {
+    var backdrop = document.getElementById('ps-gtm-inspect-drawer-backdrop');
     if (!backdrop) return;
 
-    var titleEl = document.getElementById('ps-gtm-modal-title');
-    var descEl = document.getElementById('ps-gtm-modal-desc');
-    var payloadEl = document.getElementById('ps-gtm-modal-payload');
-    var closeBtns = backdrop.querySelectorAll('.ps-gtm-modal-close, [data-modal-dismiss]');
+    var closeBtns = backdrop.querySelectorAll('.ps-gtm-drawer-close, [data-drawer-dismiss]');
 
-    function closeModal() {
+    function closeDrawer() {
       backdrop.classList.remove('open');
+      currentInspectEvent = null;
     }
 
     closeBtns.forEach(function (btn) {
-      btn.addEventListener('click', closeModal);
+      btn.addEventListener('click', closeDrawer);
     });
 
     backdrop.addEventListener('click', function (e) {
       if (e.target === backdrop) {
-        closeModal();
+        closeDrawer();
       }
     });
 
-    // Delegate schema inspector buttons
+    // Delegate Inspect button clicks
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.ps-gtm-inspect-btn');
       if (!btn) return;
 
       var eventName = btn.getAttribute('data-event');
-      var schemaData = window.psGtmEventSchemas && window.psGtmEventSchemas[eventName];
-      if (!schemaData) return;
-
-      if (titleEl) titleEl.textContent = schemaData.label + ' (' + schemaData.name + ')';
-      if (descEl) descEl.textContent = schemaData.desc;
-      if (payloadEl) payloadEl.textContent = JSON.stringify(schemaData.example, null, 2);
-
-      backdrop.classList.add('open');
+      openInspectDrawer(eventName);
     });
+  }
+
+  function updateDrawerStatusPill(isEnabled) {
+    var pill = document.getElementById('ps-gtm-drawer-status-pill');
+    if (!pill) return;
+    if (isEnabled) {
+      pill.className = 'ps-gtm-status-pill enabled';
+      pill.textContent = 'Enabled';
+    } else {
+      pill.className = 'ps-gtm-status-pill disabled';
+      pill.textContent = 'Disabled';
+    }
+  }
+
+  function openInspectDrawer(eventName) {
+    var backdrop = document.getElementById('ps-gtm-inspect-drawer-backdrop');
+    if (!backdrop) return;
+
+    var schemaData = window.psGtmEventSchemas && window.psGtmEventSchemas[eventName];
+    if (!schemaData) return;
+
+    currentInspectEvent = eventName;
+
+    // Header elements
+    var titleEl = document.getElementById('ps-gtm-drawer-title');
+    var iconEl = document.getElementById('ps-gtm-drawer-icon');
+    var codeEl = document.getElementById('ps-gtm-drawer-event-code');
+    var catEl = document.getElementById('ps-gtm-drawer-category');
+    var trigEl = document.getElementById('ps-gtm-drawer-trigger');
+    var srcEl = document.getElementById('ps-gtm-drawer-source');
+    var depEl = document.getElementById('ps-gtm-drawer-dependencies');
+    var payloadEl = document.getElementById('ps-gtm-drawer-payload');
+
+    if (titleEl) titleEl.textContent = schemaData.label;
+    if (iconEl) iconEl.className = schemaData.icon || 'icon-bolt';
+
+    // Status pill check from table
+    var rowCb = document.querySelector('input.ps-gtm-evt-main-cb[data-event="' + eventName + '"]');
+    var isEnabled = rowCb ? rowCb.checked : schemaData.is_active;
+    updateDrawerStatusPill(isEnabled);
+
+    // Prefixed internal code
+    var prefix = window.psGtmEventPrefix ? (window.psGtmEventPrefix + '_') : '';
+    if (codeEl) codeEl.textContent = prefix + schemaData.name;
+
+    // Details Card
+    if (catEl) {
+      catEl.textContent = schemaData.category_label || schemaData.category;
+      catEl.className = 'ps-gtm-cat-badge ' + (schemaData.category || 'discovery');
+    }
+    if (trigEl) trigEl.textContent = schemaData.desc;
+    if (srcEl) srcEl.textContent = schemaData.trigger_hook;
+    if (depEl) depEl.textContent = schemaData.dependencies || 'PrestaShop core runtime';
+
+    // Destination Routing Section
+    renderDrawerDestinations(schemaData);
+
+    // Data Parameters Table
+    renderDrawerParameters(schemaData);
+
+    // Platform-Specific Formatted Code Section
+    renderDrawerPlatformCode(schemaData);
+
+    // Trigger & Bus Specifications
+    renderDrawerTriggerDetails(schemaData);
+
+    // JSON Payload
+    if (payloadEl) {
+      payloadEl.textContent = JSON.stringify(schemaData.example, null, 2);
+    }
+
+    backdrop.classList.add('open');
+  }
+
+  function renderDrawerDestinations(schemaData) {
+    var destContainer = document.getElementById('ps-gtm-drawer-dest-list');
+    if (!destContainer) return;
+    destContainer.innerHTML = '';
+
+    var destinations = schemaData.destinations || {};
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'sgtm'];
+
+    pKeys.forEach(function (pk) {
+      var pData = destinations[pk];
+      if (!pData) return;
+
+      var card = document.createElement('div');
+      card.className = 'ps-gtm-drawer-dest-card';
+
+      var left = document.createElement('div');
+      left.className = 'ps-gtm-drawer-dest-left';
+
+      var info = document.createElement('div');
+      info.innerHTML = '<strong style="color: #0f172a; font-size: 14.5px;">' + pData.name + '</strong>';
+
+      left.appendChild(info);
+
+      var right = document.createElement('div');
+      right.style.display = 'flex';
+      right.style.alignItems = 'center';
+      right.style.gap = '12px';
+
+      var badge = document.createElement('span');
+      var toggleWrap = document.createElement('div');
+
+      if (pk === 'sgtm') {
+        if (pData.globally_enabled) {
+          badge.className = 'ps-gtm-dest-status-badge active';
+          badge.textContent = 'Configured';
+        } else {
+          badge.className = 'ps-gtm-dest-status-badge inactive';
+          badge.textContent = 'Not Configured';
+        }
+      } else if (!pData.supported) {
+        badge.className = 'ps-gtm-dest-status-badge unsupported';
+        badge.textContent = 'Not Supported';
+      } else {
+        // Find underlying form input
+        var matrixInput = document.querySelector('input[name="adv_' + pk + '_' + schemaData.name + '"]');
+        var masterSw = document.querySelector('input[name="PS_GTM_ADV_MASTER_ENABLED"]');
+        var platSw = document.querySelector('input[name="PS_GTM_ADV_' + pk.toUpperCase() + '_ENABLED"]');
+
+        var isGloballyActive = masterSw ? masterSw.checked : true;
+        if (platSw && !platSw.checked) isGloballyActive = false;
+
+        var isRouted = matrixInput ? matrixInput.checked : pData.routed;
+
+        if (!isGloballyActive) {
+          badge.className = 'ps-gtm-dest-status-badge disabled-global';
+          badge.textContent = 'Disabled Globally';
+        } else if (isRouted) {
+          badge.className = 'ps-gtm-dest-status-badge active';
+          badge.textContent = 'Active';
+        } else {
+          badge.className = 'ps-gtm-dest-status-badge inactive';
+          badge.textContent = 'Inactive';
+        }
+
+        // Quick toggle inside drawer
+        var switchLabel = document.createElement('label');
+        switchLabel.className = 'ps-gtm-switch ps-gtm-switch-sm';
+        switchLabel.title = 'Route ' + schemaData.label + ' to ' + pData.short_name;
+
+        var switchInput = document.createElement('input');
+        switchInput.type = 'checkbox';
+        switchInput.className = 'ps-gtm-drawer-dest-toggle';
+        switchInput.checked = isRouted;
+        switchInput.setAttribute('data-platform', pk);
+        switchInput.setAttribute('data-event', schemaData.name);
+
+        var slider = document.createElement('span');
+        slider.className = 'ps-gtm-slider';
+
+        switchLabel.appendChild(switchInput);
+        switchLabel.appendChild(slider);
+        toggleWrap.appendChild(switchLabel);
+
+        switchInput.addEventListener('change', function () {
+          markFormDirty();
+          if (matrixInput) {
+            matrixInput.checked = switchInput.checked;
+          }
+
+          if (!isGloballyActive) {
+            badge.className = 'ps-gtm-dest-status-badge disabled-global';
+            badge.textContent = 'Disabled Globally';
+          } else if (switchInput.checked) {
+            badge.className = 'ps-gtm-dest-status-badge active';
+            badge.textContent = 'Active';
+          } else {
+            badge.className = 'ps-gtm-dest-status-badge inactive';
+            badge.textContent = 'Inactive';
+          }
+
+          updateTableDestinationCount(schemaData.name);
+        });
+      }
+
+      right.appendChild(badge);
+      if (toggleWrap.hasChildNodes()) {
+        right.appendChild(toggleWrap);
+      }
+
+      card.appendChild(left);
+      card.appendChild(right);
+      destContainer.appendChild(card);
+    });
+  }
+
+  function updateTableDestinationCount(eventName) {
+    var destCell = document.querySelector('.ps-gtm-dest-cell[data-event="' + eventName + '"]');
+    if (!destCell) return;
+
+    var schemaData = window.psGtmEventSchemas && window.psGtmEventSchemas[eventName];
+    if (!schemaData) return;
+
+    var count = 0;
+    var activeNames = [];
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft'];
+
+    var masterSw = document.querySelector('input[name="PS_GTM_ADV_MASTER_ENABLED"]');
+    var isMaster = masterSw ? masterSw.checked : true;
+
+    pKeys.forEach(function (pk) {
+      var platSw = document.querySelector('input[name="PS_GTM_ADV_' + pk.toUpperCase() + '_ENABLED"]');
+      var isPlat = platSw ? platSw.checked : true;
+      var matrixInput = document.querySelector('input[name="adv_' + pk + '_' + eventName + '"]');
+      var isRouted = matrixInput ? matrixInput.checked : false;
+
+      var pData = schemaData.destinations && schemaData.destinations[pk];
+      if (pData && pData.supported && isMaster && isPlat && isRouted) {
+        count++;
+        activeNames.push(pData.short_name);
+      }
+    });
+
+    if (schemaData.has_sgtm_webhook) {
+      var sgtmData = schemaData.destinations && schemaData.destinations['sgtm'];
+      if (sgtmData && sgtmData.globally_enabled) {
+        count++;
+        activeNames.push('sGTM');
+      }
+    }
+
+    var countNum = destCell.querySelector('.dest-count-num');
+    if (countNum) countNum.textContent = count;
+
+    var summaryPill = destCell.querySelector('.ps-gtm-dest-summary-pill');
+    if (summaryPill) summaryPill.title = activeNames.join(', ');
+  }
+
+  function renderDrawerParameters(schemaData) {
+    var tbody = document.getElementById('ps-gtm-drawer-params-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    var fields = schemaData.schema_fields || [];
+    if (!fields.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 18px;">No extra parameters specified.</td></tr>';
+      return;
+    }
+
+    fields.forEach(function (f) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><strong style="color: #0f172a; font-family: SFMono-Regular, Menlo, monospace;">' + f.name + '</strong></td>' +
+        '<td><span class="label label-default" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">' + f.type + '</span></td>' +
+        '<td style="color: #475569;">' + f.source + '</td>' +
+        '<td style="color: #334155;">' + (f.desc || f.destinations || '') + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderDrawerPlatformCode(schemaData) {
+    var contentBox = document.getElementById('ps-gtm-drawer-platform-code-content');
+    if (!contentBox) return;
+    contentBox.innerHTML = '';
+
+    var mappings = schemaData.platform_mappings || {};
+    var platLabels = {
+      meta: 'Meta Pixel & CAPI Mapping',
+      gads: 'Google Ads Dynamic Remarketing',
+      tiktok: 'TikTok Pixel & Events API',
+      pinterest: 'Pinterest Tag & Conversions API',
+      microsoft: 'Microsoft Advertising (UET)'
+    };
+
+    var count = 0;
+    for (var pk in mappings) {
+      if (!mappings.hasOwnProperty(pk)) continue;
+      count++;
+      var card = document.createElement('div');
+      card.className = 'ps-gtm-platform-snippet-card';
+      card.innerHTML = '<strong style="display: block; font-size: 13.5px; color: #0f172a; margin-bottom: 6px;">' + (platLabels[pk] || pk.toUpperCase()) + '</strong>' +
+        '<code style="display: block; background: #0f172a; color: #38bdf8; padding: 8px 12px; border-radius: 6px; font-size: 12.5px; overflow-x: auto; font-family: SFMono-Regular, Menlo, monospace;">' +
+        mappings[pk] + '</code>';
+      contentBox.appendChild(card);
+    }
+
+    if (count === 0) {
+      contentBox.innerHTML = '<div style="color: #64748b; font-size: 13.5px;">Standard Google Tag Manager dataLayer event schema.</div>';
+    }
+  }
+
+  function renderDrawerTriggerDetails(schemaData) {
+    var contentBox = document.getElementById('ps-gtm-drawer-trigger-details-content');
+    if (!contentBox) return;
+
+    var html = '<div style="margin-bottom: 10px;"><strong>Lifecycle Hook:</strong> <code>' + schemaData.trigger_hook + '</code></div>' +
+      '<div style="margin-bottom: 10px;"><strong>Authoritative Architecture:</strong> 100% backend-driven PrestaShop data extraction with zero DOM scraping.</div>' +
+      '<div><strong>Dependencies:</strong> ' + (schemaData.dependencies || 'PrestaShop core models') + '</div>';
+
+    contentBox.innerHTML = html;
+  }
+
+  /**
+   * Unsaved Changes Tracker & Save Feedback
+   */
+  function initUnsavedChangesTracker() {
+    var form = document.querySelector('#ps-gtm-admin-wrapper form');
+    if (!form) return;
+
+    form.addEventListener('change', function () {
+      markFormDirty();
+    });
+
+    form.addEventListener('input', function (e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        markFormDirty();
+      }
+    });
+
+    form.addEventListener('submit', function () {
+      var saveBtn = document.getElementById('ps-gtm-save-btn');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="icon-spinner icon-spin"></i> <span>Saving All Settings...</span>';
+      }
+      isFormDirty = false;
+    });
+
+    window.addEventListener('beforeunload', function (e) {
+      if (isFormDirty) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+  }
+
+  function markFormDirty() {
+    isFormDirty = true;
+    var alertBar = document.getElementById('ps-gtm-unsaved-alert');
+    if (alertBar) {
+      alertBar.style.display = 'flex';
+    }
   }
 
   /**
@@ -219,7 +561,7 @@
           resultBox.innerHTML = '<strong><i class="icon-check-circle"></i> Connection Verified!</strong><br>' +
             'Endpoint: <code>' + (data.endpoint || '') + '</code><br>' +
             'HTTP Status: <strong>' + data.http_code + '</strong> | Latency: <strong>' + data.latency_ms + ' ms</strong><br>' +
-            '<span style="font-size: 11px; color: #2e7d32;">Container responded successfully. Server-to-server conversions ready.</span>';
+            '<span style="font-size: 13px; color: #2e7d32;">Container responded successfully. Server-to-server conversions ready.</span>';
         } else {
           resultBox.className = 'alert alert-danger';
           resultBox.innerHTML = '<strong><i class="icon-warning-sign"></i> Connection Failed!</strong><br>' +
@@ -268,11 +610,18 @@
   window.psGtmToggleAllEvents = function (state) {
     var cbs = document.querySelectorAll('.ps-gtm-evt-main-cb');
     cbs.forEach(function (cb) { cb.checked = state; });
+    markFormDirty();
+    var statusSelect = document.getElementById('ps-gtm-status-filter');
+    if (statusSelect && statusSelect.value !== 'all') {
+      var event = new Event('change');
+      statusSelect.dispatchEvent(event);
+    }
   };
 
   window.psGtmTogglePlatformColumn = function (platformKey, state) {
     var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
     cbs.forEach(function (cb) { cb.checked = state; });
+    markFormDirty();
     if (typeof window.psGtmUpdateCounter === 'function') {
       window.psGtmUpdateCounter(platformKey);
     }
@@ -297,13 +646,40 @@
     }
   };
 
+  window.psGtmCopyDrawerCode = function () {
+    var elem = document.getElementById('ps-gtm-drawer-event-code');
+    if (!elem) return;
+    copyTextToClipboard(elem.textContent, 'Internal event name copied!');
+  };
+
+  window.psGtmCopyDrawerJson = function () {
+    var elem = document.getElementById('ps-gtm-drawer-payload');
+    if (!elem) return;
+    copyTextToClipboard(elem.textContent, 'DataLayer JSON payload copied!');
+  };
+
+  window.psGtmToggleAccordion = function (elemId) {
+    var body = document.getElementById(elemId);
+    if (!body) return;
+    var btn = body.previousElementSibling;
+    var isHidden = (body.style.display === 'none' || !body.style.display);
+    body.style.display = isHidden ? 'block' : 'none';
+    if (btn) {
+      if (isHidden) btn.classList.add('open');
+      else btn.classList.remove('open');
+    }
+  };
+
   window.psGtmCopyCode = function (elemId) {
     var elem = document.getElementById(elemId);
     if (!elem) return;
-    var text = elem.textContent;
+    copyTextToClipboard(elem.textContent, 'Payload copied to clipboard!');
+  };
+
+  function copyTextToClipboard(text, successMsg) {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text).then(function () {
-        alert('Payload copied to clipboard!');
+        alert(successMsg || 'Copied to clipboard!');
       });
     } else {
       var ta = document.createElement('textarea');
@@ -312,9 +688,9 @@
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      alert('Payload copied to clipboard!');
+      alert(successMsg || 'Copied to clipboard!');
     }
-  };
+  }
 
   window.psGtmSelectDataMappingEvent = function (evtName) {
     var tabs = document.querySelectorAll('.ps-gtm-mapping-tab');

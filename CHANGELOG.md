@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.39.0] - 2026-10-25
+
+### Added
+- **Redesigned Events Management Interface**:
+  - Implemented clean, modern table layout with reorganized columns: `STATUS`, `EVENT`, `CATEGORY`, `DESCRIPTION`, `DESTINATIONS`, and `ACTIONS`.
+  - Added dedicated event category badges (`Discovery`, `Interaction`, `Cart`, `Checkout`, `Orders & Returns`) with distinct color themes.
+  - Added event-specific category icons (`icon-eye`, `icon-th-list`, `icon-search`, `icon-hand-pointer-o`, `icon-cube`, `icon-heart`, `icon-cart-plus`, `icon-trash`, `icon-shopping-cart`, `icon-sign-in`, `icon-truck`, `icon-credit-card`, `icon-check-square-o`, `icon-undo`, `icon-refresh`).
+  - Added compact, readable Destination Summary pills (e.g. `5 destinations`) showing active destination count with detailed hover tooltips listing all enabled platforms.
+  - Streamlined table rows by moving technical hook execution paths and zero-DOM event bus details into the Inspect drawer, eliminating visual clutter.
+- **Slide-Out Inspect Drawer**:
+  - Replaced legacy modal dialog with a modern slide-out drawer matching user design specifications.
+  - Live status indicator reflecting real-time enabled/disabled event state.
+  - Internal event name card with configured event prefix and one-click copy button.
+  - Authoritative event metadata card including Category, Trigger description, Source hook/event bus, and dependencies.
+  - Dynamic Destination Routing manager with live platform status badges:
+    - `Active` (Platform enabled and event routed)
+    - `Inactive` (Platform enabled but event unrouted)
+    - `Disabled Globally` (Platform disabled globally in Advertising tab)
+    - `Not Supported` (Event unsupported by platform)
+  - Interactive quick-toggle switches inside drawer that sync directly with the configuration form and update table destination counts in real time.
+  - Complete Data Parameters specification table (`Parameter`, `Type`, `Source`, `Purpose / Mapping`).
+  - Collapsible accordions for:
+    - Platform-specific formatted tracking code snippets (`fbq`, `gtag`, `ttq`, `pintrk`, `uetq`).
+    - Trigger, zero-DOM event bus, and deduplication specifications.
+  - Verified DataLayer JSON payload preview with one-click copy button.
+- **Enhanced Filter Toolbar & Bulk Actions**:
+  - Replaced ambiguous icon buttons with clearly labeled, dedicated bulk action buttons (`[Enable All]` and `[Disable All]`) separated from search filters.
+  - Added live Status dropdown filter (`All Statuses`, `Enabled Only`, `Disabled Only`).
+- **Unsaved Changes Tracking & Save State Feedback**:
+  - Added floating notification banner warning of unsaved modifications when any setting or switch is changed.
+  - Added animated progress indicator on save button (`Saving All Settings...`) with double-submit prevention.
+- **Backend-Driven Event Active State Persistence**:
+  - Added `PS_GTM_ACTIVE_EVENTS` configuration key and `isEventEnabled()` helper method.
+  - Ensures event suppression across storefront hooks, order confirmations, and server-side webhooks when disabled by the administrator.
+
+---
+
 ## [1.38.0] - 2026-10-25
 
 ### Changed
