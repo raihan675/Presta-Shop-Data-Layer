@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.33.0';
+        $this->version = '1.34.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -88,8 +88,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', '/ps-webhook')
-            && Configuration::updateValue('PS_SGTM_GA4_MEASUREMENT_ID', '')
-            && Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', '')
             && Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED', '1')
@@ -119,8 +117,6 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_SGTM_WEBHOOK_ENDPOINT_PATH')
-            && Configuration::deleteByName('PS_SGTM_GA4_MEASUREMENT_ID')
-            && Configuration::deleteByName('PS_SGTM_PREVIEW_HEADER')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_REFUND_ENABLED')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED')
@@ -220,8 +216,6 @@ class Ps_Gtm_DataLayer extends Module
                 $gtmId = trim(Tools::getValue('PS_GTM_CONTAINER_ID'));
                 $sgtmUrl = trim(Tools::getValue('PS_SGTM_TRANSPORT_URL'));
                 $sgtmEndpointPath = trim((string)Tools::getValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH'));
-                $sgtmMeasurementId = trim((string)Tools::getValue('PS_SGTM_GA4_MEASUREMENT_ID'));
-                $sgtmPreviewHeader = trim((string)Tools::getValue('PS_SGTM_PREVIEW_HEADER'));
                 $rawPrefix = Tools::getValue('PS_GTM_EVENT_PREFIX');
                 $prefix = self::normalizePrefix($rawPrefix);
                 $catalogStrategy = trim((string)Tools::getValue('PS_GTM_CATALOG_ID_STRATEGY'));
@@ -235,8 +229,6 @@ class Ps_Gtm_DataLayer extends Module
                     Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
                     Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
                     Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', $sgtmEndpointPath ?: '/ps-webhook');
-                    Configuration::updateValue('PS_SGTM_GA4_MEASUREMENT_ID', $sgtmMeasurementId);
-                    Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', $sgtmPreviewHeader);
                     $rawHeadCode = Tools::getValue('PS_GTM_RAW_HEAD_CODE', false);
                     if ($rawHeadCode !== false) {
                         Configuration::updateValue('PS_GTM_RAW_HEAD_CODE', $rawHeadCode, true);
@@ -536,8 +528,6 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_CONTAINER_ID' => Configuration::get('PS_GTM_CONTAINER_ID'),
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
                 'PS_SGTM_WEBHOOK_ENDPOINT_PATH' => Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH') ?: '/ps-webhook',
-                'PS_SGTM_GA4_MEASUREMENT_ID' => Configuration::get('PS_SGTM_GA4_MEASUREMENT_ID'),
-                'PS_SGTM_PREVIEW_HEADER' => Configuration::get('PS_SGTM_PREVIEW_HEADER'),
                 'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
                 'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
@@ -659,38 +649,6 @@ class Ps_Gtm_DataLayer extends Module
                             '/ps-webhook'
                         ),
                         'size' => 30,
-                    ],
-                    [
-                        'type' => 'text',
-                        'name' => 'PS_SGTM_GA4_MEASUREMENT_ID',
-                        'label' => $this->l('GA4 Measurement ID for sGTM (Optional)'),
-                        'hint' => $this->l('Enter your GA4 Measurement ID (e.g. G-XXXXXXXXXX) so the sGTM default GA4 Client automatically claims server webhooks.'),
-                        'desc' => $this->renderSettingHelp(
-                            'sgtm_ga4_measurement_id',
-                            $this->l('Identifies your GA4 stream for Google Tag Manager Server-side GA4 Client.'),
-                            $this->l('The official sGTM GA4 Client requires a Measurement ID parameter (tid=G-XXXXX) to claim server-side requests.'),
-                            $this->l('When configured, webhook payloads are automatically encoded in canonical GA4 format, guaranteeing HTTP 200 acceptance by the native GA4 Client.'),
-                            $this->l('Eliminates the need to install or configure external custom clients in Server GTM.'),
-                            $this->l('Leave blank if you use Stape Data Client or a custom JSON webhook client.'),
-                            'G-XXXXXXXXXX'
-                        ),
-                        'size' => 30,
-                    ],
-                    [
-                        'type' => 'text',
-                        'name' => 'PS_SGTM_PREVIEW_HEADER',
-                        'label' => $this->l('sGTM Debug / Preview Header (Optional)'),
-                        'hint' => $this->l('Paste your X-Gtm-Server-Preview header token to view server webhooks inside GTM Server Preview mode.'),
-                        'desc' => $this->renderSettingHelp(
-                            'sgtm_preview_header',
-                            $this->l('Enables real-time debugging in Google Tag Manager Server Container Preview.'),
-                            $this->l('Server GTM ignores external backend HTTP requests in Preview mode unless the X-Gtm-Server-Preview header is present.'),
-                            $this->l('To find your token: In Server GTM, click Preview > click the three vertical dots (⋮) > select "Send requests manually" > copy the header value.'),
-                            $this->l('When pasted here, all Back Office refunds, offline orders, and status changes instantly appear in your GTM Server Preview window.'),
-                            $this->l('Remove or leave blank when done debugging in production.'),
-                            'ZW52LTN8NW84b...'
-                        ),
-                        'size' => 60,
                     ],
                     [
                         'type' => 'switch',

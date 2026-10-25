@@ -265,8 +265,8 @@ class ServerSideWebhookDispatcher
 
     /**
      * Sends the non-blocking HTTP POST request to the Server GTM container endpoint.
-     * Supports both native sGTM GA4 Client beacon format (when GA4 Measurement ID is configured)
-     * and raw JSON / Stape Data Client format, with optional GTM Preview header injection.
+     * Transmits canonical PrestaShop JSON carrying event_name, financial totals, items,
+     * status transitions, and hashed user_data directly to the sGTM Webhook Client.
      *
      * @param string $sgtmUrl
      * @param string $eventName
@@ -280,57 +280,42 @@ class ServerSideWebhookDispatcher
                 return false;
             }
 
-            $measurementId = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_GA4_MEASUREMENT_ID')) : '';
-            $previewHeader = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_PREVIEW_HEADER')) : '';
-
             $clientId = !empty($payload['client_id']) ? (string)$payload['client_id'] : '';
             $events = !empty($payload['events']) && is_array($payload['events']) ? $payload['events'] : [];
             $firstEvent = !empty($events[0]) && is_array($events[0]) ? $events[0] : [];
             $params = !empty($firstEvent['params']) && is_array($firstEvent['params']) ? $firstEvent['params'] : [];
 
-            // If a GA4 Measurement ID is configured, format payload for Google's native sGTM GA4 Client
-            if (!empty($measurementId)) {
-                $endpoint = rtrim($sgtmUrl, '/') . '/g/collect';
-                $body = self::buildGa4BeaconBody($measurementId, $clientId, $eventName, $params);
-                $contentType = 'text/plain';
-            } else {
-                $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
-                if (empty($endpointPath)) {
-                    $endpointPath = '/ps-webhook';
-                }
-
-                $parsedUrl = parse_url($sgtmUrl);
-                if (!empty($parsedUrl['path']) && $parsedUrl['path'] !== '/') {
-                    $endpoint = $sgtmUrl;
-                } else {
-                    $endpoint = rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/');
-                }
-
-                $jsonPayload = array_merge([
-                    'event_name' => $eventName,
-                    'client_id' => $clientId,
-                    'timestamp' => time(),
-                ], $params);
-                $jsonPayload['events'] = [
-                    [
-                        'name' => $eventName,
-                        'params' => $params,
-                    ]
-                ];
-
-                $body = json_encode($jsonPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                $contentType = 'application/json';
+            $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
+            if (empty($endpointPath)) {
+                $endpointPath = '/ps-webhook';
             }
 
+            $parsedUrl = parse_url($sgtmUrl);
+            if (!empty($parsedUrl['path']) && $parsedUrl['path'] !== '/') {
+                $endpoint = $sgtmUrl;
+            } else {
+                $endpoint = rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/');
+            }
+
+            $jsonPayload = array_merge([
+                'event_name' => $eventName,
+                'client_id' => $clientId,
+                'timestamp' => time(),
+            ], $params);
+            $jsonPayload['events'] = [
+                [
+                    'name' => $eventName,
+                    'params' => $params,
+                ]
+            ];
+
+            $body = json_encode($jsonPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
             $headers = [
-                'Content-Type: ' . $contentType,
+                'Content-Type: application/json',
                 'X-PrestaShop-Source: ps_gtm_datalayer',
                 'X-Event-Type: ' . $eventName,
             ];
-
-            if (!empty($previewHeader)) {
-                $headers[] = 'X-Gtm-Server-Preview: ' . $previewHeader;
-            }
 
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
@@ -366,88 +351,5 @@ class ServerSideWebhookDispatcher
             }
             return false;
         }
-    }
-
-    /**
-     * Builds canonical GA4 Measurement Protocol / gtag beacon body for sGTM GA4 Client consumption.
-     * Formats event parameters (ep.*, epn.*), items (pr1=...), and user data (em, ph, ep.user_*).
-     *
-     * @param string $measurementId GA4 Measurement ID (e.g. G-XXXXXXXX)
-     * @param string $clientId sGTM Client ID
-     * @param string $eventName GA4 Event Name
-     * @param array $params Event parameters
-     * @return string URL-encoded beacon query string
-     */
-    public static function buildGa4BeaconBody($measurementId, $clientId, $eventName, array $params)
-    {
-        $fields = [
-            'v' => '2',
-            'tid' => $measurementId,
-            'cid' => $clientId,
-            'en' => $eventName,
-        ];
-
-        $parts = [];
-        foreach ($fields as $k => $v) {
-            $parts[] = $k . '=' . rawurlencode((string)$v);
-        }
-
-        $itemIndex = 1;
-        foreach ($params as $key => $val) {
-            if ($key === 'items' && is_array($val)) {
-                foreach ($val as $item) {
-                    $itemParts = [];
-                    if (isset($item['item_id'])) {
-                        $itemParts[] = 'id' . str_replace('~', '_', (string)$item['item_id']);
-                    }
-                    if (isset($item['item_name'])) {
-                        $itemParts[] = 'nm' . str_replace('~', '_', (string)$item['item_name']);
-                    }
-                    if (isset($item['price'])) {
-                        $itemParts[] = 'pr' . (float)$item['price'];
-                    }
-                    if (isset($item['quantity'])) {
-                        $itemParts[] = 'qt' . (int)$item['quantity'];
-                    }
-                    if (isset($item['item_variant']) && $item['item_variant'] !== '') {
-                        $itemParts[] = 'va' . str_replace('~', '_', (string)$item['item_variant']);
-                    }
-                    if (isset($item['item_brand']) && $item['item_brand'] !== '') {
-                        $itemParts[] = 'br' . str_replace('~', '_', (string)$item['item_brand']);
-                    }
-                    if (isset($item['item_category']) && $item['item_category'] !== '') {
-                        $itemParts[] = 'ca' . str_replace('~', '_', (string)$item['item_category']);
-                    }
-                    if (!empty($itemParts)) {
-                        $parts[] = 'pr' . $itemIndex . '=' . rawurlencode(implode('~', $itemParts));
-                        $itemIndex++;
-                    }
-                }
-            } elseif ($key === 'user_data' && is_array($val)) {
-                if (!empty($val['email_address'])) {
-                    $parts[] = 'em=' . rawurlencode((string)$val['email_address']);
-                    $parts[] = 'ep.user_email_hash=' . rawurlencode((string)$val['email_address']);
-                }
-                if (!empty($val['phone_number'])) {
-                    $parts[] = 'ph=' . rawurlencode((string)$val['phone_number']);
-                    $parts[] = 'ep.user_phone_hash=' . rawurlencode((string)$val['phone_number']);
-                }
-                if (!empty($val['address']) && is_array($val['address'])) {
-                    foreach ($val['address'] as $addrKey => $addrVal) {
-                        if (is_scalar($addrVal) && (string)$addrVal !== '') {
-                            $parts[] = 'ep.user_' . $addrKey . '=' . rawurlencode((string)$addrVal);
-                        }
-                    }
-                }
-            } elseif (is_numeric($val) && !is_string($val)) {
-                $parts[] = 'epn.' . $key . '=' . $val;
-            } elseif (is_bool($val)) {
-                $parts[] = 'ep.' . $key . '=' . ($val ? 'true' : 'false');
-            } elseif (is_scalar($val) && (string)$val !== '') {
-                $parts[] = 'ep.' . $key . '=' . rawurlencode((string)$val);
-            }
-        }
-
-        return implode('&', $parts);
     }
 }

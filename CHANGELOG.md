@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.34.0] - 2026-10-25
+
+### Changed
+- **Streamlined Server-Side Webhook Architecture**:
+  - Removed redundant `PS_SGTM_GA4_MEASUREMENT_ID` and `PS_SGTM_PREVIEW_HEADER` inputs from Back Office configuration.
+  - Standardized all server-to-server webhook dispatches (`refund`, `purchase`, `order_status_update`) on pure, canonical JSON payloads (`application/json`).
+  - Seamlessly routes to `/ps-webhook` (or custom endpoint path) for consumption by the dedicated `PrestaShop Webhook Client` template or Stape Data Client.
+  - Preview debugging is managed cleanly via Stape's native Preview Header Power-Up or client routing without bloating store settings.
+
+---
+
 ## [1.33.0] - 2026-10-25
 
 ### Added

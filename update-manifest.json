@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.33.0",
+    "latest_version":  "1.34.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.33.0/ps_gtm_datalayer.zip",
-    "checksum":  "7124acdcb60b24cdf07c2d4693c7f1d601a890471bef841ba549e3d242983633",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.34.0/ps_gtm_datalayer.zip",
+    "checksum":  "030347801f4e2737c16d80ca515b48a0515b856693152a63061e89797fa782b2",
     "release_type":  "minor",
-    "release_notes":  "1. Added dedicated PrestaShop Webhook Client template for Server GTM (prestashop-client-template.tpl) for 100% deterministic parameter mapping into Common Event Data.\n2. Added configurable Webhook Endpoint Path (default: /ps-webhook, with direct /data Stape Data Client compatibility).\n3. Enriched JSON webhook payloads with top-level event_name, financial totals, and user data for zero-latency real-time debugging."
+    "release_notes":  "1. Streamlined Back Office configuration: Removed redundant GA4 Measurement ID and sGTM Preview Header fields in favor of direct PrestaShop Webhook Client routing.\n2. All server webhooks dispatch pure, authoritative JSON carrying event_name, financial totals, items, and SHA-256 customer data.\n3. Direct native compatibility with prestashop-client-template.tpl and Stape Data Client."
 }

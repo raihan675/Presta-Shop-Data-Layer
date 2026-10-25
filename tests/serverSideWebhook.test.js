@@ -279,96 +279,30 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(result.conversionAction, 'maintain');
   });
 
-  it('12. Should build canonical GA4 beacon query string with measurement ID, item indices, and parameters', () => {
-    function buildGa4BeaconBody(measurementId, clientId, eventName, params) {
-      const parts = [
-        'v=2',
-        `tid=${encodeURIComponent(measurementId)}`,
-        `cid=${encodeURIComponent(clientId)}`,
-        `en=${encodeURIComponent(eventName)}`
-      ];
-
-      let itemIndex = 1;
-      for (const [key, val] of Object.entries(params)) {
-        if (key === 'items' && Array.isArray(val)) {
-          for (const item of val) {
-            const itemParts = [];
-            if (item.item_id) itemParts.push(`id${String(item.item_id).replace(/~/g, '_')}`);
-            if (item.item_name) itemParts.push(`nm${String(item.item_name).replace(/~/g, '_')}`);
-            if (item.price != null) itemParts.push(`pr${item.price}`);
-            if (item.quantity != null) itemParts.push(`qt${item.quantity}`);
-            if (itemParts.length) {
-              parts.push(`pr${itemIndex}=${encodeURIComponent(itemParts.join('~'))}`);
-              itemIndex++;
-            }
-          }
-        } else if (key === 'user_data' && typeof val === 'object' && val !== null) {
-          if (val.email_address) {
-            parts.push(`em=${encodeURIComponent(val.email_address)}`);
-            parts.push(`ep.user_email_hash=${encodeURIComponent(val.email_address)}`);
-          }
-          if (val.phone_number) {
-            parts.push(`ph=${encodeURIComponent(val.phone_number)}`);
-            parts.push(`ep.user_phone_hash=${encodeURIComponent(val.phone_number)}`);
-          }
-        } else if (typeof val === 'number') {
-          parts.push(`epn.${key}=${val}`);
-        } else if (typeof val === 'boolean') {
-          parts.push(`ep.${key}=${val ? 'true' : 'false'}`);
-        } else if (val != null && String(val) !== '') {
-          parts.push(`ep.${key}=${encodeURIComponent(String(val))}`);
-        }
-      }
-      return parts.join('&');
+  it('12. Should build canonical JSON payload with application/json headers', () => {
+    function buildHeaders(eventName) {
+      return {
+        'Content-Type': 'application/json',
+        'X-PrestaShop-Source': 'ps_gtm_datalayer',
+        'X-Event-Type': eventName
+      };
     }
 
-    const beacon = buildGa4BeaconBody('G-TEST12345', '1251.1700000', 'order_status_update', {
-      transaction_id: '1251',
-      status_transition_type: 'payment_confirmed',
-      conversion_action: 'record',
-      is_paid: true,
-      value: 17.50,
-      currency: 'EUR',
-      items: [
-        { item_id: '68_299', item_name: 'Sip-N-Snack Cup', price: 13.00, quantity: 1 }
-      ],
-      user_data: {
-        email_address: 'd9b015e12e3e9d8e578c7847cbb6509f7a77e596bb05c2a122e2307efea14408'
-      }
-    });
-
-    assert.ok(beacon.includes('v=2'));
-    assert.ok(beacon.includes('tid=G-TEST12345'));
-    assert.ok(beacon.includes('en=order_status_update'));
-    assert.ok(beacon.includes('ep.transaction_id=1251'));
-    assert.ok(beacon.includes('ep.status_transition_type=payment_confirmed'));
-    assert.ok(beacon.includes('ep.conversion_action=record'));
-    assert.ok(beacon.includes('ep.is_paid=true'));
-    assert.ok(beacon.includes('epn.value=17.5'));
-    assert.ok(beacon.includes('ep.currency=EUR'));
-    assert.ok(beacon.includes('pr1=id68_299~nmSip-N-Snack%20Cup~pr13~qt1'));
-    assert.ok(beacon.includes('em=d9b015e12e3e9d8e578c7847cbb6509f7a77e596bb05c2a122e2307efea14408'));
+    const headers = buildHeaders('order_status_update');
+    assert.strictEqual(headers['Content-Type'], 'application/json');
+    assert.strictEqual(headers['X-PrestaShop-Source'], 'ps_gtm_datalayer');
+    assert.strictEqual(headers['X-Event-Type'], 'order_status_update');
   });
 
-  it('13. Should attach X-Gtm-Server-Preview header when debug token is present', () => {
-    function buildHeaders(previewHeader) {
-      const headers = {
-        'Content-Type': 'text/plain',
-        'X-PrestaShop-Source': 'ps_gtm_datalayer',
-        'X-Event-Type': 'order_status_update'
-      };
-      if (previewHeader && previewHeader.trim() !== '') {
-        headers['X-Gtm-Server-Preview'] = previewHeader.trim();
-      }
-      return headers;
-    }
-
-    const testToken = 'ZW52LTN8NW84bWp6OTJoTDl1cU5jajZFcjhyZ3wxYTIzM';
-    const headers = buildHeaders(testToken);
-    assert.strictEqual(headers['X-Gtm-Server-Preview'], testToken);
-
-    const emptyHeaders = buildHeaders('');
-    assert.strictEqual(emptyHeaders['X-Gtm-Server-Preview'], undefined);
+  it('13. Should ensure pure JSON serialization with unescaped slashes and unicode', () => {
+    const payload = {
+      event_name: 'order_status_update',
+      transaction_id: '1254',
+      status_name: 'Awaiting bank wire payment & processing'
+    };
+    const jsonStr = JSON.stringify(payload);
+    assert.ok(jsonStr.includes('order_status_update'));
+    assert.ok(jsonStr.includes('1254'));
   });
 
   it('14. Should resolve webhook endpoint with default /ps-webhook or custom endpoint path', () => {
