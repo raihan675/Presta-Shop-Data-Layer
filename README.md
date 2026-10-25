@@ -6,7 +6,7 @@
 
 An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, **Google Ads Dynamic Remarketing (Retail vertical)**, and **Microsoft Advertising (Bing Ads) & UET** with zero client-side transformation required in Google Tag Manager.
 
-Includes **Server-Side GTM (sGTM)** support and **100% backend-derived data sourcing (Zero DOM Scraping)**.
+Includes **Server-Side GTM (sGTM)** support, **Server-to-Server Webhook Engine (Refunds, Offline Orders & Status Changes)**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
 ---
 
@@ -27,6 +27,9 @@ The module supports all core ecommerce actions across the full customer funnel w
 | **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_shipping_info`, `checkout_step: 3`) |
 | **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_payment_info`, `checkout_step: 4`) |
 | **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data`), `microsoft_ads` (`purchase`, `transaction_id`, `revenue_value`, `tax`, `shipping`, `pid`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
+| **12** | **`refund`** *(Server-to-Server)* | Administrator generates a partial or full Credit Slip in PrestaShop Back Office (`actionOrderSlipAdd`). | Server-to-server HTTP POST to sGTM (`/g/collect?v=2`) with refunded items, catalog IDs, quantities, values, and SHA-256 customer data. Deduplicated via `ps_gtm_refund_log`. |
+| **13** | **`purchase`** *(Offline Server-to-Server)* | Administrator creates or validates an order offline/manually in Back Office (`actionValidateOrder`). | Server-to-server HTTP POST to sGTM without requiring storefront browser session. Deduplicated via `gtm_purchase_log`. |
+| **14** | **`order_status_update`** *(Server-to-Server)* | Order/payment status changes in Back Office (`actionOrderStatusPostUpdate`), e.g. Bank Wire `#10` to Payment Accepted `#2`, Mirakl `#11`. | Dispatches new status ID, localized name, native `is_paid` and `is_shipped` flags, items, and SHA-256 customer data. Features self-healing `payment_revoked` classification and `conversion_action: "retract"`. |
 
 ---
 
@@ -272,6 +275,37 @@ In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLaye
 * **Granular Event-Level Toggles**: Expand any platform to view its supported ecommerce events, payload specifications, and independently toggle data layer dispatch per event.
 * **Platform-Specific Bulk Actions**: Each expanded panel includes instant "Enable all events" and "Disable all events" buttons scoped exclusively to that platform.
 * **Global Controls**: Quick "Expand All", "Collapse All", "Enable All Platforms", and "Disable All Platforms" toolbar buttons.
+
+---
+
+## Server-to-Server Webhook Engine (Server GTM / Stape.io)
+
+For ecommerce events that occur outside of active customer browser sessions, `ps_gtm_datalayer` features an asynchronous, non-blocking server-to-server webhook engine that dispatches events directly to your **Server-Side GTM Transport URL** (`/g/collect?v=2`).
+
+### 1. Back Office Refunds (`refund`)
+* **Hook**: `actionOrderSlipAdd`
+* **Trigger**: Store administrator generates a partial or full Credit Slip in the Back Office (`Orders > View Order > Partial Refund`).
+* **Payload**: Carries exact refunded line items (formatted according to your Catalog Strategy), unit prices, refunded quantities, shipping refund, and SHA-256 customer identifiers (`email_address`, `phone_number`, address).
+* **Deduplication**: Recorded in `ps_gtm_refund_log` to guarantee every credit slip is transmitted strictly once.
+
+### 2. Offline / Admin Orders (`purchase`)
+* **Hook**: `actionValidateOrder`
+* **Trigger**: Orders created manually by administrators in the Back Office or received via offline sync without an active storefront checkout session.
+* **Payload**: Full GA4 `purchase` payload with line items, tax, shipping, discounts, and customer data.
+* **Deduplication**: Verified against `gtm_purchase_log` to prevent double-counting of storefront orders.
+
+### 3. Universal Order & Payment Status Changes (`order_status_update`)
+* **Hook**: `actionOrderStatusPostUpdate`
+* **Trigger**: Any status change in the Back Office (e.g. Bank Wire `#10` &rarr; Payment Accepted `#2`, Mirakl marketplace confirmation `#11`, Shipped `#4`, Delivered `#5`).
+* **Universal Portability**: Reads PrestaShop's core `$orderState->paid` and `$orderState->shipped` flags with 0 hardcoded status IDs or languages.
+* **Self-Healing Mistake Reversal Detection**:
+  * Automatically detects if an administrator accidentally marks an order as paid and then reverts it to an unpaid or canceled state.
+  * Transitions are automatically classified:
+    * **`payment_confirmed`** (`conversion_action: "record"`): Unpaid &rarr; Paid. Triggers Google Ads offline conversion and Meta CAPI.
+    * **`payment_revoked`** (`conversion_action: "retract"`): Paid &rarr; Unpaid/Canceled. Enables Google Ads **Conversion Retractions** and GA4 **Refunds** to automatically deduct mistakenly attributed revenue.
+    * **`status_changed_while_paid`** (`conversion_action: "maintain"`): Paid &rarr; Paid. Preserves attribution without duplicate firing.
+    * **`status_changed_unpaid`** (`conversion_action: "none"`): Informational status updates.
+* **Fail-Safe Performance**: Dispatched via asynchronous cURL with a strict **1500ms execution timeout**, ensuring Back Office administration is never slowed down.
 
 ---
 

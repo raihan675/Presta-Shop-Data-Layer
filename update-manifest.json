@@ -4,7 +4,7 @@
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.31.0/ps_gtm_datalayer.zip",
-    "checksum":  "3d2f99eb75e1bcf4918b09edd6129bd31b93cac06f783897b8d3b481b3785fa2",
+    "checksum":  "328723b70a1b6215c4cacbb1a99a0eba0f7ccf632a0f717e89983d118744b9a7",
     "release_type":  "minor",
     "release_notes":  "1. Added Self-Healing Payment Revocation \u0026 Mistake Reversal Detection.\n2. Automatically signals payment_revoked and conversion_action: retract when an admin reverts a mistakenly paid order.\n3. Enables seamless Google Ads Conversion Retraction and GA4 Refund reconciliation."
 }
