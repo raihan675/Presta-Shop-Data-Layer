@@ -6,14 +6,14 @@
     <div style="display: flex; align-items: center; gap: 10px;">
       <i class="material-icons" style="font-size: 26px; color: #f59f00; vertical-align: middle;">notifications_active</i>
       <div>
-        <strong style="font-size: 15px; color: #333;">{$module_display_name|escape:'html':'UTF-8'}: New version {$latest_version|escape:'html':'UTF-8'} is available!</strong>
-        <span style="display: block; font-size: 13px; color: #666; margin-top: 2px;">
+        <strong style="font-size: 16px; color: #0f172a;">{$module_display_name|replace:'&amp;':'&' nofilter}: New version {$latest_version|escape:'html':'UTF-8'} is available!</strong>
+        <span style="display: block; font-size: 14px; color: #475569; margin-top: 4px;">
           Installed: v{$current_version|escape:'html':'UTF-8'} &rarr; Latest: v{$latest_version|escape:'html':'UTF-8'}
         </span>
       </div>
     </div>
     {if !empty($release_notes)}
-    <div style="margin-top: 8px; font-size: 12px; color: #555; background: rgba(255,255,255,0.7); padding: 8px 12px; border-radius: 3px; max-width: 800px; white-space: pre-line;">
+    <div style="margin-top: 10px; font-size: 14px; line-height: 1.5; color: #1e293b; background: rgba(255,255,255,0.85); padding: 10px 14px; border-radius: 4px; max-width: 800px; white-space: pre-line;">
       {$release_notes|escape:'html':'UTF-8'}
     </div>
     {/if}
@@ -24,11 +24,11 @@
       <input type="hidden" name="update_download_url" value="{$download_url|escape:'html':'UTF-8'}">
       <input type="hidden" name="update_checksum" value="{$checksum|escape:'html':'UTF-8'}">
       <input type="hidden" name="update_version" value="{$latest_version|escape:'html':'UTF-8'}">
-      <button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm('Update {$module_display_name|escape:'javascript':'UTF-8'} to version {$latest_version|escape:'javascript':'UTF-8'} now? All settings will be preserved.');" style="font-weight: 600; padding: 10px 18px;">
+      <button type="submit" name="submitRunModuleUpdate" class="btn btn-success btn-lg" onclick="return confirm('Update {$module_display_name|replace:'&amp;':'&'|escape:'javascript':'UTF-8'} to version {$latest_version|escape:'javascript':'UTF-8'} now? All settings will be preserved.');" style="font-size: 15px; font-weight: 600; padding: 12px 20px;">
         <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">system_update_alt</i> 1-Click Update to v{$latest_version|escape:'html':'UTF-8'}
       </button>
     </form>
-    <a href="{$download_url|escape:'html':'UTF-8'}" class="btn btn-outline-secondary btn-lg" style="font-weight: 500; padding: 10px 16px; border: 1px solid #ccc; background: #fff;" target="_blank" download>
+    <a href="{$download_url|escape:'html':'UTF-8'}" class="btn btn-outline-secondary btn-lg" style="font-size: 15px; font-weight: 500; padding: 12px 18px; border: 1.5px solid #cbd5e1; background: #fff; color: #1e293b;" target="_blank" download>
       <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">file_download</i> Download ZIP
     </a>
   </div>
@@ -42,6 +42,9 @@
         '[data-tech-name="ps_gtm_datalayer"]',
         '[data-module-name="ps_gtm_datalayer"]',
         'tr[data-name*="ps_gtm_datalayer"]',
+        '.module-item[data-name*="E-Commerce DataLayer"]',
+        '.module-item-list[data-name*="E-Commerce DataLayer"]',
+        '.module-item-grid[data-name*="E-Commerce DataLayer"]',
         '.module-item[data-name*="Enterprise GA4"]',
         '.module-item-list[data-name*="Enterprise GA4"]',
         '.module-item-grid[data-name*="Enterprise GA4"]'
@@ -63,6 +66,7 @@
           var card = allCards[k];
           if ((card.getAttribute('data-name') && card.getAttribute('data-name').toLowerCase().indexOf('ps_gtm_datalayer') !== -1) ||
               card.innerHTML.indexOf('ps_gtm_datalayer') !== -1 ||
+              card.innerHTML.indexOf('E-Commerce DataLayer') !== -1 ||
               card.innerHTML.indexOf('Enterprise GA4') !== -1) {
             moduleCards.push(card);
           }

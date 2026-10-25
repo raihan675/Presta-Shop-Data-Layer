@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.38.0] - 2026-10-25
+
+### Changed
+- **Module Title & Branding**:
+  - Standardized official displayed module title to: `E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads`.
+  - Fixed HTML entity escaping in Back Office templates so the ampersand character (`&`) renders cleanly as a literal `&` rather than the visible HTML entity `&amp;`.
+  - Updated module update notices, configuration banner titles, and Module Manager DOM selectors across PrestaShop 1.7, 8, and 9.
+
+### Added
+- **Global Typography & Readability Overhaul**:
+  - Implemented comprehensive typographic scale throughout the entire Back Office interface:
+    - Main page title increased to 28px bold (700) with high-contrast subtitle (15px).
+    - Section and card headings boosted to 20–22px bold (700).
+    - Subsection and platform headers styled at 17–18px semibold (600).
+    - Form labels and field names enlarged to 15.5px semibold (600) with dark slate `#0f172a`.
+    - Input controls, textareas, and select dropdowns scaled to 15px with generous padding and 46px touch target height.
+    - Event names and platform names prominent at 16–17px bold.
+    - Main body text, help descriptions, and instructions set to 14–15px in high-contrast slate `#475569` / `#334155` (zero washed-out gray).
+    - Primary save buttons and action triggers upgraded to 15–16px bold with clear visual prominence.
+    - Status badges, category pills, and platform tags increased to 13–14px semibold.
+  - Eliminated text smaller than 13px across all configuration tabs, tables, modals, and metric tiles.
+
+---
+
 ## [1.37.1] - 2026-10-25
 
 ### Fixed

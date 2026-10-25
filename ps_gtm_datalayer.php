@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.37.1';
+        $this->version = '1.38.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -176,7 +176,7 @@ class Ps_Gtm_DataLayer extends Module
         if (Tools::getValue('module_updated')) {
             $updatedVer = Tools::getValue('new_version', $this->version);
             $output .= $this->displayConfirmation(sprintf(
-                $this->l('E-Commerce DataLayer: GA4, Meta, TikTok & Google Ads successfully updated to version %s! All your settings were preserved.'),
+                $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads successfully updated to version %s! All your settings were preserved.'),
                 htmlspecialchars($updatedVer)
             ));
         }
@@ -1821,17 +1821,19 @@ class Ps_Gtm_DataLayer extends Module
                 overflow: hidden;
             }
             .ps-gtm-events-table th {
-                background: #f1f5f9;
-                padding: 10px 14px;
-                font-size: 12px;
+                background: #f8fafc;
+                padding: 12px 16px;
+                font-size: 14px;
                 font-weight: 700;
-                color: #475569;
+                color: #1e293b;
                 border-bottom: 1px solid #e2e8f0;
             }
             .ps-gtm-events-table td {
-                padding: 12px 14px;
+                padding: 14px 16px;
                 border-bottom: 1px solid #edf2f7;
                 vertical-align: middle;
+                font-size: 14px;
+                color: #334155;
             }
             .ps-gtm-events-table tr:last-child td {
                 border-bottom: none;
@@ -1843,16 +1845,16 @@ class Ps_Gtm_DataLayer extends Module
 
         // Global Toolbar
         $html .= '<div class="ps-gtm-toolbar">';
-        $html .= '<div style="display: flex; align-items: center; gap: 8px;">';
-        $html .= '<i class="icon-sliders" style="font-size: 14px; color: #2c3e50;"></i>';
-        $html .= '<span style="font-size: 13px; font-weight: 700; color: #2c3e50;">' . $this->l('Global Platform Controls:') . '</span>';
+        $html .= '<div style="display: flex; align-items: center; gap: 10px;">';
+        $html .= '<i class="icon-sliders" style="font-size: 18px; color: #0f172a;"></i>';
+        $html .= '<span style="font-size: 16px; font-weight: 700; color: #0f172a;">' . $this->l('Global Platform Controls:') . '</span>';
         $html .= '</div>';
         $html .= '<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmExpandAllPanels(true)"><i class="icon-plus-square"></i> ' . $this->l('Expand All') . '</button>';
-        $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmExpandAllPanels(false)"><i class="icon-minus-square"></i> ' . $this->l('Collapse All') . '</button>';
-        $html .= '<span style="border-left: 1px solid #dcdde1; height: 16px; margin: 0 4px;"></span>';
-        $html .= '<button type="button" class="btn btn-success btn-xs" onclick="psGtmToggleAllPlatforms(true)"><i class="icon-check-circle"></i> ' . $this->l('Enable All Platforms') . '</button>';
-        $html .= '<button type="button" class="btn btn-warning btn-xs" onclick="psGtmToggleAllPlatforms(false)"><i class="icon-ban"></i> ' . $this->l('Disable All Platforms') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-sm" style="font-size: 13.5px; font-weight: 600;" onclick="psGtmExpandAllPanels(true)"><i class="icon-plus-square"></i> ' . $this->l('Expand All') . '</button>';
+        $html .= '<button type="button" class="btn btn-default btn-sm" style="font-size: 13.5px; font-weight: 600;" onclick="psGtmExpandAllPanels(false)"><i class="icon-minus-square"></i> ' . $this->l('Collapse All') . '</button>';
+        $html .= '<span style="border-left: 1px solid #cbd5e1; height: 18px; margin: 0 4px;"></span>';
+        $html .= '<button type="button" class="btn btn-success btn-sm" style="font-size: 13.5px; font-weight: 600;" onclick="psGtmToggleAllPlatforms(true)"><i class="icon-check-circle"></i> ' . $this->l('Enable All Platforms') . '</button>';
+        $html .= '<button type="button" class="btn btn-warning btn-sm" style="font-size: 13.5px; font-weight: 600;" onclick="psGtmToggleAllPlatforms(false)"><i class="icon-ban"></i> ' . $this->l('Disable All Platforms') . '</button>';
         $html .= '</div>';
         $html .= '</div>';
 
@@ -1873,22 +1875,22 @@ class Ps_Gtm_DataLayer extends Module
 
             // Left: Icon & Platform Info
             $html .= '<div style="display: flex; align-items: center;">';
-            $html .= '<div style="width: 42px; height: 42px; border-radius: 8px; background: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0; padding: 6px; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">';
+            $html .= '<div style="width: 48px; height: 48px; border-radius: 8px; background: #ffffff; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center; margin-right: 16px; flex-shrink: 0; padding: 6px; box-sizing: border-box; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">';
             if (!empty($p['icon_img'])) {
                 $html .= '<img src="' . htmlspecialchars($p['icon_img']) . '" alt="' . htmlspecialchars($p['short_name']) . '" style="max-width: 100%; max-height: 100%; object-fit: contain; display: block;" />';
             } else {
-                $html .= '<i class="' . $p['icon_class'] . '" style="font-size: 20px; color: ' . $p['brand_color'] . ';"></i>';
+                $html .= '<i class="' . $p['icon_class'] . '" style="font-size: 24px; color: ' . $p['brand_color'] . ';"></i>';
             }
             $html .= '</div>';
             $html .= '<div>';
-            $html .= '<div style="font-size: 14px; font-weight: 700; color: #2c3e50;">' . htmlspecialchars($p['name'], ENT_NOQUOTES, 'UTF-8') . '</div>';
-            $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($p['desc'], ENT_NOQUOTES, 'UTF-8') . '</div>';
+            $html .= '<div style="font-size: 17px; font-weight: 700; color: #0f172a;">' . htmlspecialchars($p['name'], ENT_NOQUOTES, 'UTF-8') . '</div>';
+            $html .= '<div style="font-size: 14px; color: #475569; margin-top: 3px;">' . htmlspecialchars($p['desc'], ENT_NOQUOTES, 'UTF-8') . '</div>';
             $html .= '</div>';
             $html .= '</div>';
 
             // Right: Counter, Status Badge, Master Toggle, Chevron
             $html .= '<div style="display: flex; align-items: center; gap: 14px; flex-shrink: 0;" onclick="event.stopPropagation();">';
-            $html .= '<span class="badge" id="counter_' . $pKey . '" style="background: #eef2f7; color: #34495e; font-weight: 600; font-size: 11px; padding: 5px 10px; border: 1px solid #dcdde1;">';
+            $html .= '<span class="badge" id="counter_' . $pKey . '" style="background: #f1f5f9; color: #1e293b; font-weight: 600; font-size: 13px; padding: 6px 12px; border: 1px solid #cbd5e1;">';
             if (!$p['enabled']) {
                 $html .= sprintf($this->l('%d of %d events (Platform Off)'), $activeCount, $totalSupportedEvents);
             } else {
@@ -1898,7 +1900,7 @@ class Ps_Gtm_DataLayer extends Module
 
             $badgeClass = $p['enabled'] ? 'label-success' : 'label-danger';
             $badgeText = $p['enabled'] ? $this->l('Enabled') : $this->l('Disabled');
-            $html .= '<span class="label ' . $badgeClass . '" id="badge_' . $pKey . '" style="font-size: 11px; font-weight: 600; padding: 5px 10px;">' . $badgeText . '</span>';
+            $html .= '<span class="label ' . $badgeClass . '" id="badge_' . $pKey . '" style="font-size: 13px; font-weight: 600; padding: 6px 12px;">' . $badgeText . '</span>';
 
             // Platform Master Toggle Switch
             $html .= '<label class="ps-gtm-switch" title="' . sprintf($this->l('Toggle %s Data Layer Output'), $p['short_name']) . '" style="margin: 0; cursor: pointer;">';
@@ -1908,7 +1910,7 @@ class Ps_Gtm_DataLayer extends Module
 
             // Chevron Control
             $html .= '<span onclick="psGtmToggleAccordion(\'' . $pKey . '\');" style="cursor: pointer; padding: 4px; display: inline-flex;">';
-            $html .= '<i class="icon-chevron-down ps-gtm-chevron" id="chevron_' . $pKey . '" style="font-size: 13px; color: #95a5a6;"></i>';
+            $html .= '<i class="icon-chevron-down ps-gtm-chevron" id="chevron_' . $pKey . '" style="font-size: 15px; color: #64748b;"></i>';
             $html .= '</span>';
 
             $html .= '</div>'; // End Right
@@ -1918,19 +1920,19 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<div class="ps-gtm-card-body" id="body_' . $pKey . '">';
 
             // Subheader Controls Bar
-            $html .= '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px;">';
-            $html .= '<div style="font-size: 12px; font-weight: 600; color: #34495e;">';
+            $html .= '<div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 8px;">';
+            $html .= '<div style="font-size: 15px; font-weight: 600; color: #1e293b;">';
             $html .= sprintf($this->l('%s Event Routing Specifications:'), $p['short_name']);
             $html .= '</div>';
             $html .= '<div style="display: flex; gap: 8px;">';
-            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', true)"><i class="icon-check" style="color: #27ae60;"></i> ' . $this->l('Enable all events') . '</button>';
-            $html .= '<button type="button" class="btn btn-default btn-xs" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', false)"><i class="icon-times" style="color: #e74c3c;"></i> ' . $this->l('Disable all events') . '</button>';
+            $html .= '<button type="button" class="btn btn-default btn-sm" style="font-size: 13px; font-weight: 600;" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', true)"><i class="icon-check" style="color: #16a34a;"></i> ' . $this->l('Enable all events') . '</button>';
+            $html .= '<button type="button" class="btn btn-default btn-sm" style="font-size: 13px; font-weight: 600;" onclick="psGtmPlatformSelectAll(\'' . $pKey . '\', false)"><i class="icon-times" style="color: #dc2626;"></i> ' . $this->l('Disable all events') . '</button>';
             $html .= '</div>';
             $html .= '</div>';
 
             // Warning Notice if Platform is Disabled
             $noticeDisplay = $p['enabled'] ? 'none' : 'block';
-            $html .= '<div class="alert alert-warning ps-gtm-disabled-notice" id="notice_' . $pKey . '" style="display: ' . $noticeDisplay . '; padding: 8px 14px; margin-bottom: 14px; font-size: 11px;">';
+            $html .= '<div class="alert alert-warning ps-gtm-disabled-notice" id="notice_' . $pKey . '" style="display: ' . $noticeDisplay . '; padding: 10px 16px; margin-bottom: 16px; font-size: 14px; line-height: 1.5;">';
             $html .= '<i class="icon-warning-sign"></i> <strong>' . sprintf($this->l('%s data layer output is currently disabled.'), $p['short_name']) . '</strong> ' . $this->l('Event selections below are preserved and will reactivate whenever this platform is enabled.');
             $html .= '</div>';
 
@@ -1939,7 +1941,7 @@ class Ps_Gtm_DataLayer extends Module
             $html .= '<thead>';
             $html .= '<tr>';
             $html .= '<th style="width: 75px; text-align: center;">' . $this->l('Push') . '</th>';
-            $html .= '<th style="width: 280px;">' . $this->l('Ecommerce Event') . '</th>';
+            $html .= '<th style="width: 300px;">' . $this->l('Ecommerce Event') . '</th>';
             $html .= '<th>' . $this->l('Platform DataLayer Specifications') . '</th>';
             $html .= '</tr>';
             $html .= '</thead>';
@@ -1960,15 +1962,15 @@ class Ps_Gtm_DataLayer extends Module
 
                 // Event Info Column
                 $html .= '<td>';
-                $html .= '<strong style="color: #2c3e50; font-size: 13px;"><code>' . htmlspecialchars($e['name']) . '</code></strong>';
-                $html .= '<span style="font-size: 12px; font-weight: 600; color: #475569; margin-left: 6px;">' . htmlspecialchars($e['label']) . '</span>';
-                $html .= '<div style="font-size: 11px; color: #7f8c8d; margin-top: 2px;">' . htmlspecialchars($e['desc']) . '</div>';
+                $html .= '<strong style="color: #0f172a; font-size: 15px;"><code>' . htmlspecialchars($e['name']) . '</code></strong>';
+                $html .= '<span style="font-size: 14px; font-weight: 600; color: #334155; margin-left: 6px;">' . htmlspecialchars($e['label']) . '</span>';
+                $html .= '<div style="font-size: 13.5px; color: #475569; margin-top: 3px; line-height: 1.4;">' . htmlspecialchars($e['desc']) . '</div>';
                 $html .= '</td>';
 
                 // Specification Column
                 $html .= '<td>';
                 $spec = isset($e[$p['spec_key']]) ? $e[$p['spec_key']] : '';
-                $html .= '<div style="font-size: 11px; color: #2c3e50; font-family: monospace; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; line-height: 1.4;">';
+                $html .= '<div style="font-size: 13px; color: #0f172a; font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px 12px; line-height: 1.5;">';
                 $html .= htmlspecialchars($spec);
                 $html .= '</div>';
                 $html .= '</td>';
@@ -1982,22 +1984,22 @@ class Ps_Gtm_DataLayer extends Module
             if ($pKey === 'gads') {
                 $cartDataVal = Configuration::get('PS_GTM_ADV_GADS_CART_DATA') !== '0';
                 $gadsMerchantId = (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID');
-                $html .= '<div style="margin-top: 16px; padding: 14px 16px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px;">';
-                $html .= '<h4 style="margin: 0 0 10px 0; font-size: 13px; font-weight: 600; color: #2c3e50;"><i class="icon-shopping-cart" style="color: #ea4335;"></i> ' . $this->l('Google Ads Conversions with Cart Data (Basket Reporting)') . '</h4>';
-                $html .= '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">';
+                $html .= '<div style="margin-top: 18px; padding: 18px 20px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px;">';
+                $html .= '<h4 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 700; color: #0f172a;"><i class="icon-shopping-cart" style="color: #ea4335;"></i> ' . $this->l('Google Ads Conversions with Cart Data (Basket Reporting)') . '</h4>';
+                $html .= '<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">';
                 $html .= '<div>';
-                $html .= '<strong style="font-size: 12px; color: #34495e;">' . $this->l('Enable Cart Data on Purchase Conversions') . '</strong>';
-                $html .= '<div style="font-size: 11px; color: #7f8c8d;">' . $this->l('Includes itemized products, quantities, and prices on purchase conversions for Google Ads Basket Cart Data reporting.') . '</div>';
+                $html .= '<strong style="font-size: 15px; color: #1e293b;">' . $this->l('Enable Cart Data on Purchase Conversions') . '</strong>';
+                $html .= '<div style="font-size: 14px; color: #475569; margin-top: 2px;">' . $this->l('Includes itemized products, quantities, and prices on purchase conversions for Google Ads Basket Cart Data reporting.') . '</div>';
                 $html .= '</div>';
                 $html .= '<label class="ps-gtm-switch ps-gtm-switch-sm">';
                 $html .= '<input type="checkbox" name="PS_GTM_ADV_GADS_CART_DATA" value="1" ' . ($cartDataVal ? 'checked="checked"' : '') . '>';
                 $html .= '<span class="ps-gtm-slider"></span>';
                 $html .= '</label>';
                 $html .= '</div>';
-                $html .= '<div style="margin-top: 10px;">';
-                $html .= '<label style="font-size: 12px; font-weight: 600; color: #34495e; display: block; margin-bottom: 4px;">' . $this->l('Google Merchant Center ID (Optional)') . '</label>';
-                $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId, ENT_NOQUOTES, 'UTF-8') . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 280px; font-size: 12px;">';
-                $html .= '<p class="help-block" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">' . $this->l('If provided, automatically populates Merchant Center ID inside cart data.') . '</p>';
+                $html .= '<div style="margin-top: 12px;">';
+                $html .= '<label style="font-size: 15px; font-weight: 600; color: #1e293b; display: block; margin-bottom: 6px;">' . $this->l('Google Merchant Center ID (Optional)') . '</label>';
+                $html .= '<input type="text" name="PS_GTM_ADV_GADS_MERCHANT_ID" value="' . htmlspecialchars($gadsMerchantId, ENT_NOQUOTES, 'UTF-8') . '" placeholder="e.g. 123456789" class="form-control" style="max-width: 320px; font-size: 15px; padding: 8px 12px;">';
+                $html .= '<p class="help-block" style="font-size: 13.5px; color: #475569; margin-top: 5px;">' . $this->l('If provided, automatically populates Merchant Center ID inside cart data.') . '</p>';
                 $html .= '</div>';
                 $html .= '</div>';
             }
@@ -2150,28 +2152,28 @@ class Ps_Gtm_DataLayer extends Module
                 width: 100% !important;
                 max-width: 720px !important;
                 min-width: 480px !important;
-                height: 42px !important;
-                line-height: 42px !important;
-                font-size: 13.5px !important;
-                font-weight: 600 !important;
-                color: #1e293b !important;
+                height: 46px !important;
+                line-height: 46px !important;
+                font-size: 15px !important;
+                font-weight: 500 !important;
+                color: #0f172a !important;
                 background-color: #ffffff !important;
                 border: 1.5px solid #cbd5e1 !important;
                 border-radius: 6px !important;
-                padding: 6px 12px !important;
+                padding: 8px 14px !important;
                 display: block !important;
                 margin-bottom: 14px !important;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
             }
             #ps-gtm-strategies-container {
-                margin-top: 10px;
-                max-width: 820px;
+                margin-top: 12px;
+                max-width: 860px;
             }
             .ps-gtm-strategy-card {
                 background: #ffffff;
-                border: 1.5px solid #e2e8f0;
+                border: 1.5px solid #cbd5e1;
                 border-radius: 8px;
-                margin-bottom: 12px;
+                margin-bottom: 14px;
                 cursor: pointer;
                 transition: all 0.2s ease-in-out;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
@@ -2179,43 +2181,43 @@ class Ps_Gtm_DataLayer extends Module
                 outline: none;
             }
             .ps-gtm-strategy-card:hover {
-                border-color: #94a3b8;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+                border-color: #64748b;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
             }
             .ps-gtm-strategy-card:focus-visible {
-                border-color: #3b82f6 !important;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+                border-color: #2563eb !important;
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
             }
             .ps-gtm-strategy-card.selected {
                 background: #f0fdf4 !important;
                 border-color: #10b981 !important;
-                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.12) !important;
+                box-shadow: 0 4px 14px rgba(16, 185, 129, 0.14) !important;
             }
             .ps-gtm-strategy-main {
-                padding: 14px 18px;
+                padding: 16px 20px;
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
+                gap: 10px;
             }
             .ps-gtm-strategy-top {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                gap: 12px;
+                gap: 14px;
                 flex-wrap: wrap;
             }
             .ps-gtm-strategy-title-wrap {
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 12px;
             }
             .ps-gtm-strategy-title {
-                font-size: 14px;
+                font-size: 17px;
                 font-weight: 700;
                 color: #0f172a;
             }
             .ps-gtm-card-radio {
-                font-size: 18px;
+                font-size: 20px;
                 color: #94a3b8;
                 transition: color 0.2s ease;
             }
@@ -2223,50 +2225,50 @@ class Ps_Gtm_DataLayer extends Module
                 color: #10b981;
             }
             .ps-gtm-strategy-badge {
-                font-size: 11px;
-                padding: 4px 10px;
-                border-radius: 12px;
+                font-size: 13px;
+                padding: 5px 12px;
+                border-radius: 14px;
                 font-weight: 600;
             }
             .ps-gtm-strategy-short-desc {
-                padding-left: 28px;
-                font-size: 13px;
-                color: #475569;
-                line-height: 1.5;
+                padding-left: 32px;
+                font-size: 14.5px;
+                color: #334155;
+                line-height: 1.6;
             }
             .ps-gtm-strategy-actions {
-                padding-left: 28px;
+                padding-left: 32px;
                 display: flex;
                 align-items: center;
             }
             .ps-gtm-strategy-drawer {
-                border-top: 1px solid #edf2f7;
-                background: #fafbfc;
-                padding: 14px 20px 14px 46px;
-                font-size: 13px;
+                border-top: 1px solid #e2e8f0;
+                background: #f8fafc;
+                padding: 16px 22px 16px 52px;
+                font-size: 14.5px;
                 line-height: 1.6;
-                color: #334155;
+                color: #1e293b;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-strategy-drawer {
                 background: #f8fdf9;
                 border-top-color: #dcfce7;
             }
             .ps-gtm-drawer-section {
-                margin-bottom: 12px;
+                margin-bottom: 14px;
             }
             .ps-gtm-drawer-section-last {
                 margin-bottom: 0;
             }
             .ps-gtm-section-title {
                 display: block;
-                font-size: 12.5px;
+                font-size: 15px;
                 font-weight: 700;
                 color: #0f172a;
-                margin-bottom: 4px;
+                margin-bottom: 5px;
             }
             .ps-gtm-section-title i {
-                color: #3b82f6;
-                margin-right: 4px;
+                color: #2563eb;
+                margin-right: 6px;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-section-title i {
                 color: #10b981;
@@ -2274,16 +2276,16 @@ class Ps_Gtm_DataLayer extends Module
             .ps-gtm-section-text {
                 margin: 0;
                 color: #334155;
-                font-size: 13px;
+                font-size: 14.5px;
                 line-height: 1.6;
             }
             .ps-gtm-example-box {
                 background: #ffffff;
-                border: 1px solid #e2e8f0;
-                border-left: 4px solid #64748b;
+                border: 1px solid #cbd5e1;
+                border-left: 4px solid #475569;
                 border-radius: 6px;
-                padding: 10px 14px;
-                margin-top: 5px;
+                padding: 12px 16px;
+                margin-top: 6px;
             }
             .ps-gtm-strategy-card.selected .ps-gtm-example-box {
                 border-left-color: #10b981;
@@ -2293,12 +2295,12 @@ class Ps_Gtm_DataLayer extends Module
                 margin: 0;
                 padding-left: 0;
                 list-style: none;
-                color: #334155;
-                font-size: 12.5px;
+                color: #1e293b;
+                font-size: 14px;
                 line-height: 1.7;
             }
             .ps-gtm-example-list li {
-                margin-bottom: 4px;
+                margin-bottom: 5px;
             }
             .ps-gtm-example-list li:last-child {
                 margin-bottom: 0;
@@ -2306,36 +2308,36 @@ class Ps_Gtm_DataLayer extends Module
 
             /* Common Setting Explainer & Learn More Styles */
             .ps-gtm-setting-explainer {
-                margin-top: 6px;
-                font-size: 13px;
+                margin-top: 8px;
+                font-size: 14px;
                 line-height: 1.5;
             }
             .ps-gtm-short-desc-row {
                 display: flex;
                 align-items: center;
                 flex-wrap: wrap;
-                gap: 10px;
+                gap: 12px;
             }
             .ps-gtm-short-desc {
                 color: #475569;
-                font-size: 13px;
+                font-size: 14px;
             }
             .ps-gtm-learn-more-btn {
                 display: inline-flex;
                 align-items: center;
-                gap: 5px;
+                gap: 6px;
                 background: #f1f5f9;
                 border: 1px solid #cbd5e1;
                 border-radius: 14px;
-                padding: 3px 10px;
-                font-size: 11.5px;
+                padding: 4px 12px;
+                font-size: 13.5px;
                 font-weight: 600;
-                color: #334155;
+                color: #1e293b;
                 cursor: pointer;
                 text-decoration: none !important;
                 transition: all 0.2s ease;
                 outline: none;
-                line-height: 1.2;
+                line-height: 1.3;
             }
             .ps-gtm-learn-more-btn:hover,
             .ps-gtm-learn-more-btn:focus {
@@ -2344,49 +2346,49 @@ class Ps_Gtm_DataLayer extends Module
                 border-color: #94a3b8;
             }
             .ps-gtm-learn-more-btn:focus-visible {
-                box-shadow: 0 0 0 2px #3b82f6;
+                box-shadow: 0 0 0 2px #2563eb;
             }
             .ps-gtm-learn-more-btn.is-active {
-                background: #e0e7ff;
-                border-color: #a5b4fc;
-                color: #3730a3;
+                background: #dbeafe;
+                border-color: #93c5fd;
+                color: #1d4ed8;
             }
             .ps-gtm-learn-more-btn .ps-gtm-chevron {
                 transition: transform 0.25s ease;
-                font-size: 11px;
+                font-size: 12px;
             }
             .ps-gtm-learn-more-btn.is-active .ps-gtm-chevron {
                 transform: rotate(180deg);
             }
             .ps-gtm-expanded-explanation {
-                margin-top: 10px;
+                margin-top: 12px;
                 background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 6px;
-                padding: 14px 16px;
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+                padding: 16px 20px;
                 box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             }
             .ps-gtm-exp-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-                gap: 12px 20px;
+                gap: 14px 24px;
             }
             .ps-gtm-exp-item {
-                font-size: 12.5px;
+                font-size: 14px;
                 line-height: 1.6;
             }
             .ps-gtm-exp-label {
                 display: block;
                 font-weight: 700;
                 color: #0f172a;
-                margin-bottom: 3px;
-                font-size: 11.5px;
+                margin-bottom: 4px;
+                font-size: 13px;
                 text-transform: uppercase;
-                letter-spacing: 0.3px;
+                letter-spacing: 0.4px;
             }
             .ps-gtm-exp-label i {
-                color: #3b82f6;
-                margin-right: 4px;
+                color: #2563eb;
+                margin-right: 5px;
             }
             .ps-gtm-exp-val {
                 color: #334155;
@@ -2394,15 +2396,15 @@ class Ps_Gtm_DataLayer extends Module
             .ps-gtm-exp-val code {
                 background: #e2e8f0;
                 color: #0f172a;
-                padding: 2px 6px;
-                border-radius: 3px;
-                font-size: 12px;
+                padding: 3px 8px;
+                border-radius: 4px;
+                font-size: 13.5px;
                 word-break: break-all;
             }
         </style>';
 
         $html .= '<div id="ps-gtm-strategies-container">';
-        $html .= '<p class="text-muted" style="margin-bottom: 12px; font-size: 13px; font-weight: 600;">' . $this->l('Click any card below or select in the dropdown above to choose your catalog identifier strategy:') . '</p>';
+        $html .= '<p class="text-muted" style="margin-bottom: 14px; font-size: 15px; font-weight: 600; color: #1e293b;">' . $this->l('Click any card below or select in the dropdown above to choose your catalog identifier strategy:') . '</p>';
 
         foreach ($strategies as $key => $s) {
             $drawerId = 'ps-gtm-strat-drawer-' . $key;
@@ -2461,9 +2463,9 @@ class Ps_Gtm_DataLayer extends Module
                         select.style.setProperty("width", "100%", "important");
                         select.style.setProperty("max-width", "720px", "important");
                         select.style.setProperty("min-width", "480px", "important");
-                        select.style.setProperty("height", "42px", "important");
-                        select.style.setProperty("font-size", "13.5px", "important");
-                        select.style.setProperty("font-weight", "600", "important");
+                        select.style.setProperty("height", "46px", "important");
+                        select.style.setProperty("font-size", "15px", "important");
+                        select.style.setProperty("font-weight", "500", "important");
                     }
                 }
 

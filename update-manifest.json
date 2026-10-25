@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.37.1",
+    "latest_version":  "1.38.0",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.37.1/ps_gtm_datalayer.zip",
-    "checksum":  "f75f5e6504dd637fc084a697daa81eacc0ba492196557012caf70ef9ce439541",
-    "release_type":  "patch",
-    "release_notes":  "1. Restored full interactive 3-card Product Catalog Identifier Strategy comparison interface under the Configuration tab dropdown.\n2. Restored strategy badges, \"When to use\" recommendations, ID syntax formulas, and live Back Office example ID drawers for all 3 identifier options.\n3. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.38.0/ps_gtm_datalayer.zip",
+    "checksum":  "ab6a0b6d4a2e29be6537565de170442267a705d94ead6ee310d357fe48858d82",
+    "release_type":  "minor",
+    "release_notes":  "1. Standardized module title to \"E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google \u0026 Microsoft Ads\" and resolved HTML entity double-escaping (\u0026amp; to \u0026).\n2. Comprehensive typography hierarchy \u0026 readability overhaul across all 6 Back Office tabs (28px title, 20-22px section headings, 15.5px labels, 15px form controls, zero text smaller than 13px).\n3. High-contrast color palette eliminating washed-out grays in favor of accessible dark slates (#0f172a / #1e293b / #475569).\n4. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas."
 }
