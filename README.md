@@ -308,10 +308,13 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
 * **Fail-Safe Performance**: Dispatched via asynchronous cURL with a strict **1500ms execution timeout**, ensuring Back Office administration is never slowed down.
 
 ### 4. Dedicated PrestaShop Webhook Client Template for sGTM
-To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a turnkey **Server GTM Client Template** (`prestashop-client-template.tpl`):
-* **One-Click Import**: In Server GTM, navigate to **Templates > Client Templates > New > ⋮ (top right) > Import**, and select `prestashop-client-template.tpl`.
-* **Zero Collision**: Listens on its own dedicated endpoint: `/ps-webhook` (configurable via `PS_SGTM_WEBHOOK_ENDPOINT_PATH`).
-* **Instant Common Event Data**: Converts incoming PrestaShop JSON directly into standard Google Common Event Data (`event_name`, `transaction_id`, `items`, `user_data`, `status_transition_type`, `conversion_action`, `is_paid`), evaluating downstream tags (Meta CAPI, Google Ads, GA4) in real-time.
+To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a purpose-built **Server GTM Client Template** (`prestashop-client-template.tpl`):
+
+* 📥 **Download Template**: [**Download `prestashop-client-template.tpl`**](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.36.0/prestashop-client-template.tpl) *(or inspect the [Source Code in Repository](https://github.com/raihan675/Presta-Shop-Data-Layer/blob/main/templates/prestashop-client-template.tpl))*.
+* **Step 1: Import Template into sGTM**: In your Server GTM container, navigate to **Templates** &rarr; **Client Templates** &rarr; click **New** &rarr; click the **three vertical dots (⋮)** in the top right &rarr; select **Import** &rarr; select `prestashop-client-template.tpl` &rarr; click **Save**.
+* **Step 2: Create the Client**: Navigate to **Clients** &rarr; click **New** &rarr; select **PrestaShop Webhook Client** &rarr; keep Default Claimed Path as `/ps-webhook` &rarr; click **Save**.
+* **Step 3: Publish**: Click **Submit** &rarr; **Publish** in Server GTM so your container processes webhooks live with `HTTP 200 OK`.
+* **Instant Common Event Data**: Natively converts incoming PrestaShop JSON directly into standard Google Common Event Data (`event_name`, `transaction_id`, `items`, `user_data`, `status_transition_type`, `conversion_action`, `is_paid`, `is_shipped`, `is_canceled`, `is_refunded`), evaluating downstream tags (Meta CAPI, Google Ads, GA4) in real-time.
 * **PrestaShop System Audit Logs**: All webhook dispatches are recorded directly in **Advanced Parameters > Logs** (`PrestaShopLogger`), indicating the event name, endpoint URL, and HTTP status code (`200 OK` or errors).
 
 ---
