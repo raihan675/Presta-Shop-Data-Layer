@@ -340,9 +340,10 @@
               {l s='Option 3: Reference / SKU {sku} (ERP & Barcode feeds)' mod='ps_gtm_datalayer'}
             </option>
           </select>
-          <div class="ps-gtm-help-block">
+          <div class="ps-gtm-help-block" style="margin-bottom: 12px;">
             {l s='Determines how product item_id, content_ids, and ecomm_prodid match your product catalogs across Meta, Google Merchant Center, TikTok, and Pinterest feeds.' mod='ps_gtm_datalayer'}
           </div>
+          {$catalog_strategy_help_html nofilter}
         </div>
       </div>
 

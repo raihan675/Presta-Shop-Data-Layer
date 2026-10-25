@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.37.0",
+    "latest_version":  "1.37.1",
     "release_date":  "2026-10-25",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.37.0/ps_gtm_datalayer.zip",
-    "checksum":  "e2f507226a9c42e71c4ec9a88c966bf9bf859461bb27821fd5be43cea36c7a56",
-    "release_type":  "minor",
-    "release_notes":  "1. Unified 6-Tab Back Office UI/UX Architecture: Overview, Configuration, Events Manager, Platform Routing Matrix, Data Mapping Inspector, and Diagnostics \u0026 Testing.\n2. Server-to-Server sGTM Diagnostics Ping: Direct real-time latency and connectivity testing tool directly from the Back Office.\n3. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas across Meta, Google Ads, TikTok, Pinterest, and Microsoft Advertising."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.37.1/ps_gtm_datalayer.zip",
+    "checksum":  "f75f5e6504dd637fc084a697daa81eacc0ba492196557012caf70ef9ce439541",
+    "release_type":  "patch",
+    "release_notes":  "1. Restored full interactive 3-card Product Catalog Identifier Strategy comparison interface under the Configuration tab dropdown.\n2. Restored strategy badges, \"When to use\" recommendations, ID syntax formulas, and live Back Office example ID drawers for all 3 identifier options.\n3. Preserved 100% Tracking Contracts: Zero DOM scraping, backend data models, and verified parameter schemas."
 }

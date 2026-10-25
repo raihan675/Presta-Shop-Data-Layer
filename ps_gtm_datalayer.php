@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.37.0';
+        $this->version = '1.37.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -669,6 +669,7 @@ class Ps_Gtm_DataLayer extends Module
             'pinterest_active_events' => $pinterestActive,
             'microsoft_active_events' => $microsoftActive,
             'platform_cards_html' => $this->renderAdvertisingMatrixTable(),
+            'catalog_strategy_help_html' => $this->renderCatalogStrategyHelp(),
             'diagnostics' => [
                 'gtm_id_valid' => $gtmIdValid,
                 'gtm_id_msg' => $gtmIdMsg,

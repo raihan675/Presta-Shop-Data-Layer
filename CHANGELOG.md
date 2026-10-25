@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.37.1] - 2026-10-25
+
+### Fixed
+- **Product Catalog Identifier Strategy UI**:
+  - Restored full interactive 3-card comparison cards for all Product Catalog Identifier strategies under the Configuration tab dropdown.
+  - Re-introduced strategy badges (*Recommended*, *Parent Only*, *ERP / Barcode*), concise "When to use" descriptions, ID format formulas, and expandable drawers displaying live PrestaShop Back Office ID mapping examples for simple products vs combinations.
+  - Ensured seamless bidirectional synchronization between cards and the native `<select name="PS_GTM_CATALOG_ID_STRATEGY">` setting.
+
+---
+
 ## [1.37.0] - 2026-10-25
 
 ### Added
