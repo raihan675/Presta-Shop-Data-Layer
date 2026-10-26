@@ -17,6 +17,7 @@
     initUnsavedChangesTracker();
     initDiagnosticsPing();
     initSettingExplainers();
+    initRowCheckStates();
   });
 
   /**
@@ -531,6 +532,19 @@
     if (alertBar) {
       alertBar.style.display = 'flex';
     }
+    var footerPill = document.getElementById('ps-gtm-footer-unsaved-pill');
+    if (footerPill) {
+      footerPill.style.display = 'inline-flex';
+    }
+  }
+
+  function initRowCheckStates() {
+    document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
+      var evtName = row.getAttribute('data-event');
+      if (evtName && typeof window.psGtmSyncRowState === 'function') {
+        window.psGtmSyncRowState(evtName, false);
+      }
+    });
   }
 
   /**
@@ -627,164 +641,185 @@
     }
   };
 
-  window.psGtmTogglePlatformColumn = function (platformKey, state) {
-    var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
-    cbs.forEach(function (cb) { cb.checked = state; });
-    // Keep duplicate inputs with same name in sync
-    cbs.forEach(function (cb) {
-      if (cb.name) {
-        document.querySelectorAll('input[name="' + cb.name + '"]').forEach(function (inp) {
-          inp.checked = state;
-        });
+  /**
+   * Advertising Routing Matrix & Grouped View Handlers
+   */
+  window.psGtmToggleGroup = function (groupId) {
+    var body = document.getElementById('grp-body-' + groupId);
+    var chevron = document.getElementById('grp-chevron-' + groupId);
+    if (!body) return;
+    var isCollapsed = body.classList.contains('collapsed');
+    if (isCollapsed) {
+      body.classList.remove('collapsed');
+      if (chevron) chevron.classList.remove('collapsed');
+    } else {
+      body.classList.add('collapsed');
+      if (chevron) chevron.classList.add('collapsed');
+    }
+  };
+
+  window.psGtmSetRoutingDisplayMode = function (mode) {
+    var btnGrouped = document.getElementById('ps-gtm-view-btn-grouped');
+    var btnFlat = document.getElementById('ps-gtm-view-btn-flat');
+    var flatHeader = document.getElementById('ps-gtm-flat-view-header');
+    var groupHeaders = document.querySelectorAll('.ps-gtm-group-header');
+    var groupCards = document.querySelectorAll('.ps-gtm-group-card');
+    var groupBodies = document.querySelectorAll('.ps-gtm-group-body');
+
+    if (mode === 'flat') {
+      if (btnGrouped) btnGrouped.classList.remove('active');
+      if (btnFlat) btnFlat.classList.add('active');
+      if (flatHeader) flatHeader.style.display = 'flex';
+      groupHeaders.forEach(function (h) { h.style.display = 'none'; });
+      groupBodies.forEach(function (b) { b.classList.remove('collapsed'); });
+      groupCards.forEach(function (c) {
+        c.style.marginBottom = '0';
+        c.style.borderRadius = '0';
+        c.style.borderTop = 'none';
+        c.style.boxShadow = 'none';
+      });
+      if (groupCards.length) {
+        groupCards[0].style.borderTop = '1px solid #e2e8f0';
+        groupCards[groupCards.length - 1].style.borderBottomLeftRadius = '10px';
+        groupCards[groupCards.length - 1].style.borderBottomRightRadius = '10px';
       }
+    } else {
+      if (btnGrouped) btnGrouped.classList.add('active');
+      if (btnFlat) btnFlat.classList.remove('active');
+      if (flatHeader) flatHeader.style.display = 'none';
+      groupHeaders.forEach(function (h) { h.style.display = 'flex'; });
+      groupCards.forEach(function (c) {
+        c.style.marginBottom = '';
+        c.style.borderRadius = '';
+        c.style.borderTop = '';
+        c.style.boxShadow = '';
+        c.style.borderBottomLeftRadius = '';
+        c.style.borderBottomRightRadius = '';
+      });
+    }
+  };
+
+  window.psGtmOnRowCheck = function (cb, eventName) {
+    var isChecked = cb.checked;
+    var switches = document.querySelectorAll('.ps-gtm-row-evt-' + eventName);
+    switches.forEach(function (s) {
+      s.checked = isChecked;
+    });
+    cb.indeterminate = false;
+    markFormDirty();
+  };
+
+  window.psGtmSyncRowState = function (eventName, markDirty) {
+    var cb = document.getElementById('row_cb_' + eventName);
+    if (!cb) return;
+    var switches = document.querySelectorAll('.ps-gtm-row-evt-' + eventName);
+    if (!switches.length) return;
+    var checkedCount = 0;
+    switches.forEach(function (s) {
+      if (s.checked) checkedCount++;
+    });
+    if (checkedCount === 0) {
+      cb.checked = false;
+      cb.indeterminate = false;
+    } else if (checkedCount === switches.length) {
+      cb.checked = true;
+      cb.indeterminate = false;
+    } else {
+      cb.checked = false;
+      cb.indeterminate = true;
+    }
+    if (markDirty !== false) {
+      markFormDirty();
+    }
+  };
+
+  window.psGtmToggleGroupPlatform = function (groupId, platformKey) {
+    var switches = document.querySelectorAll('.ps-gtm-grp-' + groupId + '-' + platformKey);
+    if (!switches.length) return;
+    var allChecked = true;
+    switches.forEach(function (s) {
+      if (!s.checked) allChecked = false;
+    });
+    var newState = !allChecked;
+    switches.forEach(function (s) {
+      s.checked = newState;
+    });
+    var groupCard = document.getElementById('grp-card-' + groupId);
+    if (groupCard) {
+      groupCard.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
+        var evt = row.getAttribute('data-event');
+        if (evt) window.psGtmSyncRowState(evt);
+      });
+    }
+    markFormDirty();
+  };
+
+  window.psGtmTogglePlatformColumn = function (platformKey, explicitState) {
+    var switches = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
+    if (!switches.length) return;
+    var targetState = explicitState;
+    if (typeof targetState === 'undefined') {
+      var allChecked = true;
+      switches.forEach(function (s) {
+        if (!s.checked) allChecked = false;
+      });
+      targetState = !allChecked;
+    }
+    switches.forEach(function (s) {
+      s.checked = targetState;
+    });
+    document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
+      var evt = row.getAttribute('data-event');
+      if (evt) window.psGtmSyncRowState(evt);
     });
     markFormDirty();
-    if (typeof window.psGtmUpdateCounter === 'function') {
-      window.psGtmUpdateCounter(platformKey);
-    }
   };
 
   window.psGtmToggleAllPlatforms = function (state) {
     var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft'];
-    platforms.forEach(function (pKey) {
-      var masterInputs = document.querySelectorAll('input[name="PS_GTM_ADV_' + pKey.toUpperCase() + '_ENABLED"]');
-      masterInputs.forEach(function (inp) { inp.checked = state; });
-      if (typeof window.psGtmOnMasterToggle === 'function') {
-        window.psGtmOnMasterToggle(pKey, state);
-      }
-      var cbs = document.querySelectorAll('.ps-gtm-evt-' + pKey);
-      cbs.forEach(function (cb) { cb.checked = state; });
-      if (typeof window.psGtmUpdateCounter === 'function') {
-        window.psGtmUpdateCounter(pKey);
-      }
+    platforms.forEach(function (pk) {
+      var switches = document.querySelectorAll('.ps-gtm-evt-' + pk);
+      switches.forEach(function (s) {
+        s.checked = state;
+      });
+    });
+    document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
+      var evt = row.getAttribute('data-event');
+      if (evt) window.psGtmSyncRowState(evt);
     });
     markFormDirty();
   };
 
-  window.psGtmOnMasterToggle = function (platformKey, isChecked) {
-    var badge = document.getElementById('badge_' + platformKey);
-    var notice = document.getElementById('notice_' + platformKey);
-    if (badge) {
-      badge.className = isChecked ? 'label label-success' : 'label label-danger';
-      badge.textContent = isChecked ? 'Enabled' : 'Disabled';
-    }
-    if (notice) {
-      notice.style.display = isChecked ? 'none' : 'block';
-    }
-    var masterInputs = document.querySelectorAll('input[name="PS_GTM_ADV_' + platformKey.toUpperCase() + '_ENABLED"]');
-    masterInputs.forEach(function (inp) { inp.checked = isChecked; });
-    if (typeof window.psGtmUpdateCounter === 'function') {
-      window.psGtmUpdateCounter(platformKey);
+  window.psGtmOnAdvMasterChange = function (input) {
+    var isChecked = input.checked;
+    var textEl = document.getElementById('adv_master_status_text');
+    if (textEl) {
+      textEl.textContent = isChecked ? 'ON' : 'OFF';
+      textEl.className = 'ps-gtm-master-status-text ' + (isChecked ? 'on' : 'off');
     }
     markFormDirty();
   };
 
-  window.psGtmPlatformSelectAll = function (platformKey, state) {
-    var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
-    cbs.forEach(function (cb) {
-      cb.checked = state;
-      if (cb.name) {
-        document.querySelectorAll('input[name="' + cb.name + '"]').forEach(function (inp) {
-          inp.checked = state;
-        });
-      }
-    });
-    markFormDirty();
-    if (typeof window.psGtmUpdateCounter === 'function') {
-      window.psGtmUpdateCounter(platformKey);
+  window.psGtmResetForm = function () {
+    var form = document.getElementById('ps_gtm_main_form');
+    if (form) {
+      form.reset();
+      document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
+        var evt = row.getAttribute('data-event');
+        if (evt) window.psGtmSyncRowState(evt, false);
+      });
+      var masterSwitch = document.getElementById('adv_master_switch');
+      if (masterSwitch) window.psGtmOnAdvMasterChange(masterSwitch);
     }
+    isFormDirty = false;
+    var alertBar = document.getElementById('ps-gtm-unsaved-alert');
+    if (alertBar) alertBar.style.display = 'none';
+    var footerPill = document.getElementById('ps-gtm-footer-unsaved-pill');
+    if (footerPill) footerPill.style.display = 'none';
   };
-
-  window.psGtmOnEventToggle = function (platformKey) {
-    if (typeof window.psGtmUpdateCounter === 'function') {
-      window.psGtmUpdateCounter(platformKey);
-    }
-    markFormDirty();
-  };
-
-  window.psGtmUpdateCounter = function (platformKey) {
-    var counter = document.getElementById('counter_' + platformKey);
-    if (!counter) return;
-    var uniqueChecked = {};
-    var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
-    cbs.forEach(function (cb) {
-      if (cb.checked && cb.name) {
-        uniqueChecked[cb.name] = true;
-      }
-    });
-    var checkedCount = Object.keys(uniqueChecked).length;
-    var masterInput = document.querySelector('input[name="PS_GTM_ADV_' + platformKey.toUpperCase() + '_ENABLED"]');
-    var isMasterOn = masterInput ? masterInput.checked : true;
-    var totalEvents = 12;
-    if (!isMasterOn) {
-      counter.textContent = checkedCount + ' of ' + totalEvents + ' events (Platform Off)';
-    } else {
-      counter.textContent = checkedCount + ' of ' + totalEvents + ' events active';
-    }
-  };
-
-  // Two-way synchronization on ANY switch / input change
-  document.addEventListener('change', function (e) {
-    if (!e.target || !e.target.name) return;
-    var name = e.target.name;
-    var isChecked = e.target.checked;
-
-    if (name.indexOf('adv_') === 0 || name.indexOf('PS_GTM_ADV_') === 0) {
-      var matches = document.querySelectorAll('input[name="' + name + '"]');
-      for (var i = 0; i < matches.length; i++) {
-        if (matches[i] !== e.target) {
-          matches[i].checked = isChecked;
-        }
-      }
-      if (name.indexOf('PS_GTM_ADV_') === 0 && name.indexOf('_ENABLED') > 0 && name !== 'PS_GTM_ADV_MASTER_ENABLED') {
-        var pKey = name.replace('PS_GTM_ADV_', '').replace('_ENABLED', '').toLowerCase();
-        if (typeof window.psGtmOnMasterToggle === 'function') {
-          window.psGtmOnMasterToggle(pKey, isChecked);
-        }
-      }
-      markFormDirty();
-    }
-  });
-
-  // Clean form submission handler: disable duplicate inputs in the hidden view so POST payload is 100% unique
-  var mainSettingsForm = document.getElementById('ps_gtm_main_form') || document.querySelector('form.defaultForm');
-  if (mainSettingsForm) {
-    mainSettingsForm.addEventListener('submit', function () {
-      var cardsView = document.getElementById('ps-gtm-routing-cards-view');
-      var matrixView = document.getElementById('ps-gtm-routing-matrix-view');
-      var isCardsActive = (cardsView && cardsView.style.display !== 'none');
-      var inactiveView = isCardsActive ? matrixView : cardsView;
-      if (inactiveView) {
-        var dups = inactiveView.querySelectorAll('input[name^="adv_"]');
-        dups.forEach(function (inp) {
-          inp.disabled = true;
-        });
-      }
-    });
-  }
 
   window.psGtmSwitchRoutingView = function (mode) {
-    var matrixView = document.getElementById('ps-gtm-routing-matrix-view');
-    var cardsView = document.getElementById('ps-gtm-routing-cards-view');
-    var btnMatrix = document.getElementById('ps-gtm-btn-view-matrix');
-    var btnCards = document.getElementById('ps-gtm-btn-view-cards');
-
-    // Ensure all inputs are enabled when switching
-    document.querySelectorAll('input[name^="adv_"]').forEach(function (inp) {
-      inp.disabled = false;
-    });
-
-    if (mode === 'matrix') {
-      if (matrixView) matrixView.style.display = 'block';
-      if (cardsView) cardsView.style.display = 'none';
-      if (btnMatrix) btnMatrix.classList.add('active');
-      if (btnCards) btnCards.classList.remove('active');
-    } else {
-      if (matrixView) matrixView.style.display = 'none';
-      if (cardsView) cardsView.style.display = 'block';
-      if (btnMatrix) btnMatrix.classList.remove('active');
-      if (btnCards) btnCards.classList.add('active');
-    }
+    window.psGtmSetRoutingDisplayMode(mode === 'cards' ? 'flat' : 'grouped');
   };
 
   window.psGtmCopyDrawerCode = function () {

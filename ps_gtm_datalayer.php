@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.5';
+        $this->version = '1.40.6';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -750,6 +750,65 @@ class Ps_Gtm_DataLayer extends Module
         }
         unset($evt);
 
+        $eventGroups = [
+            'discovery' => [
+                'id' => 'discovery',
+                'title' => $this->l('Product Discovery'),
+                'badge_color' => '#0284c7',
+                'bg' => '#f0f7ff',
+                'border' => '#e0f2fe',
+                'icon_color' => '#0284c7',
+                'icon_bg' => '#e0f2fe',
+                'events' => [],
+            ],
+            'cart_checkout' => [
+                'id' => 'cart_checkout',
+                'title' => $this->l('Cart & Checkout'),
+                'badge_color' => '#7c3aed',
+                'bg' => '#f5f3ff',
+                'border' => '#ede9fe',
+                'icon_color' => '#7c3aed',
+                'icon_bg' => '#ede9fe',
+                'events' => [],
+            ],
+            'conversion' => [
+                'id' => 'conversion',
+                'title' => $this->l('Conversion'),
+                'badge_color' => '#16a34a',
+                'bg' => '#f0fdf4',
+                'border' => '#dcfce7',
+                'icon_color' => '#16a34a',
+                'icon_bg' => '#dcfce7',
+                'events' => [],
+            ],
+        ];
+
+        $eventMeta = [
+            'view_item_list' => ['group' => 'discovery', 'label' => 'View Item List', 'icon' => 'icon-th-list'],
+            'view_search_results' => ['group' => 'discovery', 'label' => 'Search Results', 'icon' => 'icon-search'],
+            'view_item' => ['group' => 'discovery', 'label' => 'View Item', 'icon' => 'icon-cube'],
+            'add_to_wishlist' => ['group' => 'cart_checkout', 'label' => 'Add to Wishlist', 'icon' => 'icon-heart'],
+            'add_to_cart' => ['group' => 'cart_checkout', 'label' => 'Add to Cart', 'icon' => 'icon-shopping-cart'],
+            'remove_from_cart' => ['group' => 'cart_checkout', 'label' => 'Remove from Cart', 'icon' => 'icon-minus-circle'],
+            'view_cart' => ['group' => 'cart_checkout', 'label' => 'View Cart', 'icon' => 'icon-folder-open'],
+            'begin_checkout' => ['group' => 'cart_checkout', 'label' => 'Begin Checkout', 'icon' => 'icon-credit-card'],
+            'add_shipping_info' => ['group' => 'cart_checkout', 'label' => 'Add Shipping Info', 'icon' => 'icon-truck'],
+            'add_payment_info' => ['group' => 'cart_checkout', 'label' => 'Add Payment Info', 'icon' => 'icon-lock'],
+            'purchase' => ['group' => 'conversion', 'label' => 'Purchase', 'icon' => 'icon-gift'],
+        ];
+
+        $advFlatEvents = [];
+        foreach ($eventMeta as $evtKey => $meta) {
+            if (isset($supportedAdvEvents[$evtKey])) {
+                $evtObj = $supportedAdvEvents[$evtKey];
+                $evtObj['key'] = $evtKey;
+                $evtObj['label'] = $meta['label'];
+                $evtObj['icon'] = $meta['icon'];
+                $eventGroups[$meta['group']]['events'][] = $evtObj;
+                $advFlatEvents[] = $evtObj;
+            }
+        }
+
         $activeTab = Tools::getValue('active_tab', 'tab-config');
 
         $this->context->smarty->assign([
@@ -796,6 +855,9 @@ class Ps_Gtm_DataLayer extends Module
             'tiktok_active_events' => $tiktokActive,
             'pinterest_active_events' => $pinterestActive,
             'microsoft_active_events' => $microsoftActive,
+            'adv_event_groups' => $eventGroups,
+            'adv_flat_events' => $advFlatEvents,
+            'adv_total_events_count' => count($advFlatEvents),
             'platform_cards_html' => $this->renderAdvertisingMatrixTable(),
             'catalog_strategy_help_html' => $this->renderCatalogStrategyHelp(),
             'diagnostics' => [

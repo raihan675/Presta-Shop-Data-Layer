@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.5",
+    "latest_version":  "1.40.6",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.5/ps_gtm_datalayer.zip",
-    "checksum":  "602d9d00233bfe861cc80438bdaabce07a1b53248bda53d20acd95a97ae65732",
-    "release_type":  "patch",
-    "release_notes":  "1. Responsive Advertising Matrix: Restructured table layout with optimized column widths (25% event, 15% platforms) and compact header controls, ensuring Microsoft Ads and all 5 platforms fit seamlessly on all screen sizes.\n2. Horizontal Scroll Protection: Added native overflow-x touch scrolling to prevent clipping on narrow displays or side-by-side split views."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.6/ps_gtm_datalayer.zip",
+    "checksum":  "c1788c8cddb70703f9df0010227010667b9d5eddaff856f0484639ebefcf71b4",
+    "release_type":  "minor",
+    "release_notes":  "1. Modern Grouped Event Routing Interface: Reorganized Advertising Platform DataLayers \u0026 Event Routing into 3 collapsible, colored event groups (Product Discovery, Cart \u0026 Checkout, Conversion) with official platform brand badges and custom event icons.\n2. Unified Form Architecture: Eliminated duplicate form inputs across views to ensure 100% reliable settings persistence on save.\n3. View Mode Switcher: Seamless switching between By Event Group and Full List display modes.\n4. Quick-Toggle Controls \u0026 Slide-Out Inspect Drawer: Instant row and column batch toggling and deep event parameter inspection."
 }

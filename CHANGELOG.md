@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.6] - 2026-10-26
+
+### Added
+- **Modern Grouped Event Routing & Advertising Interface**:
+  - Re-designed the Advertising Platform DataLayers & Event Routing view (Tab 3) into 3 collapsible, colored event group cards matching enterprise design standards:
+    - **Product Discovery** (`view_item_list`, `view_search_results`, `view_item`) with soft blue theme (`#f0f7ff`).
+    - **Cart & Checkout** (`add_to_wishlist`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`) with soft purple theme (`#f5f3ff`).
+    - **Conversion** (`purchase`) with soft emerald theme (`#f0fdf4`).
+  - Added dedicated row selection checkboxes that toggle all 5 advertising platform destinations for that individual event with tri-state indeterminate visual feedback.
+  - Added quick-toggle column headers in each group to enable or disable individual advertising destinations (Meta, Google Ads, TikTok, Pinterest, Microsoft Ads) per group with a single click.
+  - Integrated View Switcher toolbar supporting both **By Event Group** accordion mode and **Full List** mode without DOM duplication.
+  - Added bulk action controls (**Enable All** / **Disable All**) and modern footer bar featuring live active event counters (`11 events`), dynamic unsaved changes indicators, Reset button, and primary Save button.
+  - Restored full interactive slide-out **Inspect Drawer** accessed directly via the `(i)` info button on every event row, displaying internal identifiers, PrestaShop trigger hooks, destination routing states, and comprehensive DataLayer schemas.
+
+---
+
 ## [1.40.5] - 2026-10-26
 
 ### Fixed
