@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.39.1';
+        $this->version = '1.40.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -312,8 +312,8 @@ class Ps_Gtm_DataLayer extends Module
                 $settingsSaved = true;
             }
 
-            // 3. Process Events Active/Enabled Status if submitted
-            if (Tools::getValue('PS_GTM_EVENTS_SUBMITTED') || Tools::getValue('PS_GTM_CONTAINER_ID') !== false) {
+            // 3. Process Events Active/Enabled Status if explicitly submitted
+            if (Tools::getValue('PS_GTM_EVENTS_SUBMITTED')) {
                 $activeEvents = [];
                 foreach (self::getCanonicalEventsCatalog() as $cEvt) {
                     if (Tools::getValue('event_active_' . $cEvt['name'])) {
@@ -746,7 +746,7 @@ class Ps_Gtm_DataLayer extends Module
         }
         unset($evt);
 
-        $activeTab = Tools::getValue('active_tab', 'tab-overview');
+        $activeTab = Tools::getValue('active_tab', 'tab-config');
 
         $this->context->smarty->assign([
             'module_name' => $this->name,

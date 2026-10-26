@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.39.1",
-    "release_date":  "2026-10-25",
+    "latest_version":  "1.40.0",
+    "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.39.1/ps_gtm_datalayer.zip",
-    "checksum":  "5d8bdec404c0a0d3279b6c78809fa9bc74de8d34f5b774a6f252ffe4a18fcd3a",
-    "release_type":  "patch",
-    "release_notes":  "1. Critical Hotfix (PHP 8 / Smarty Compatibility): Resolved 500 Internal Server Error caused by PHP 8 incompatible Smarty modifier invocation on active destinations tooltip.\n2. Backend Pre-computation: Pre-formatted active destination names into server-side string properties avoiding runtime template helper failures.\n3. Defensive Exception Guard: Wrapped Back Office module configuration and template compilation in comprehensive try-catch Throwable boundaries with detailed diagnostic logging."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.0/ps_gtm_datalayer.zip",
+    "checksum":  "107cf79299c4134e58f898747f0d8038f0432d235282c44876b5552383cab02f",
+    "release_type":  "minor",
+    "release_notes":  "1. Streamlined Left-Sidebar Panel Navigation: Replaced top horizontal tabs with a dedicated vertical sidebar panel on the left (GTM \u0026 DataLayer, Platform Routing, Server-Side \u0026 Webhooks, Custom Scripts).\n2. Decluttered Interface: Removed extraneous Overview, Events Catalog, Data Mapping, and Diagnostics \u0026 Testing views as requested, focusing strictly on functional configuration.\n3. Dedicated Panel Save Controls: Each configuration panel includes its own direct save action alongside the global floating unsaved changes banner.\n4. Preserved 100% Tracking Integrity: Zero DOM scraping, backend data models, authoritative catalog matching, and sGTM webhooks fully preserved."
 }

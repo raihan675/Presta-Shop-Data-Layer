@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.0] - 2026-10-26
+
+### Changed
+- **Streamlined Left-Sidebar Panel Navigation Architecture**:
+  - Replaced top horizontal tabs with a dedicated, responsive left-side navigation sidebar panel.
+  - Divided core module settings into 4 dedicated panels:
+    - **GTM & DataLayer Settings**: Web Container ID, Event Prefix, and interactive 3-card Product Catalog Identifier Strategy.
+    - **Platform Routing**: Advertising Master Switch, Display Mode (Matrix View / Platform Cards), bulk switches, and Meta/Google Ads/TikTok/Pinterest/Microsoft Ads event routing.
+    - **Server-Side Tracking & Webhooks**: First-party sGTM Transport URL, Webhook Path, live connection ping diagnostic test, and Server-to-Server Refund, Offline Order, and Order Status Change webhooks.
+    - **Custom Scripts**: Direct `<head>` and `<body>` script injection without theme template overrides.
+  - Added dedicated save controls inside each panel footer in addition to the global floating unsaved changes banner.
+  - Cleaned up interface by removing Overview, Events Catalog, Data Mapping, and Diagnostics & Testing views as requested.
+
+---
+
 ## [1.39.1] - 2026-10-25
 
 ### Fixed

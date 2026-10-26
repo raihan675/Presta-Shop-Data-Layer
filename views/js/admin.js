@@ -67,7 +67,7 @@
     });
 
     // Determine initial active tab
-    var initialTab = 'tab-overview';
+    var initialTab = 'tab-config';
     var hash = window.location.hash ? window.location.hash.substring(1) : '';
     var savedTab = null;
     try {
@@ -93,6 +93,8 @@
     var filterPills = document.querySelectorAll('.ps-gtm-filter-pill');
     var statusSelect = document.getElementById('ps-gtm-status-filter');
     var rows = document.querySelectorAll('.ps-gtm-event-row');
+
+    if (!searchInput && !rows.length) return;
 
     var currentCategory = 'all';
     var currentQuery = '';
