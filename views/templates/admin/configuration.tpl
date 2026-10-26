@@ -570,7 +570,9 @@
   <form action="{$form_action|escape:'html':'UTF-8'}" method="post" id="ps_gtm_main_form" class="defaultForm form-horizontal">
     {if !empty($admin_token)}<input type="hidden" name="token" value="{$admin_token|escape:'html':'UTF-8'}">{/if}
     <input type="hidden" name="submitps_gtm_datalayer" value="1">
+    <input type="hidden" name="PS_GTM_CORE_SUBMITTED" value="1">
     <input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1">
+    <input type="hidden" name="PS_GTM_EVENTS_SUBMITTED" value="1">
     <input type="hidden" name="active_tab" id="ps_gtm_active_tab" value="{$active_tab|escape:'html':'UTF-8'}">
 
     <!-- 2-Column Responsive Layout -->
@@ -707,7 +709,7 @@
                   {l s='Your unique Google Tag Manager container identifier (e.g., GTM-XXXXXXX). Found in your GTM Admin dashboard.' mod='ps_gtm_datalayer'}
                 </div>
                 <div class="form-group" style="margin-bottom: 0;">
-                  <input type="text" name="PS_GTM_CONTAINER_ID" id="PS_GTM_CONTAINER_ID" class="ps-gtm-form-input" value="{$config_values.PS_GTM_CONTAINER_ID|escape:'html':'UTF-8'}" placeholder="GTM-XXXXXXX" required>
+                  <input type="text" name="PS_GTM_CONTAINER_ID" id="PS_GTM_CONTAINER_ID" class="ps-gtm-form-input" value="{$config_values.PS_GTM_CONTAINER_ID|escape:'html':'UTF-8'}" placeholder="GTM-XXXXXXX">
                   <div class="ps-gtm-help-text">
                     <i class="icon-info-circle"></i> {l s='Leave empty if using server-side only container or third-party container loaders.' mod='ps_gtm_datalayer'}
                   </div>
@@ -865,8 +867,14 @@
                         <th style="width: 145px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta">
-                              <span>Meta</span>
+                              <div style="display: flex; align-items: center; gap: 6px;">
+                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta">
+                                <span>Meta</span>
+                              </div>
+                              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Meta Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
+                                <input type="checkbox" name="PS_GTM_ADV_META_ENABLED" id="matrix_master_meta" value="1" {if $config_values.PS_GTM_ADV_META_ENABLED}checked{/if}>
+                                <span class="ps-gtm-slider"></span>
+                              </label>
                             </div>
                             <div class="ps-gtm-platform-toggle-pill">
                               <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('meta', true)" title="{l s='Enable All Meta' mod='ps_gtm_datalayer'}">
@@ -881,8 +889,14 @@
                         <th style="width: 145px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads">
-                              <span>Google Ads</span>
+                              <div style="display: flex; align-items: center; gap: 6px;">
+                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads">
+                                <span>Google Ads</span>
+                              </div>
+                              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Google Ads Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
+                                <input type="checkbox" name="PS_GTM_ADV_GADS_ENABLED" id="matrix_master_gads" value="1" {if $config_values.PS_GTM_ADV_GADS_ENABLED}checked{/if}>
+                                <span class="ps-gtm-slider"></span>
+                              </label>
                             </div>
                             <div class="ps-gtm-platform-toggle-pill">
                               <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('gads', true)" title="{l s='Enable All Google Ads' mod='ps_gtm_datalayer'}">
@@ -897,8 +911,14 @@
                         <th style="width: 145px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok">
-                              <span>TikTok</span>
+                              <div style="display: flex; align-items: center; gap: 6px;">
+                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok">
+                                <span>TikTok</span>
+                              </div>
+                              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle TikTok Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
+                                <input type="checkbox" name="PS_GTM_ADV_TIKTOK_ENABLED" id="matrix_master_tiktok" value="1" {if $config_values.PS_GTM_ADV_TIKTOK_ENABLED}checked{/if}>
+                                <span class="ps-gtm-slider"></span>
+                              </label>
                             </div>
                             <div class="ps-gtm-platform-toggle-pill">
                               <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('tiktok', true)" title="{l s='Enable All TikTok' mod='ps_gtm_datalayer'}">
@@ -913,8 +933,14 @@
                         <th style="width: 145px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest">
-                              <span>Pinterest</span>
+                              <div style="display: flex; align-items: center; gap: 6px;">
+                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest">
+                                <span>Pinterest</span>
+                              </div>
+                              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Pinterest Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
+                                <input type="checkbox" name="PS_GTM_ADV_PINTEREST_ENABLED" id="matrix_master_pinterest" value="1" {if $config_values.PS_GTM_ADV_PINTEREST_ENABLED}checked{/if}>
+                                <span class="ps-gtm-slider"></span>
+                              </label>
                             </div>
                             <div class="ps-gtm-platform-toggle-pill">
                               <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('pinterest', true)" title="{l s='Enable All Pinterest' mod='ps_gtm_datalayer'}">
@@ -929,8 +955,14 @@
                         <th style="width: 145px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads">
-                              <span>Microsoft Ads</span>
+                              <div style="display: flex; align-items: center; gap: 6px;">
+                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads">
+                                <span>Microsoft Ads</span>
+                              </div>
+                              <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Microsoft Ads Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
+                                <input type="checkbox" name="PS_GTM_ADV_MICROSOFT_ENABLED" id="matrix_master_microsoft" value="1" {if $config_values.PS_GTM_ADV_MICROSOFT_ENABLED}checked{/if}>
+                                <span class="ps-gtm-slider"></span>
+                              </label>
                             </div>
                             <div class="ps-gtm-platform-toggle-pill">
                               <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('microsoft', true)" title="{l s='Enable All Microsoft Ads' mod='ps_gtm_datalayer'}">

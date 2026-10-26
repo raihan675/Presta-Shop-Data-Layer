@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.4] - 2026-10-26
+
+### Removed
+- **`page_view` and `select_item` UI References**:
+  - Removed deprecated `page_view` and `select_item` entries from the Back Office canonical event catalog and advertising platform matrix.
+  - Aligned canonical event lists across `getCanonicalEventsCatalog()` and `getSupportedEvents()`.
+
+### Fixed
+- **Advertising Platform Event Routing Persistence**:
+  - Resolved duplicate input name collisions between Matrix View (`#ps-gtm-routing-matrix-view`) and Platform Cards View (`#ps-gtm-routing-cards-view`) that previously caused unchecked event states to be overwritten by hidden card inputs upon form submission.
+  - Added live two-way synchronization in `views/js/admin.js` for all `adv_` and `PS_GTM_ADV_` inputs so both views remain in 100% lockstep.
+  - Added submit-time form deduplication in `admin.js` to disable duplicate inputs in the inactive routing view, ensuring the browser sends a single authoritative state for each setting.
+  - Added dedicated platform master toggle switches directly to the Matrix View column headers for Meta, Google Ads, TikTok, Pinterest, and Microsoft Ads.
+  - Removed the `required` attribute from the `PS_GTM_CONTAINER_ID` field in Tab 1 to eliminate silent browser validation halts when saving from tabs 2, 3, 4, or 5.
+  - Added hidden `PS_GTM_CORE_SUBMITTED`, `PS_GTM_ADV_SUBMITTED`, and `PS_GTM_EVENTS_SUBMITTED` inputs to ensure all configuration sections persist reliably regardless of active tab.
+
+---
+
 ## [1.40.3] - 2026-10-26
 
 ### Added

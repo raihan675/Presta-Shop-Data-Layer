@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.3';
+        $this->version = '1.40.4';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -848,39 +848,6 @@ class Ps_Gtm_DataLayer extends Module
     {
         return [
             [
-                'name' => 'page_view',
-                'label' => 'Page View',
-                'icon' => 'icon-eye',
-                'category' => 'discovery',
-                'category_label' => 'Discovery',
-                'desc' => 'Global storefront page browsing with page title, URL path, and user identifiers',
-                'trigger_hook' => 'hookDisplayHeader (All storefront pages)',
-                'dependencies' => 'PrestaShop core DisplayHeader lifecycle hook',
-                'has_sgtm_webhook' => false,
-                'is_active' => self::isEventEnabled('page_view'),
-                'schema_fields' => [
-                    ['name' => 'page_location', 'type' => 'string', 'source' => 'window.location.href', 'destinations' => 'GA4: page_location, Meta: dl, TikTok: page_url, UET: page_path', 'desc' => 'Full URL of currently rendered page'],
-                    ['name' => 'page_title', 'type' => 'string', 'source' => 'document.title', 'destinations' => 'GA4: page_title, Meta: title', 'desc' => 'Storefront HTML document title'],
-                    ['name' => 'user_data', 'type' => 'object', 'source' => 'CustomerDataEngine (Hashed)', 'destinations' => 'GA4 user_data, Meta CAPI em/ph, TikTok, UET pid', 'desc' => 'SHA-256 encrypted customer identity for advanced matching'],
-                ],
-                'platform_mappings' => [
-                    'meta' => "fbq('track', 'PageView');",
-                    'gads' => "gtag('event', 'page_view', { page_location: '...', page_title: '...' });",
-                    'tiktok' => "ttq.page();",
-                    'pinterest' => "pintrk('track', 'PageVisit');",
-                    'microsoft' => "uetq.push('event', 'page_view', { page_path: '...' });",
-                ],
-                'example_json' => json_encode([
-                    'event' => 'page_view',
-                    'original_event' => 'page_view',
-                    'page_location' => 'https://example.com/en/summer-collection',
-                    'page_title' => 'Summer Collection - Store',
-                    'user_data' => [
-                        'email_address' => '343d1c9d5c5f5daf60fe4c3ef34c0e8869e4153a4697392fa2900617771759c1',
-                    ],
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            ],
-            [
                 'name' => 'view_item_list',
                 'label' => 'View Item List',
                 'icon' => 'icon-th-list',
@@ -947,45 +914,6 @@ class Ps_Gtm_DataLayer extends Module
                     'event' => 'view_search_results',
                     'ecommerce' => [
                         'search_term' => 't-shirt',
-                        'items' => [
-                            [
-                                'item_id' => '1_1',
-                                'item_name' => 'Hummingbird Printed T-Shirt',
-                                'price' => 23.90,
-                                'quantity' => 1,
-                            ],
-                        ],
-                    ],
-                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
-            ],
-            [
-                'name' => 'select_item',
-                'label' => 'Select Item',
-                'icon' => 'icon-hand-pointer-o',
-                'category' => 'discovery',
-                'category_label' => 'Discovery',
-                'desc' => 'Clicking on a product miniature or link in any listing',
-                'trigger_hook' => 'Zero-DOM product click event bus',
-                'dependencies' => 'Storefront category/listing miniature cards & Zero-DOM Click Bus',
-                'has_sgtm_webhook' => false,
-                'is_active' => self::isEventEnabled('select_item'),
-                'schema_fields' => [
-                    ['name' => 'item_id', 'type' => 'string', 'source' => 'ProductIdentityResolver', 'destinations' => 'GA4: item_id, Meta: content_ids, GAds: ecomm_prodid', 'desc' => 'Catalog product identifier'],
-                    ['name' => 'item_name', 'type' => 'string', 'source' => 'Product::name', 'destinations' => 'GA4: item_name, Meta: content_name', 'desc' => 'Product title'],
-                    ['name' => 'item_list_id', 'type' => 'string', 'source' => 'Listing container ID', 'destinations' => 'GA4: item_list_id', 'desc' => 'Parent listing identifier'],
-                ],
-                'platform_mappings' => [
-                    'meta' => "fbq('track', 'ViewContent', { content_ids: ['1_1'], content_name: 'Hummingbird Printed T-Shirt' });",
-                    'gads' => "gtag('event', 'select_item', { item_list_id: 'category_3', items: [...] });",
-                    'tiktok' => "ttq.track('ViewContent', { content_id: '1_1', content_name: 'Hummingbird Printed T-Shirt' });",
-                    'pinterest' => "pintrk('track', 'PageVisit', { line_items: [{ product_id: '1_1' }] });",
-                    'microsoft' => "uetq.push('event', 'select_item', { ecomm_prodid: '1_1', items: [...] });",
-                ],
-                'example_json' => json_encode([
-                    'event' => 'select_item',
-                    'ecommerce' => [
-                        'item_list_id' => 'category_3',
-                        'item_list_name' => 'Clothes',
                         'items' => [
                             [
                                 'item_id' => '1_1',
@@ -1780,16 +1708,6 @@ class Ps_Gtm_DataLayer extends Module
                 'pinterest_spec' => 'pintrk: Search, search_query, line_items, product_ids',
                 'microsoft_spec' => 'event_action: view_search_results, search_term, ecomm_pagetype: searchresults, ecomm_prodid: [ids], items',
             ],
-            'select_item' => [
-                'name' => 'select_item',
-                'label' => 'Select Item',
-                'desc' => 'Clicking on a product link or miniature card from any listing',
-                'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, contents, value',
-                'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, content_id, contents',
-                'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
-                'pinterest_spec' => 'pintrk: PageVisit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
-                'microsoft_spec' => 'event_action: select_item, ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue, items',
-            ],
             'view_item' => [
                 'name' => 'view_item',
                 'label' => 'View Item (PDP & Variants)',
@@ -2351,6 +2269,13 @@ class Ps_Gtm_DataLayer extends Module
                 if (notice) {
                     notice.style.display = isChecked ? "none" : "block";
                 }
+                var masterInputs = document.querySelectorAll("input[name=\"PS_GTM_ADV_" + platformKey.toUpperCase() + "_ENABLED\"]");
+                for (var m = 0; m < masterInputs.length; m++) {
+                    masterInputs[m].checked = isChecked;
+                }
+                if (typeof markFormDirty === "function") {
+                    markFormDirty();
+                }
                 psGtmUpdateCounter(platformKey);
             }
 
@@ -2358,11 +2283,23 @@ class Ps_Gtm_DataLayer extends Module
                 var cbs = document.querySelectorAll(".ps-gtm-evt-" + platformKey);
                 for (var i = 0; i < cbs.length; i++) {
                     cbs[i].checked = state;
+                    if (cbs[i].name) {
+                        var dupes = document.querySelectorAll("input[name=\"" + cbs[i].name + "\"]");
+                        for (var j = 0; j < dupes.length; j++) {
+                            dupes[j].checked = state;
+                        }
+                    }
+                }
+                if (typeof markFormDirty === "function") {
+                    markFormDirty();
                 }
                 psGtmUpdateCounter(platformKey);
             }
 
             function psGtmOnEventToggle(platformKey) {
+                if (typeof markFormDirty === "function") {
+                    markFormDirty();
+                }
                 psGtmUpdateCounter(platformKey);
             }
 
@@ -2370,11 +2307,14 @@ class Ps_Gtm_DataLayer extends Module
                 var counter = document.getElementById("counter_" + platformKey);
                 if (!counter) return;
                 var cbs = document.querySelectorAll(".ps-gtm-evt-" + platformKey);
-                var checkedCount = 0;
+                var uniqueChecked = {};
                 for (var i = 0; i < cbs.length; i++) {
-                    if (cbs[i].checked) checkedCount++;
+                    if (cbs[i].checked && cbs[i].name) {
+                        uniqueChecked[cbs[i].name] = true;
+                    }
                 }
-                var total = cbs.length;
+                var checkedCount = Object.keys(uniqueChecked).length;
+                var total = 12;
                 var masterCb = document.getElementById("master_" + platformKey);
                 var isMasterOn = masterCb ? masterCb.checked : true;
                 if (!isMasterOn) {
@@ -2387,11 +2327,14 @@ class Ps_Gtm_DataLayer extends Module
             function psGtmToggleAllPlatforms(state) {
                 var platforms = ["meta", "gads", "tiktok", "pinterest", "microsoft"];
                 for (var i = 0; i < platforms.length; i++) {
-                    var master = document.getElementById("master_" + platforms[i]);
-                    if (master) {
-                        master.checked = state;
-                        psGtmOnMasterToggle(platforms[i], state);
+                    psGtmOnMasterToggle(platforms[i], state);
+                    var cbs = document.querySelectorAll(".ps-gtm-evt-" + platforms[i]);
+                    for (var j = 0; j < cbs.length; j++) {
+                        cbs[j].checked = state;
                     }
+                }
+                if (typeof markFormDirty === "function") {
+                    markFormDirty();
                 }
             }
         </script>';

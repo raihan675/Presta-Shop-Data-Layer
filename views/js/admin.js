@@ -630,17 +630,149 @@
   window.psGtmTogglePlatformColumn = function (platformKey, state) {
     var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
     cbs.forEach(function (cb) { cb.checked = state; });
+    // Keep duplicate inputs with same name in sync
+    cbs.forEach(function (cb) {
+      if (cb.name) {
+        document.querySelectorAll('input[name="' + cb.name + '"]').forEach(function (inp) {
+          inp.checked = state;
+        });
+      }
+    });
     markFormDirty();
     if (typeof window.psGtmUpdateCounter === 'function') {
       window.psGtmUpdateCounter(platformKey);
     }
   };
 
+  window.psGtmToggleAllPlatforms = function (state) {
+    var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft'];
+    platforms.forEach(function (pKey) {
+      var masterInputs = document.querySelectorAll('input[name="PS_GTM_ADV_' + pKey.toUpperCase() + '_ENABLED"]');
+      masterInputs.forEach(function (inp) { inp.checked = state; });
+      if (typeof window.psGtmOnMasterToggle === 'function') {
+        window.psGtmOnMasterToggle(pKey, state);
+      }
+      var cbs = document.querySelectorAll('.ps-gtm-evt-' + pKey);
+      cbs.forEach(function (cb) { cb.checked = state; });
+      if (typeof window.psGtmUpdateCounter === 'function') {
+        window.psGtmUpdateCounter(pKey);
+      }
+    });
+    markFormDirty();
+  };
+
+  window.psGtmOnMasterToggle = function (platformKey, isChecked) {
+    var badge = document.getElementById('badge_' + platformKey);
+    var notice = document.getElementById('notice_' + platformKey);
+    if (badge) {
+      badge.className = isChecked ? 'label label-success' : 'label label-danger';
+      badge.textContent = isChecked ? 'Enabled' : 'Disabled';
+    }
+    if (notice) {
+      notice.style.display = isChecked ? 'none' : 'block';
+    }
+    var masterInputs = document.querySelectorAll('input[name="PS_GTM_ADV_' + platformKey.toUpperCase() + '_ENABLED"]');
+    masterInputs.forEach(function (inp) { inp.checked = isChecked; });
+    if (typeof window.psGtmUpdateCounter === 'function') {
+      window.psGtmUpdateCounter(platformKey);
+    }
+    markFormDirty();
+  };
+
+  window.psGtmPlatformSelectAll = function (platformKey, state) {
+    var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
+    cbs.forEach(function (cb) {
+      cb.checked = state;
+      if (cb.name) {
+        document.querySelectorAll('input[name="' + cb.name + '"]').forEach(function (inp) {
+          inp.checked = state;
+        });
+      }
+    });
+    markFormDirty();
+    if (typeof window.psGtmUpdateCounter === 'function') {
+      window.psGtmUpdateCounter(platformKey);
+    }
+  };
+
+  window.psGtmOnEventToggle = function (platformKey) {
+    if (typeof window.psGtmUpdateCounter === 'function') {
+      window.psGtmUpdateCounter(platformKey);
+    }
+    markFormDirty();
+  };
+
+  window.psGtmUpdateCounter = function (platformKey) {
+    var counter = document.getElementById('counter_' + platformKey);
+    if (!counter) return;
+    var uniqueChecked = {};
+    var cbs = document.querySelectorAll('.ps-gtm-evt-' + platformKey);
+    cbs.forEach(function (cb) {
+      if (cb.checked && cb.name) {
+        uniqueChecked[cb.name] = true;
+      }
+    });
+    var checkedCount = Object.keys(uniqueChecked).length;
+    var masterInput = document.querySelector('input[name="PS_GTM_ADV_' + platformKey.toUpperCase() + '_ENABLED"]');
+    var isMasterOn = masterInput ? masterInput.checked : true;
+    var totalEvents = 12;
+    if (!isMasterOn) {
+      counter.textContent = checkedCount + ' of ' + totalEvents + ' events (Platform Off)';
+    } else {
+      counter.textContent = checkedCount + ' of ' + totalEvents + ' events active';
+    }
+  };
+
+  // Two-way synchronization on ANY switch / input change
+  document.addEventListener('change', function (e) {
+    if (!e.target || !e.target.name) return;
+    var name = e.target.name;
+    var isChecked = e.target.checked;
+
+    if (name.indexOf('adv_') === 0 || name.indexOf('PS_GTM_ADV_') === 0) {
+      var matches = document.querySelectorAll('input[name="' + name + '"]');
+      for (var i = 0; i < matches.length; i++) {
+        if (matches[i] !== e.target) {
+          matches[i].checked = isChecked;
+        }
+      }
+      if (name.indexOf('PS_GTM_ADV_') === 0 && name.indexOf('_ENABLED') > 0 && name !== 'PS_GTM_ADV_MASTER_ENABLED') {
+        var pKey = name.replace('PS_GTM_ADV_', '').replace('_ENABLED', '').toLowerCase();
+        if (typeof window.psGtmOnMasterToggle === 'function') {
+          window.psGtmOnMasterToggle(pKey, isChecked);
+        }
+      }
+      markFormDirty();
+    }
+  });
+
+  // Clean form submission handler: disable duplicate inputs in the hidden view so POST payload is 100% unique
+  var mainSettingsForm = document.getElementById('ps_gtm_main_form') || document.querySelector('form.defaultForm');
+  if (mainSettingsForm) {
+    mainSettingsForm.addEventListener('submit', function () {
+      var cardsView = document.getElementById('ps-gtm-routing-cards-view');
+      var matrixView = document.getElementById('ps-gtm-routing-matrix-view');
+      var isCardsActive = (cardsView && cardsView.style.display !== 'none');
+      var inactiveView = isCardsActive ? matrixView : cardsView;
+      if (inactiveView) {
+        var dups = inactiveView.querySelectorAll('input[name^="adv_"]');
+        dups.forEach(function (inp) {
+          inp.disabled = true;
+        });
+      }
+    });
+  }
+
   window.psGtmSwitchRoutingView = function (mode) {
     var matrixView = document.getElementById('ps-gtm-routing-matrix-view');
     var cardsView = document.getElementById('ps-gtm-routing-cards-view');
     var btnMatrix = document.getElementById('ps-gtm-btn-view-matrix');
     var btnCards = document.getElementById('ps-gtm-btn-view-cards');
+
+    // Ensure all inputs are enabled when switching
+    document.querySelectorAll('input[name^="adv_"]').forEach(function (inp) {
+      inp.disabled = false;
+    });
 
     if (mode === 'matrix') {
       if (matrixView) matrixView.style.display = 'block';
