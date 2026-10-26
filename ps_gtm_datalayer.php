@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.7';
+        $this->version = '1.40.8';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -768,7 +768,7 @@ class Ps_Gtm_DataLayer extends Module
         $eventGroups = [
             'discovery' => [
                 'id' => 'discovery',
-                'title' => $this->l('Product Discovery'),
+                'title' => 'Product Discovery',
                 'badge_color' => '#0284c7',
                 'bg' => '#f0f7ff',
                 'border' => '#e0f2fe',
@@ -778,7 +778,7 @@ class Ps_Gtm_DataLayer extends Module
             ],
             'cart_checkout' => [
                 'id' => 'cart_checkout',
-                'title' => $this->l('Cart & Checkout'),
+                'title' => 'Cart & Checkout',
                 'badge_color' => '#7c3aed',
                 'bg' => '#f5f3ff',
                 'border' => '#ede9fe',
@@ -788,7 +788,7 @@ class Ps_Gtm_DataLayer extends Module
             ],
             'conversion' => [
                 'id' => 'conversion',
-                'title' => $this->l('Conversion'),
+                'title' => 'Conversion',
                 'badge_color' => '#16a34a',
                 'bg' => '#f0fdf4',
                 'border' => '#dcfce7',

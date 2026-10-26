@@ -1362,7 +1362,7 @@
                 <div class="ps-gtm-group-header" style="background: {$grp.bg|escape:'html':'UTF-8'}; border-color: {$grp.border|escape:'html':'UTF-8'};" onclick="psGtmToggleGroup('{$grpKey|escape:'html':'UTF-8'}')">
                   <div class="ps-gtm-group-header-left">
                     <span class="ps-gtm-group-chevron" id="grp-chevron-{$grpKey|escape:'html':'UTF-8'}"><i class="icon-chevron-down"></i></span>
-                    <span class="ps-gtm-group-title" style="color: {$grp.badge_color|escape:'html':'UTF-8'};">{$grp.title|escape:'html':'UTF-8'}</span>
+                    <span class="ps-gtm-group-title" style="color: {$grp.badge_color|escape:'html':'UTF-8'};">{$grp.title|replace:'&amp;':'&'|escape:'html':'UTF-8'}</span>
                     <span class="ps-gtm-group-badge" style="background: {$grp.border|escape:'html':'UTF-8'}; color: {$grp.badge_color|escape:'html':'UTF-8'};">
                       {count($grp.events)} {if count($grp.events) == 1}{l s='event' mod='ps_gtm_datalayer'}{else}{l s='events' mod='ps_gtm_datalayer'}{/if}
                     </span>

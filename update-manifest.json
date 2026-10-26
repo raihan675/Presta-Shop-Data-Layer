@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.7",
+    "latest_version":  "1.40.8",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.7/ps_gtm_datalayer.zip",
-    "checksum":  "a14d86c6f8f7e32e99db424d4a49bf497a9ab12687d953bf681612da298df5d2",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.8/ps_gtm_datalayer.zip",
+    "checksum":  "ebdebc02a9e92a70f1f49a36ed8b1ee48e94283e04308c5425e5f7db46364bf2",
     "release_type":  "patch",
-    "release_notes":  "1. Storefront DataLayer Push Restoration: Fixed critical issue where saving Back Office settings caused storefront DataLayer pushes to be suppressed due to an obsolete hidden event submission input.\n2. Autonomous Self-Healing: Added automatic detection and deletion of corrupted empty canonical events arrays in both Back Office and storefront hooks, ensuring all canonical events default to fully active.\n3. Fail-Safe Event Validation: Updated isEventEnabled to guarantee canonical events always evaluate to active even if stored settings decode to empty."
+    "release_notes":  "1. Group Header Titles Typography: Fixed \u0027Cart \u0026amp; Checkout\u0027 double HTML entity escaping in the advertising event routing interface so it consistently renders as \u0027Cart \u0026 Checkout\u0027.\n2. Digital Marketing Industry Standard Group Naming: Prevented PrestaShop\u0027s core translation engine from translating \u0027Conversion\u0027 to the German currency term \u0027Umwandlung\u0027, ensuring standardized marketing terminology (\u0027Product Discovery\u0027, \u0027Cart \u0026 Checkout\u0027, \u0027Conversion\u0027) across all store languages."
 }

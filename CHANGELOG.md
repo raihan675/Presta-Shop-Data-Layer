@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.8] - 2026-10-26
+
+### Fixed
+- **Group Header Titles Typography & Localization**:
+  - Fixed HTML entity double escaping on the Cart & Checkout event group header (`Cart &amp; Checkout` -> `Cart & Checkout`) using defensive Smarty normalization.
+  - Standardized marketing event group headers (`Product Discovery`, `Cart & Checkout`, `Conversion`) to prevent collision with PrestaShop core translation dictionaries that previously translated "Conversion" to the German currency conversion term "Umwandlung".
+
+---
+
 ## [1.40.7] - 2026-10-26
 
 ### Fixed
