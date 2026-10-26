@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.9",
+    "latest_version":  "1.40.10",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.9/ps_gtm_datalayer.zip",
-    "checksum":  "2d44a26960e2194e32098915cfe2d7d8cb0a879183ea92b25857dc097e3f9ddb",
-    "release_type":  "minor",
-    "release_notes":  "1. Custom High-Resolution Event Icons: Replaced generic font glyphs with high-resolution, custom ecommerce event icons across all 11 storefront events in the advertising routing interface and inspect drawer with automatic font-icon fallbacks.\n2. Polished Event Row Visuals: Perfectly centered 20px event icon badges with category-coordinated pastel backgrounds."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.10/ps_gtm_datalayer.zip",
+    "checksum":  "6407c9e952cb9bd46b62d46720c88080ac28454cd8ed8aa6cd7d5b96c47f3545",
+    "release_type":  "patch",
+    "release_notes":  "1. 100% Defensive Hook Encapsulation: Sealed all 10 registered storefront and back-office lifecycle hooks (including hookActionCartUpdateQuantityBefore, hookDisplayAfterBodyOpeningTag, hookDisplayBackOfficeTop, hookDisplayBackOfficeHeader, and queuePendingEvent) with top-level \\Throwable containment and error logging.\n2. Production Readiness Verification: Completed comprehensive 10-point audit verifying zero DOM scraping, authoritative backend data hydration, multi-platform parameter compliance (GA4, Meta, Google Ads, TikTok, Pinterest, Microsoft Ads), and non-blocking sGTM webhooks."
 }

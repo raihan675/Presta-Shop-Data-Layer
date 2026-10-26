@@ -146,10 +146,18 @@ auditPhpFiles(MODULE_ROOT);
 const mainModulePath = path.join(MODULE_ROOT, 'ps_gtm_datalayer.php');
 const mainModuleCode = fs.readFileSync(mainModulePath, 'utf8');
 
-// Check that front office hooks are wrapped in try...catch (\Throwable $e)
+// Check that front and back office hooks are wrapped in try...catch (\Throwable $e)
 const hooksToCheck = [
   'hookDisplayHeader',
-  'hookDisplayOrderConfirmation'
+  'hookDisplayAfterBodyOpeningTag',
+  'hookDisplayOrderConfirmation',
+  'hookDisplayBackOfficeTop',
+  'hookDisplayBackOfficeHeader',
+  'hookActionCartUpdateQuantityBefore',
+  'hookActionCarrierProcess',
+  'hookActionOrderSlipAdd',
+  'hookActionValidateOrder',
+  'hookActionOrderStatusPostUpdate'
 ];
 
 for (const hook of hooksToCheck) {
@@ -228,7 +236,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.40.9', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.40.10', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
 const allTplFiles = [];
@@ -882,6 +890,16 @@ if (fs.existsSync(upgrade1409Path)) {
   report('Upgrade function upgrade_module_1_40_9 properly declared', hasUpgradeFunction409 && returnsTrue409, 'Missing or invalid function signature in upgrade-1.40.9.php');
 } else {
   report('Upgrade script upgrade-1.40.9.php exists', false, 'Missing upgrade-1.40.9.php');
+}
+
+const upgrade14010Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.40.10.php');
+if (fs.existsSync(upgrade14010Path)) {
+  const upCode410 = fs.readFileSync(upgrade14010Path, 'utf8');
+  const hasUpgradeFunction410 = upCode410.includes('function upgrade_module_1_40_10($module)');
+  const returnsTrue410 = upCode410.includes('return true;');
+  report('Upgrade function upgrade_module_1_40_10 properly declared', hasUpgradeFunction410 && returnsTrue410, 'Missing or invalid function signature in upgrade-1.40.10.php');
+} else {
+  report('Upgrade script upgrade-1.40.10.php exists', false, 'Missing upgrade-1.40.10.php');
 }
 
 // -------------------------------------------------------------

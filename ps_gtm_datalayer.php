@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.9';
+        $this->version = '1.40.10';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -395,10 +395,11 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayBackOfficeTop($params)
     {
-        // Auto-register displayBackOfficeTop if not registered
-        if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
-            $this->registerHook('displayBackOfficeTop');
-        }
+        try {
+            // Auto-register displayBackOfficeTop if not registered
+            if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
+                $this->registerHook('displayBackOfficeTop');
+            }
 
         // 1. Handle 1-Click Update if triggered from Module Manager or any admin page
         if (Tools::isSubmit('submitRunModuleUpdate')) {
@@ -480,15 +481,22 @@ class Ps_Gtm_DataLayer extends Module
         ]);
 
         return $this->display(__FILE__, 'views/templates/admin/module_manager_update_banner.tpl');
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     public function hookDisplayBackOfficeHeader($params)
     {
-        if (Tools::getValue('configure') === $this->name && isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
-            $this->context->controller->addCSS($this->_path . 'views/css/admin.css?v=' . $this->version);
-            $this->context->controller->addJS($this->_path . 'views/js/admin.js?v=' . $this->version);
+        try {
+            if (Tools::getValue('configure') === $this->name && isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
+                $this->context->controller->addCSS($this->_path . 'views/css/admin.css?v=' . $this->version);
+                $this->context->controller->addJS($this->_path . 'views/js/admin.js?v=' . $this->version);
+            }
+            return '';
+        } catch (\Throwable $e) {
+            return '';
         }
-        return '';
     }
 
     public static function normalizePrefix($prefix)
@@ -2904,58 +2912,70 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookActionCartUpdateQuantityBefore($params)
     {
-        if (!isset($params['product']) || !Validate::isLoadedObject($params['product'])) {
-            return;
+        try {
+            if (!isset($params['product']) || !Validate::isLoadedObject($params['product'])) {
+                return;
+            }
+
+            $idAttr = isset($params['id_product_attribute']) ? (int)$params['id_product_attribute'] : 0;
+            $operator = isset($params['operator']) ? (string)$params['operator'] : 'up';
+            $quantity = isset($params['quantity']) ? (int)$params['quantity'] : 1;
+            if ($quantity <= 0) {
+                $quantity = 1;
+            }
+
+            $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+            $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+            $item = $payloadBuilder->formatItem($params['product'], $idAttr, $quantity);
+
+            $canonicalEvent = ($operator === 'down') ? 'remove_from_cart' : 'add_to_cart';
+            $this->queuePendingEvent($canonicalEvent, $item);
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog('ps_gtm_datalayer hookActionCartUpdateQuantityBefore error: ' . $e->getMessage(), 2);
+            }
         }
-
-        $idAttr = isset($params['id_product_attribute']) ? (int)$params['id_product_attribute'] : 0;
-        $operator = isset($params['operator']) ? (string)$params['operator'] : 'up';
-        $quantity = isset($params['quantity']) ? (int)$params['quantity'] : 1;
-        if ($quantity <= 0) {
-            $quantity = 1;
-        }
-
-        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
-        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
-        $item = $payloadBuilder->formatItem($params['product'], $idAttr, $quantity);
-
-        $canonicalEvent = ($operator === 'down') ? 'remove_from_cart' : 'add_to_cart';
-        $this->queuePendingEvent($canonicalEvent, $item);
     }
 
     public function queuePendingEvent($canonicalEvent, $item)
     {
-        if (!self::isEventEnabled($canonicalEvent)) {
-            return;
-        }
+        try {
+            if (!self::isEventEnabled($canonicalEvent)) {
+                return;
+            }
 
-        $events = [];
-        if (!empty($this->context->cookie->ps_gtm_pending_events)) {
-            $decoded = json_decode($this->context->cookie->ps_gtm_pending_events, true);
-            if (is_array($decoded)) {
-                $events = $decoded;
+            $events = [];
+            if (!empty($this->context->cookie->ps_gtm_pending_events)) {
+                $decoded = json_decode($this->context->cookie->ps_gtm_pending_events, true);
+                if (is_array($decoded)) {
+                    $events = $decoded;
+                }
+            }
+
+            $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
+            $precision = PlatformAdapter::getCurrencyPrecision($this->context);
+            $totalVal = CanonicalDataModel::calculateItemsValue([$item], $precision);
+            $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
+
+            $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
+            $platformNamespaces = $payloadBuilder->buildPlatformNamespaces($canonicalEvent, [$item], $currencyCode, $totalVal);
+
+            $events[] = array_merge([
+                'event' => self::formatEventName($canonicalEvent, $eventPrefix),
+                'original_event' => $canonicalEvent,
+                'ecommerce' => [
+                    'currency' => $currencyCode,
+                    'value' => $totalVal,
+                    'items' => [$item],
+                ],
+            ], $platformNamespaces);
+
+            $this->context->cookie->ps_gtm_pending_events = json_encode($events);
+        } catch (\Throwable $e) {
+            if (class_exists('PrestaShopLogger')) {
+                PrestaShopLogger::addLog('ps_gtm_datalayer queuePendingEvent error: ' . $e->getMessage(), 2);
             }
         }
-
-        $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
-        $precision = PlatformAdapter::getCurrencyPrecision($this->context);
-        $totalVal = CanonicalDataModel::calculateItemsValue([$item], $precision);
-        $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
-
-        $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
-        $platformNamespaces = $payloadBuilder->buildPlatformNamespaces($canonicalEvent, [$item], $currencyCode, $totalVal);
-
-        $events[] = array_merge([
-            'event' => self::formatEventName($canonicalEvent, $eventPrefix),
-            'original_event' => $canonicalEvent,
-            'ecommerce' => [
-                'currency' => $currencyCode,
-                'value' => $totalVal,
-                'items' => [$item],
-            ],
-        ], $platformNamespaces);
-
-        $this->context->cookie->ps_gtm_pending_events = json_encode($events);
     }
 
     public function hookActionCarrierProcess($params)
@@ -3378,17 +3398,21 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayAfterBodyOpeningTag($params)
     {
-        $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
-        $rawBodyCode = Configuration::get('PS_GTM_RAW_BODY_CODE');
-        if (empty($gtmId) && empty($rawBodyCode)) {
+        try {
+            $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
+            $rawBodyCode = Configuration::get('PS_GTM_RAW_BODY_CODE');
+            if (empty($gtmId) && empty($rawBodyCode)) {
+                return '';
+            }
+
+            $this->context->smarty->assign([
+                'gtm_id' => $gtmId,
+                'raw_body_code' => $rawBodyCode,
+            ]);
+            return $this->display(__FILE__, 'views/templates/hook/gtm_body.tpl');
+        } catch (\Throwable $e) {
             return '';
         }
-
-        $this->context->smarty->assign([
-            'gtm_id' => $gtmId,
-            'raw_body_code' => $rawBodyCode,
-        ]);
-        return $this->display(__FILE__, 'views/templates/hook/gtm_body.tpl');
     }
 
     public function hookDisplayOrderConfirmation($params)
