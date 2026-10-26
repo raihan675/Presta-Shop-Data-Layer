@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.0';
+        $this->version = '1.40.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -218,10 +218,10 @@ class Ps_Gtm_DataLayer extends Module
             die(json_encode($pingResult, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
 
-        // Enqueue Back Office Styles and Scripts
+        // Enqueue Back Office Styles and Scripts with version cache-buster
         if (isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
-            $this->context->controller->addCSS($this->_path . 'views/css/admin.css');
-            $this->context->controller->addJS($this->_path . 'views/js/admin.js');
+            $this->context->controller->addCSS($this->_path . 'views/css/admin.css?v=' . $this->version);
+            $this->context->controller->addJS($this->_path . 'views/js/admin.js?v=' . $this->version);
         }
 
         // Handle Settings Submission
@@ -469,6 +469,10 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayBackOfficeHeader($params)
     {
+        if (Tools::getValue('configure') === $this->name && isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
+            $this->context->controller->addCSS($this->_path . 'views/css/admin.css?v=' . $this->version);
+            $this->context->controller->addJS($this->_path . 'views/js/admin.js?v=' . $this->version);
+        }
         return '';
     }
 

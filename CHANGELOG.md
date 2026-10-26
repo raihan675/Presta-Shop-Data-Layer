@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.1] - 2026-10-26
+
+### Fixed
+- **Professional 2-Column Grid & Elevated Cards Design**:
+  - Replaced custom flexbox wrappers with PrestaShop native Bootstrap grid (`.row`, `.col-lg-3`, `.col-lg-9`), ensuring guaranteed side-by-side rendering regardless of browser cache states.
+  - Enclosed all settings inside distinct, elevated `.ps-gtm-card` and `.ps-gtm-subcard` containers with crisp borders, pastel icon badges, readable typography, and dedicated card save buttons.
+  - Separated **Product Catalog Strategy** into its own dedicated menu tab on the left sidebar featuring prominent 3-card interactive selection.
+  - Added embedded layout styles inside the admin template and version query strings (`?v=1.40.1`) on all asset enqueues to prevent stale CSS caching.
+
+---
+
 ## [1.40.0] - 2026-10-26
 
 ### Changed
