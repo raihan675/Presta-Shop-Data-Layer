@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.2",
+    "latest_version":  "1.40.3",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.2/ps_gtm_datalayer.zip",
-    "checksum":  "6c922eb372912178934febff3d8f791136159a5795c0bdcdce785a3d6ad4bd16",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.3/ps_gtm_datalayer.zip",
+    "checksum":  "f3fa7c18ff544964193afd01ccb302839d7cc6ed505f0abd9d8ded2ab3be4bce",
     "release_type":  "patch",
-    "release_notes":  "1. Fixed Back Office Save Persistence: Resolved CSRF admin security token omission and form submission handler in the Back Office configuration form, ensuring all settings persist reliably across reloads.\n2. Redesigned Advertising Platform Headers: Redesigned the Matrix View column headers with aligned platform icons, professional typography, and streamlined quick-toggle pills (All / None).\n3. Enterprise Save Button Design: Standardized all save triggers across panels with a high-contrast, professional primary action design, spinner feedback, and clean elevation."
+    "release_notes":  "1. Custom Professional Configuration Menu Icons: Replaced generic monochrome glyphs with high-resolution visual brand icons for GTM Web Container, Catalog Strategy, Advertising Platforms, Server-Side Tracking, and Custom Scripts.\n2. Polished Sidebar Aesthetics: Added refined container styling with rounded badges, subtle borders, and smooth active hover scaling."
 }

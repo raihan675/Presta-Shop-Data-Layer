@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.3] - 2026-10-26
+
+### Added
+- **Custom Configuration Menu Brand Icons**:
+  - Replaced generic monochrome font icons in the left sidebar menu with tailored visual brand icons:
+    - **GTM Web Container**: Google Tag Manager geometric emblem.
+    - **Catalog Strategy**: Product item and catalog interface illustration.
+    - **Advertising Platforms**: Digital marketing broadcast and megaphone card.
+    - **Server-Side & Webhooks**: Data server cluster stack illustration.
+    - **Custom Scripts**: Browser code injection icon.
+  - Enhanced `.ps-gtm-nav-icon` styling with crisp 38x38px rounded badges, soft category-themed backgrounds, borders, and tactile active hover elevation.
+
+---
+
 ## [1.40.2] - 2026-10-26
 
 ### Fixed

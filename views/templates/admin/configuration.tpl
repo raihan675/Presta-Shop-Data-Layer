@@ -129,24 +129,36 @@
     gap: 12px;
   }
   .ps-gtm-nav-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 17px;
     flex-shrink: 0;
+    padding: 6px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
   }
-  .ps-gtm-nav-icon.blue { background: #dbeafe; color: #1d4ed8; }
-  .ps-gtm-nav-icon.purple { background: #ede9fe; color: #6d28d9; }
-  .ps-gtm-nav-icon.green { background: #dcfce7; color: #15803d; }
-  .ps-gtm-nav-icon.indigo { background: #e0e7ff; color: #4338ca; }
-  .ps-gtm-nav-icon.slate { background: #f1f5f9; color: #475569; }
+  .ps-gtm-nav-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .ps-gtm-nav-icon.blue { background: #eff6ff; border-color: #bfdbfe; }
+  .ps-gtm-nav-icon.purple { background: #faf5ff; border-color: #e9d5ff; }
+  .ps-gtm-nav-icon.green { background: #f0fdf4; border-color: #bbf7d0; }
+  .ps-gtm-nav-icon.indigo { background: #eef2ff; border-color: #c7d2fe; }
+  .ps-gtm-nav-icon.slate { background: #f8fafc; border-color: #e2e8f0; }
 
   .ps-gtm-nav-item.active .ps-gtm-nav-icon {
-    background: #2563eb;
-    color: #ffffff;
+    background: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+    transform: scale(1.05);
   }
   .ps-gtm-nav-text-block {
     display: flex;
@@ -575,7 +587,9 @@
             <!-- 1. GTM Web Container -->
             <a href="#tab-config" class="ps-gtm-nav-item ps-gtm-nav-tab active" data-tab="tab-config">
               <div class="ps-gtm-nav-item-content">
-                <div class="ps-gtm-nav-icon blue"><i class="icon-google"></i></div>
+                <div class="ps-gtm-nav-icon blue">
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/gtm_tag.png" alt="GTM Web Container">
+                </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='GTM Web Container' mod='ps_gtm_datalayer'}</span>
                   <span class="ps-gtm-nav-sub-desc">{l s='Container ID & Prefix' mod='ps_gtm_datalayer'}</span>
@@ -587,7 +601,9 @@
             <!-- 2. Product Catalog Strategy -->
             <a href="#tab-catalog" class="ps-gtm-nav-item ps-gtm-nav-tab" data-tab="tab-catalog">
               <div class="ps-gtm-nav-item-content">
-                <div class="ps-gtm-nav-icon purple"><i class="icon-barcode"></i></div>
+                <div class="ps-gtm-nav-icon purple">
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/catalog_strategy.png" alt="Catalog Strategy">
+                </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Catalog Strategy' mod='ps_gtm_datalayer'}</span>
                   <span class="ps-gtm-nav-sub-desc">{l s='Identifier Resolution Feeds' mod='ps_gtm_datalayer'}</span>
@@ -599,7 +615,9 @@
             <!-- 3. Advertising Platforms & Routing -->
             <a href="#tab-routing" class="ps-gtm-nav-item ps-gtm-nav-tab" data-tab="tab-routing">
               <div class="ps-gtm-nav-item-content">
-                <div class="ps-gtm-nav-icon green"><i class="icon-bullhorn"></i></div>
+                <div class="ps-gtm-nav-icon green">
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/advertising_routing.png" alt="Advertising Platforms">
+                </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Advertising Platforms' mod='ps_gtm_datalayer'}</span>
                   <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Bing' mod='ps_gtm_datalayer'}</span>
@@ -611,7 +629,9 @@
             <!-- 4. Server-Side & Webhooks -->
             <a href="#tab-sgtm" class="ps-gtm-nav-item ps-gtm-nav-tab" data-tab="tab-sgtm">
               <div class="ps-gtm-nav-item-content">
-                <div class="ps-gtm-nav-icon indigo"><i class="icon-server"></i></div>
+                <div class="ps-gtm-nav-icon indigo">
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/server_side.png" alt="Server-Side & Webhooks">
+                </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Server-Side & Webhooks' mod='ps_gtm_datalayer'}</span>
                   <span class="ps-gtm-nav-sub-desc">{l s='sGTM Transport & S2S' mod='ps_gtm_datalayer'}</span>
@@ -623,7 +643,9 @@
             <!-- 5. Custom Scripts -->
             <a href="#tab-scripts" class="ps-gtm-nav-item ps-gtm-nav-tab" data-tab="tab-scripts">
               <div class="ps-gtm-nav-item-content">
-                <div class="ps-gtm-nav-icon slate"><i class="icon-code"></i></div>
+                <div class="ps-gtm-nav-icon slate">
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/custom_scripts.png" alt="Custom Scripts">
+                </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Custom Scripts' mod='ps_gtm_datalayer'}</span>
                   <span class="ps-gtm-nav-sub-desc">{l s='Direct <head> & <body>' mod='ps_gtm_datalayer'}</span>
