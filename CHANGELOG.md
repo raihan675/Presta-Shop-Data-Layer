@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.7] - 2026-10-26
+
+### Fixed
+- **Storefront DataLayer Push Restoration**:
+  - Removed an obsolete `<input type="hidden" name="PS_GTM_EVENTS_SUBMITTED" value="1">` tag from the unified settings form that previously caused the backend to overwrite `PS_GTM_ACTIVE_EVENTS` with an empty array upon saving module configuration.
+  - Hardened `postProcess()` so that canonical event settings are only updated if explicit canonical event toggles are present in the HTTP POST request.
+- **Fail-Safe Autonomous Self-Healing**:
+  - Updated `isEventEnabled()` to safely return `true` whenever `PS_GTM_ACTIVE_EVENTS` is empty, corrupted, or evaluates to an empty array, guaranteeing that all canonical storefront events (`view_item`, `view_item_list`, `view_search_results`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`, `refund`, `order_status_update`) are always enabled by default.
+  - Added self-healing sweeps in `getContent()` and `hookDisplayHeader()` to automatically detect and purge any corrupted `[]` records from the configuration table.
+  - Created database cleanup in `upgrade-1.40.7.php` with automatic cache flushing.
+
+---
+
 ## [1.40.6] - 2026-10-26
 
 ### Added

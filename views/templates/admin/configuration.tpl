@@ -1044,7 +1044,6 @@
     <input type="hidden" name="submitps_gtm_datalayer" value="1">
     <input type="hidden" name="PS_GTM_CORE_SUBMITTED" value="1">
     <input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1">
-    <input type="hidden" name="PS_GTM_EVENTS_SUBMITTED" value="1">
     <input type="hidden" name="active_tab" id="ps_gtm_active_tab" value="{$active_tab|escape:'html':'UTF-8'}">
 
     <!-- 2-Column Responsive Layout -->

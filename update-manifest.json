@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.6",
+    "latest_version":  "1.40.7",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.6/ps_gtm_datalayer.zip",
-    "checksum":  "c1788c8cddb70703f9df0010227010667b9d5eddaff856f0484639ebefcf71b4",
-    "release_type":  "minor",
-    "release_notes":  "1. Modern Grouped Event Routing Interface: Reorganized Advertising Platform DataLayers \u0026 Event Routing into 3 collapsible, colored event groups (Product Discovery, Cart \u0026 Checkout, Conversion) with official platform brand badges and custom event icons.\n2. Unified Form Architecture: Eliminated duplicate form inputs across views to ensure 100% reliable settings persistence on save.\n3. View Mode Switcher: Seamless switching between By Event Group and Full List display modes.\n4. Quick-Toggle Controls \u0026 Slide-Out Inspect Drawer: Instant row and column batch toggling and deep event parameter inspection."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.7/ps_gtm_datalayer.zip",
+    "checksum":  "a14d86c6f8f7e32e99db424d4a49bf497a9ab12687d953bf681612da298df5d2",
+    "release_type":  "patch",
+    "release_notes":  "1. Storefront DataLayer Push Restoration: Fixed critical issue where saving Back Office settings caused storefront DataLayer pushes to be suppressed due to an obsolete hidden event submission input.\n2. Autonomous Self-Healing: Added automatic detection and deletion of corrupted empty canonical events arrays in both Back Office and storefront hooks, ensuring all canonical events default to fully active.\n3. Fail-Safe Event Validation: Updated isEventEnabled to guarantee canonical events always evaluate to active even if stored settings decode to empty."
 }

@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.6';
+        $this->version = '1.40.7';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -218,6 +218,12 @@ class Ps_Gtm_DataLayer extends Module
             die(json_encode($pingResult, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
 
+        // Self-heal corrupted or empty PS_GTM_ACTIVE_EVENTS
+        $rawActive = Configuration::get('PS_GTM_ACTIVE_EVENTS');
+        if ($rawActive === '[]' || (is_string($rawActive) && empty(json_decode($rawActive, true)))) {
+            Configuration::deleteByName('PS_GTM_ACTIVE_EVENTS');
+        }
+
         // Enqueue Back Office Styles and Scripts with version cache-buster
         if (isset($this->context->controller) && method_exists($this->context->controller, 'addCSS')) {
             $this->context->controller->addCSS($this->_path . 'views/css/admin.css?v=' . $this->version);
@@ -312,16 +318,25 @@ class Ps_Gtm_DataLayer extends Module
                 $settingsSaved = true;
             }
 
-            // 3. Process Events Active/Enabled Status if explicitly submitted
+            // 3. Process Events Active/Enabled Status only if explicit canonical event toggles are submitted
             if (Tools::getValue('PS_GTM_EVENTS_SUBMITTED')) {
-                $activeEvents = [];
+                $hasExplicitEvents = false;
                 foreach (self::getCanonicalEventsCatalog() as $cEvt) {
-                    if (Tools::getValue('event_active_' . $cEvt['name'])) {
-                        $activeEvents[] = $cEvt['name'];
+                    if (Tools::getValue('event_active_' . $cEvt['name']) !== false && Tools::getValue('event_active_' . $cEvt['name']) !== null) {
+                        $hasExplicitEvents = true;
+                        break;
                     }
                 }
-                Configuration::updateValue('PS_GTM_ACTIVE_EVENTS', json_encode($activeEvents));
-                $settingsSaved = true;
+                if ($hasExplicitEvents) {
+                    $activeEvents = [];
+                    foreach (self::getCanonicalEventsCatalog() as $cEvt) {
+                        if (Tools::getValue('event_active_' . $cEvt['name'])) {
+                            $activeEvents[] = $cEvt['name'];
+                        }
+                    }
+                    Configuration::updateValue('PS_GTM_ACTIVE_EVENTS', json_encode($activeEvents));
+                    $settingsSaved = true;
+                }
             }
 
             if ($settingsSaved) {
@@ -896,11 +911,11 @@ class Ps_Gtm_DataLayer extends Module
     public static function isEventEnabled($eventName)
     {
         $raw = Configuration::get('PS_GTM_ACTIVE_EVENTS');
-        if ($raw === false || $raw === null) {
+        if ($raw === false || $raw === null || $raw === '' || $raw === '[]') {
             return true;
         }
         $active = json_decode($raw, true);
-        if (!is_array($active)) {
+        if (!is_array($active) || empty($active)) {
             return true;
         }
         return in_array($eventName, $active, true);
@@ -3028,6 +3043,12 @@ class Ps_Gtm_DataLayer extends Module
     public function hookDisplayHeader($params)
     {
         try {
+            // Self-heal corrupted or empty PS_GTM_ACTIVE_EVENTS
+            $rawActive = Configuration::get('PS_GTM_ACTIVE_EVENTS');
+            if ($rawActive === '[]' || (is_string($rawActive) && empty(json_decode($rawActive, true)))) {
+                Configuration::deleteByName('PS_GTM_ACTIVE_EVENTS');
+            }
+
             $gtmId = Configuration::get('PS_GTM_CONTAINER_ID');
             $sgtmUrl = Configuration::get('PS_SGTM_TRANSPORT_URL');
             $rawHeadCode = Configuration::get('PS_GTM_RAW_HEAD_CODE');
