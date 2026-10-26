@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.9] - 2026-10-26
+
+### Added
+- **Dedicated Custom Ecommerce Event Icons**:
+  - Integrated tailored, high-resolution PNG brand icons across all 11 supported ecommerce events (`view_item_list`, `view_search_results`, `view_item`, `add_to_wishlist`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`).
+  - Implemented responsive image rendering (`20x20px`) inside thematic pastel badge containers with automatic error fallback to legacy font-icons (`onerror` safety handler).
+  - Enhanced the interactive **Inspect Drawer** header icon box to dynamically render the corresponding high-resolution event graphic.
+
+---
+
 ## [1.40.8] - 2026-10-26
 
 ### Fixed

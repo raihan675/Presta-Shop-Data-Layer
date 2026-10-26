@@ -861,6 +861,14 @@
     font-size: 14px;
     flex-shrink: 0;
   }
+  .ps-gtm-event-img-icon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    pointer-events: none;
+  }
   .ps-gtm-event-name-wrap {
     display: flex;
     align-items: center;
@@ -1398,7 +1406,8 @@
                     <div class="ps-gtm-event-row-left">
                       <input type="checkbox" class="ps-gtm-row-select-cb" id="row_cb_{$e.name|escape:'html':'UTF-8'}" title="{l s='Toggle all platforms for this event' mod='ps_gtm_datalayer'}" onchange="psGtmOnRowCheck(this, '{$e.name|escape:'html':'UTF-8'}')">
                       <span class="ps-gtm-event-icon-badge" style="background: {$grp.icon_bg|escape:'html':'UTF-8'}; color: {$grp.icon_color|escape:'html':'UTF-8'};">
-                        <i class="{$e.icon|escape:'html':'UTF-8'}"></i>
+                        <img src="{$module_path|escape:'html':'UTF-8'}views/img/events/{$e.name|escape:'html':'UTF-8'}.png" alt="{$e.label|escape:'html':'UTF-8'}" class="ps-gtm-event-img-icon" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                        <i class="{$e.icon|escape:'html':'UTF-8'}" style="display: none;"></i>
                       </span>
                       <div class="ps-gtm-event-name-wrap">
                         <span class="ps-gtm-event-label">{$e.label|escape:'html':'UTF-8'}</span>
@@ -1713,6 +1722,7 @@
       <div class="ps-gtm-drawer-header">
         <div style="display: flex; align-items: center; gap: 14px;">
           <div class="ps-gtm-drawer-icon-box">
+            <img id="ps-gtm-drawer-img-icon" src="" alt="" style="width: 26px; height: 26px; object-fit: contain; display: none;" onerror="this.style.display='none'; document.getElementById('ps-gtm-drawer-icon').style.display='inline-block';">
             <i id="ps-gtm-drawer-icon" class="icon-eye"></i>
           </div>
           <div>
@@ -1850,5 +1860,6 @@
 <script type="text/javascript">
   window.psGtmAjaxAdminUrl = "{$ajax_admin_url|escape:'javascript':'UTF-8'}";
   window.psGtmEventPrefix = "{$config_values.PS_GTM_EVENT_PREFIX|escape:'javascript':'UTF-8'}";
+  window.psGtmModulePath = "{$module_path|escape:'javascript':'UTF-8'}";
   window.psGtmEventSchemas = {$events_schemas_json nofilter};
 </script>

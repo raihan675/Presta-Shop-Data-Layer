@@ -225,6 +225,12 @@
 
     if (titleEl) titleEl.textContent = schemaData.label;
     if (iconEl) iconEl.className = schemaData.icon || 'icon-bolt';
+    var drawerImg = document.getElementById('ps-gtm-drawer-img-icon');
+    if (drawerImg) {
+      drawerImg.src = (window.psGtmModulePath || '') + 'views/img/events/' + eventName + '.png';
+      drawerImg.style.display = 'block';
+      if (iconEl) iconEl.style.display = 'none';
+    }
 
     // Status pill check from table
     var rowCb = document.querySelector('input.ps-gtm-evt-main-cb[data-event="' + eventName + '"]');
