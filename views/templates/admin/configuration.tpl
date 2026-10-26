@@ -391,7 +391,7 @@
     transform: translateX(18px);
   }
 
-  /* Table styling */
+  /* Table styling & Platform Headers */
   .ps-gtm-table {
     width: 100%;
     border-collapse: separate;
@@ -402,12 +402,75 @@
   }
   .ps-gtm-table th {
     background: #f8fafc;
-    padding: 12px 14px;
+    padding: 14px 12px;
     font-size: 13.5px;
     font-weight: 700;
     color: #475569;
     border-bottom: 2px solid #e2e8f0;
     text-align: center;
+    vertical-align: middle;
+  }
+  .ps-gtm-platform-header-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .ps-gtm-platform-header-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 5px 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .ps-gtm-platform-header-title img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .ps-gtm-platform-header-title span {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+    white-space: nowrap;
+  }
+  .ps-gtm-platform-toggle-pill {
+    display: inline-flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .ps-gtm-platform-toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 3px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    line-height: 1.2;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ps-gtm-platform-toggle-btn.btn-enable {
+    color: #16a34a;
+    border-right: 1px solid #e2e8f0;
+  }
+  .ps-gtm-platform-toggle-btn.btn-enable:hover {
+    background: #dcfce7;
+  }
+  .ps-gtm-platform-toggle-btn.btn-disable {
+    color: #dc2626;
+  }
+  .ps-gtm-platform-toggle-btn.btn-disable:hover {
+    background: #fee2e2;
   }
   .ps-gtm-table td {
     padding: 12px 14px;
@@ -419,6 +482,39 @@
   }
   .ps-gtm-table tr:hover td {
     background: #f8fafc;
+  }
+
+  /* Enterprise Primary Save Button Styling */
+  .ps-gtm-btn-save-primary {
+    background: #2563eb !important;
+    border: 1.5px solid #1d4ed8 !important;
+    color: #ffffff !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    padding: 9px 24px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+    transition: all 0.15s ease-in-out !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+  }
+  .ps-gtm-btn-save-primary:hover,
+  .ps-gtm-btn-save-primary:focus {
+    background: #1d4ed8 !important;
+    border-color: #1e40af !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+    transform: translateY(-1px);
+    outline: none !important;
+  }
+  .ps-gtm-btn-save-primary:active {
+    background: #1e40af !important;
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
   }
 
   /* Unsaved Floating Alert */
@@ -460,6 +556,7 @@
 
   <!-- Unified Settings Form -->
   <form action="{$form_action|escape:'html':'UTF-8'}" method="post" id="ps_gtm_main_form" class="defaultForm form-horizontal">
+    {if !empty($admin_token)}<input type="hidden" name="token" value="{$admin_token|escape:'html':'UTF-8'}">{/if}
     <input type="hidden" name="submitps_gtm_datalayer" value="1">
     <input type="hidden" name="PS_GTM_ADV_SUBMITTED" value="1">
     <input type="hidden" name="active_tab" id="ps_gtm_active_tab" value="{$active_tab|escape:'html':'UTF-8'}">
@@ -613,8 +710,8 @@
             </div>
 
             <div class="ps-gtm-card-footer-bar">
-              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-lg">
-                <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary">
+                <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
               </button>
             </div>
           </div>
@@ -668,8 +765,8 @@
             </div>
 
             <div class="ps-gtm-card-footer-bar">
-              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-lg">
-                <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary">
+                <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
               </button>
             </div>
           </div>
@@ -742,55 +839,85 @@
                   <table class="ps-gtm-table">
                     <thead>
                       <tr>
-                        <th style="width: 250px; text-align: left; font-size: 14px; font-weight: 700; color: #0f172a;">{l s='Ecommerce Event' mod='ps_gtm_datalayer'}</th>
-                        <th style="width: 140px;">
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta" style="width: 18px; height: 18px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Meta</span>
-                          </div>
-                          <div style="margin-top: 6px;">
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('meta', true)" title="{l s='Enable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-check text-success"></i></button>
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('meta', false)" title="{l s='Disable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-times text-danger"></i></button>
-                          </div>
-                        </th>
-                        <th style="width: 140px;">
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads" style="width: 18px; height: 18px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Google Ads</span>
-                          </div>
-                          <div style="margin-top: 6px;">
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('gads', true)" title="{l s='Enable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-check text-success"></i></button>
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('gads', false)" title="{l s='Disable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-times text-danger"></i></button>
+                        <th style="width: 250px; text-align: left; font-size: 14px; font-weight: 700; color: #0f172a; vertical-align: middle;">{l s='Ecommerce Event' mod='ps_gtm_datalayer'}</th>
+                        <th style="width: 145px;">
+                          <div class="ps-gtm-platform-header-card">
+                            <div class="ps-gtm-platform-header-title">
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta">
+                              <span>Meta</span>
+                            </div>
+                            <div class="ps-gtm-platform-toggle-pill">
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('meta', true)" title="{l s='Enable All Meta' mod='ps_gtm_datalayer'}">
+                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                              </button>
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('meta', false)" title="{l s='Disable All Meta' mod='ps_gtm_datalayer'}">
+                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                              </button>
+                            </div>
                           </div>
                         </th>
-                        <th style="width: 140px;">
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok" style="width: 18px; height: 18px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #0f172a;">TikTok</span>
-                          </div>
-                          <div style="margin-top: 6px;">
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('tiktok', true)" title="{l s='Enable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-check text-success"></i></button>
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('tiktok', false)" title="{l s='Disable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-times text-danger"></i></button>
-                          </div>
-                        </th>
-                        <th style="width: 140px;">
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest" style="width: 18px; height: 18px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Pinterest</span>
-                          </div>
-                          <div style="margin-top: 6px;">
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('pinterest', true)" title="{l s='Enable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-check text-success"></i></button>
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('pinterest', false)" title="{l s='Disable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-times text-danger"></i></button>
+                        <th style="width: 145px;">
+                          <div class="ps-gtm-platform-header-card">
+                            <div class="ps-gtm-platform-header-title">
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads">
+                              <span>Google Ads</span>
+                            </div>
+                            <div class="ps-gtm-platform-toggle-pill">
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('gads', true)" title="{l s='Enable All Google Ads' mod='ps_gtm_datalayer'}">
+                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                              </button>
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('gads', false)" title="{l s='Disable All Google Ads' mod='ps_gtm_datalayer'}">
+                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                              </button>
+                            </div>
                           </div>
                         </th>
-                        <th style="width: 140px;">
-                          <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                            <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads" style="width: 18px; height: 18px;">
-                            <span style="font-size: 14px; font-weight: 700; color: #0f172a;">Microsoft Ads</span>
+                        <th style="width: 145px;">
+                          <div class="ps-gtm-platform-header-card">
+                            <div class="ps-gtm-platform-header-title">
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok">
+                              <span>TikTok</span>
+                            </div>
+                            <div class="ps-gtm-platform-toggle-pill">
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('tiktok', true)" title="{l s='Enable All TikTok' mod='ps_gtm_datalayer'}">
+                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                              </button>
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('tiktok', false)" title="{l s='Disable All TikTok' mod='ps_gtm_datalayer'}">
+                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                              </button>
+                            </div>
                           </div>
-                          <div style="margin-top: 6px;">
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('microsoft', true)" title="{l s='Enable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-check text-success"></i></button>
-                            <button type="button" class="btn btn-default btn-xs" onclick="psGtmTogglePlatformColumn('microsoft', false)" title="{l s='Disable All' mod='ps_gtm_datalayer'}" style="font-size: 12px; padding: 3px 6px;"><i class="icon-times text-danger"></i></button>
+                        </th>
+                        <th style="width: 145px;">
+                          <div class="ps-gtm-platform-header-card">
+                            <div class="ps-gtm-platform-header-title">
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest">
+                              <span>Pinterest</span>
+                            </div>
+                            <div class="ps-gtm-platform-toggle-pill">
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('pinterest', true)" title="{l s='Enable All Pinterest' mod='ps_gtm_datalayer'}">
+                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                              </button>
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('pinterest', false)" title="{l s='Disable All Pinterest' mod='ps_gtm_datalayer'}">
+                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                              </button>
+                            </div>
+                          </div>
+                        </th>
+                        <th style="width: 145px;">
+                          <div class="ps-gtm-platform-header-card">
+                            <div class="ps-gtm-platform-header-title">
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads">
+                              <span>Microsoft Ads</span>
+                            </div>
+                            <div class="ps-gtm-platform-toggle-pill">
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('microsoft', true)" title="{l s='Enable All Microsoft Ads' mod='ps_gtm_datalayer'}">
+                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                              </button>
+                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('microsoft', false)" title="{l s='Disable All Microsoft Ads' mod='ps_gtm_datalayer'}">
+                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                              </button>
+                            </div>
                           </div>
                         </th>
                       </tr>
@@ -846,8 +973,8 @@
             </div>
 
             <div class="ps-gtm-card-footer-bar">
-              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-lg">
-                <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary">
+                <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
               </button>
             </div>
           </div>
@@ -969,8 +1096,8 @@
             </div>
 
             <div class="ps-gtm-card-footer-bar">
-              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-lg">
-                <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary">
+                <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
               </button>
             </div>
           </div>
@@ -1023,8 +1150,8 @@
             </div>
 
             <div class="ps-gtm-card-footer-bar">
-              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-lg">
-                <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+              <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary">
+                <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
               </button>
             </div>
           </div>
@@ -1041,8 +1168,8 @@
           <strong>{l s='Unsaved Changes' mod='ps_gtm_datalayer'}:</strong> {l s='You have modified settings. Click "Save Settings" to apply your changes.' mod='ps_gtm_datalayer'}
         </div>
       </div>
-      <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary btn-sm" style="font-size: 13.5px; font-weight: 700; padding: 6px 16px;">
-        <i class="icon-save"></i> {l s='Save Settings' mod='ps_gtm_datalayer'}
+      <button type="submit" name="submit{$module_name|escape:'html':'UTF-8'}" class="btn btn-primary ps-gtm-btn-save-primary" style="padding: 6px 18px !important; font-size: 13.5px !important;">
+        <i class="icon-save"></i> <span>{l s='Save Settings' mod='ps_gtm_datalayer'}</span>
       </button>
     </div>
 

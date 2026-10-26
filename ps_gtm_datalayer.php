@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.1';
+        $this->version = '1.40.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -225,7 +225,7 @@ class Ps_Gtm_DataLayer extends Module
         }
 
         // Handle Settings Submission
-        if (Tools::isSubmit('submit' . $this->name)) {
+        if (Tools::isSubmit('submit' . $this->name) || Tools::isSubmit('submitps_gtm_datalayer') || Tools::getValue('submitps_gtm_datalayer')) {
             $settingsSaved = false;
 
             // 1. Process Core Settings if submitted
@@ -758,8 +758,9 @@ class Ps_Gtm_DataLayer extends Module
             'module_version' => $this->version,
             'module_logo' => $this->_path . 'logo.png',
             'module_path' => $this->_path,
-            'form_action' => $this->context->link->getAdminLink('AdminModules', false)
+            'form_action' => $this->context->link->getAdminLink('AdminModules', true)
                 . '&configure=' . $this->name . '&tab_module=' . $this->tab . '&module_name=' . $this->name,
+            'admin_token' => Tools::getAdminTokenLite('AdminModules'),
             'ajax_admin_url' => $this->context->link->getAdminLink('AdminModules', true) . '&configure=' . $this->name,
             'active_tab' => $activeTab,
             'config_values' => [

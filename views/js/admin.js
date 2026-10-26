@@ -501,10 +501,17 @@
     });
 
     form.addEventListener('submit', function () {
-      var saveBtn = document.getElementById('ps-gtm-save-btn');
-      if (saveBtn) {
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="icon-spinner icon-spin"></i> <span>Saving All Settings...</span>';
+      // Find all save buttons within the form to show a clean submitting feedback
+      var saveButtons = form.querySelectorAll('button[type="submit"]');
+      if (saveButtons && saveButtons.length) {
+        saveButtons.forEach(function (btn) {
+          btn.style.pointerEvents = 'none';
+          btn.style.opacity = '0.85';
+          var icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = 'icon-spinner icon-spin';
+          }
+        });
       }
       isFormDirty = false;
     });

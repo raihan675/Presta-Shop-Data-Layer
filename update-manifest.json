@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.1",
+    "latest_version":  "1.40.2",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.1/ps_gtm_datalayer.zip",
-    "checksum":  "4d73246165c2d2e8deb29afe521e6798c878fe98fb1cd4196792e61ebea5a6b6",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.2/ps_gtm_datalayer.zip",
+    "checksum":  "6c922eb372912178934febff3d8f791136159a5795c0bdcdce785a3d6ad4bd16",
     "release_type":  "patch",
-    "release_notes":  "1. Professional 2-Column Grid Architecture: Integrated PrestaShop native responsive grid (col-lg-3 sidebar, col-lg-9 content area) ensuring 100% reliable side-by-side panel rendering.\n2. Elevated Cards Design: Every configuration group is housed in distinct, elevated card containers with headers, clean borders, and dedicated Save buttons.\n3. Dedicated Product Catalog Strategy Panel: Separated catalog identifier matching into its own prominent menu panel featuring interactive 3-card selection.\n4. Zero-Cache CSS Embedding \u0026 Query-String Busting: Embedded critical layout styles in the template and appended dynamic ?v= query strings to all admin asset calls to prevent stale browser cache issues."
+    "release_notes":  "1. Fixed Back Office Save Persistence: Resolved CSRF admin security token omission and form submission handler in the Back Office configuration form, ensuring all settings persist reliably across reloads.\n2. Redesigned Advertising Platform Headers: Redesigned the Matrix View column headers with aligned platform icons, professional typography, and streamlined quick-toggle pills (All / None).\n3. Enterprise Save Button Design: Standardized all save triggers across panels with a high-contrast, professional primary action design, spinner feedback, and clean elevation."
 }

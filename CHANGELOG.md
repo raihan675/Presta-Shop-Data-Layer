@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.2] - 2026-10-26
+
+### Fixed
+- **Back Office Configuration Save Persistence**:
+  - Restored missing admin security token in `form_action` URL and hidden `<input type="hidden" name="token">` to prevent silent CSRF drops by PrestaShop's `AdminController::postProcess()`.
+  - Updated submit detection in `getContent()` to recognize `submitps_gtm_datalayer` and `submit` action parameters reliably.
+  - Fixed submit event listener in `views/js/admin.js` to preserve form input values during submission without prematurely setting `disabled = true` on the submit button before payload dispatch.
+- **Advertising Platform Matrix Headers**:
+  - Redesigned the Matrix View table headers with elevated platform header cards, consistent 18px icons, bold platform titles, and streamlined dual-action toggle pills (`All` / `None`).
+- **Enterprise Save Button Styling**:
+  - Replaced inconsistent buttons with a standardized, elevated primary button style (`.ps-gtm-btn-save-primary`) featuring a solid blue theme (`#2563eb`), clear icon alignment, tactile hover elevation, and an interactive submission loading spinner.
+
+---
+
 ## [1.40.1] - 2026-10-26
 
 ### Fixed
