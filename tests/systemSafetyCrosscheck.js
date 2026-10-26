@@ -228,7 +228,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.40.4', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.40.5', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
 const allTplFiles = [];
@@ -832,6 +832,16 @@ if (fs.existsSync(upgrade1404Path)) {
   report('Upgrade function upgrade_module_1_40_4 properly declared', hasUpgradeFunction404 && returnsTrue404, 'Missing or invalid function signature in upgrade-1.40.4.php');
 } else {
   report('Upgrade script upgrade-1.40.4.php exists', false, 'Missing upgrade-1.40.4.php');
+}
+
+const upgrade1405Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.40.5.php');
+if (fs.existsSync(upgrade1405Path)) {
+  const upCode405 = fs.readFileSync(upgrade1405Path, 'utf8');
+  const hasUpgradeFunction405 = upCode405.includes('function upgrade_module_1_40_5($module)');
+  const returnsTrue405 = upCode405.includes('return true;');
+  report('Upgrade function upgrade_module_1_40_5 properly declared', hasUpgradeFunction405 && returnsTrue405, 'Missing or invalid function signature in upgrade-1.40.5.php');
+} else {
+  report('Upgrade script upgrade-1.40.5.php exists', false, 'Missing upgrade-1.40.5.php');
 }
 
 // -------------------------------------------------------------

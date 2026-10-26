@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.40.5] - 2026-10-26
+
+### Fixed
+- **Advertising Matrix Table Visibility & Layout**:
+  - Re-engineered the cross-platform event routing table with responsive column sizing (`25%` event column, `15%` per platform) and compact header controls, ensuring **Microsoft Ads** is 100% visible and accessible alongside Meta, Google Ads, TikTok, and Pinterest.
+  - Added horizontal scroll wrapping (`overflow-x: auto`) on `#ps-gtm-routing-matrix-view` to guarantee that no advertising platform is ever clipped on lower-resolution screens or narrower Back Office viewports.
+  - Aligned table headers and data cells with consistent padding and centered toggle alignment.
+
+---
+
 ## [1.40.4] - 2026-10-26
 
 ### Removed

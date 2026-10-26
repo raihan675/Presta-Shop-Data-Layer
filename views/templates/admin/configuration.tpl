@@ -414,8 +414,8 @@
   }
   .ps-gtm-table th {
     background: #f8fafc;
-    padding: 14px 12px;
-    font-size: 13.5px;
+    padding: 10px 6px;
+    font-size: 13px;
     font-weight: 700;
     color: #475569;
     border-bottom: 2px solid #e2e8f0;
@@ -427,45 +427,51 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
   }
   .ps-gtm-platform-header-title {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 5px;
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
-    padding: 5px 10px;
+    padding: 3px 7px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }
   .ps-gtm-platform-header-title img {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     object-fit: contain;
     flex-shrink: 0;
   }
   .ps-gtm-platform-header-title span {
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 700;
     color: #0f172a;
     letter-spacing: -0.2px;
     white-space: nowrap;
+  }
+  .ps-gtm-platform-header-controls {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
   .ps-gtm-platform-toggle-pill {
     display: inline-flex;
     align-items: center;
     background: #ffffff;
     border: 1px solid #cbd5e1;
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 1px 2px rgba(0,0,0,0.03);
   }
   .ps-gtm-platform-toggle-btn {
     border: none;
     background: transparent;
-    padding: 3px 8px;
-    font-size: 11.5px;
+    padding: 2px 6px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     line-height: 1.2;
@@ -485,9 +491,9 @@
     background: #fee2e2;
   }
   .ps-gtm-table td {
-    padding: 12px 14px;
+    padding: 10px 8px;
     border-bottom: 1px solid #f1f5f9;
-    font-size: 14px;
+    font-size: 13.5px;
     vertical-align: middle;
     text-align: center;
     background: #ffffff;
@@ -859,118 +865,118 @@
                 </div>
 
                 <!-- VIEW 1: Matrix View (Compact Cross-Grid) -->
-                <div id="ps-gtm-routing-matrix-view">
-                  <table class="ps-gtm-table">
+                <div id="ps-gtm-routing-matrix-view" style="width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px;">
+                  <table class="ps-gtm-table" style="min-width: 680px; width: 100%;">
                     <thead>
                       <tr>
-                        <th style="width: 250px; text-align: left; font-size: 14px; font-weight: 700; color: #0f172a; vertical-align: middle;">{l s='Ecommerce Event' mod='ps_gtm_datalayer'}</th>
-                        <th style="width: 145px;">
+                        <th style="width: 25%; min-width: 170px; text-align: left; font-size: 14px; font-weight: 700; color: #0f172a; vertical-align: middle; padding-left: 14px;">{l s='Ecommerce Event' mod='ps_gtm_datalayer'}</th>
+                        <th style="width: 15%; min-width: 102px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta">
-                                <span>Meta</span>
-                              </div>
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/meta.png" alt="Meta">
+                              <span>Meta</span>
+                            </div>
+                            <div class="ps-gtm-platform-header-controls">
                               <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Meta Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
                                 <input type="checkbox" name="PS_GTM_ADV_META_ENABLED" id="matrix_master_meta" value="1" {if $config_values.PS_GTM_ADV_META_ENABLED}checked{/if}>
                                 <span class="ps-gtm-slider"></span>
                               </label>
-                            </div>
-                            <div class="ps-gtm-platform-toggle-pill">
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('meta', true)" title="{l s='Enable All Meta' mod='ps_gtm_datalayer'}">
-                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
-                              </button>
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('meta', false)" title="{l s='Disable All Meta' mod='ps_gtm_datalayer'}">
-                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
-                              </button>
+                              <div class="ps-gtm-platform-toggle-pill">
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('meta', true)" title="{l s='Enable All Meta' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                                </button>
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('meta', false)" title="{l s='Disable All Meta' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </th>
-                        <th style="width: 145px;">
+                        <th style="width: 15%; min-width: 102px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads">
-                                <span>Google Ads</span>
-                              </div>
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads.png" alt="Google Ads">
+                              <span>Google Ads</span>
+                            </div>
+                            <div class="ps-gtm-platform-header-controls">
                               <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Google Ads Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
                                 <input type="checkbox" name="PS_GTM_ADV_GADS_ENABLED" id="matrix_master_gads" value="1" {if $config_values.PS_GTM_ADV_GADS_ENABLED}checked{/if}>
                                 <span class="ps-gtm-slider"></span>
                               </label>
-                            </div>
-                            <div class="ps-gtm-platform-toggle-pill">
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('gads', true)" title="{l s='Enable All Google Ads' mod='ps_gtm_datalayer'}">
-                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
-                              </button>
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('gads', false)" title="{l s='Disable All Google Ads' mod='ps_gtm_datalayer'}">
-                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
-                              </button>
+                              <div class="ps-gtm-platform-toggle-pill">
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('gads', true)" title="{l s='Enable All Google Ads' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                                </button>
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('gads', false)" title="{l s='Disable All Google Ads' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </th>
-                        <th style="width: 145px;">
+                        <th style="width: 15%; min-width: 102px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok">
-                                <span>TikTok</span>
-                              </div>
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/tiktok.png" alt="TikTok">
+                              <span>TikTok</span>
+                            </div>
+                            <div class="ps-gtm-platform-header-controls">
                               <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle TikTok Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
                                 <input type="checkbox" name="PS_GTM_ADV_TIKTOK_ENABLED" id="matrix_master_tiktok" value="1" {if $config_values.PS_GTM_ADV_TIKTOK_ENABLED}checked{/if}>
                                 <span class="ps-gtm-slider"></span>
                               </label>
-                            </div>
-                            <div class="ps-gtm-platform-toggle-pill">
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('tiktok', true)" title="{l s='Enable All TikTok' mod='ps_gtm_datalayer'}">
-                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
-                              </button>
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('tiktok', false)" title="{l s='Disable All TikTok' mod='ps_gtm_datalayer'}">
-                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
-                              </button>
+                              <div class="ps-gtm-platform-toggle-pill">
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('tiktok', true)" title="{l s='Enable All TikTok' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                                </button>
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('tiktok', false)" title="{l s='Disable All TikTok' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </th>
-                        <th style="width: 145px;">
+                        <th style="width: 15%; min-width: 102px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest">
-                                <span>Pinterest</span>
-                              </div>
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/pinterest.png" alt="Pinterest">
+                              <span>Pinterest</span>
+                            </div>
+                            <div class="ps-gtm-platform-header-controls">
                               <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Pinterest Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
                                 <input type="checkbox" name="PS_GTM_ADV_PINTEREST_ENABLED" id="matrix_master_pinterest" value="1" {if $config_values.PS_GTM_ADV_PINTEREST_ENABLED}checked{/if}>
                                 <span class="ps-gtm-slider"></span>
                               </label>
-                            </div>
-                            <div class="ps-gtm-platform-toggle-pill">
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('pinterest', true)" title="{l s='Enable All Pinterest' mod='ps_gtm_datalayer'}">
-                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
-                              </button>
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('pinterest', false)" title="{l s='Disable All Pinterest' mod='ps_gtm_datalayer'}">
-                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
-                              </button>
+                              <div class="ps-gtm-platform-toggle-pill">
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('pinterest', true)" title="{l s='Enable All Pinterest' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                                </button>
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('pinterest', false)" title="{l s='Disable All Pinterest' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </th>
-                        <th style="width: 145px;">
+                        <th style="width: 15%; min-width: 102px;">
                           <div class="ps-gtm-platform-header-card">
                             <div class="ps-gtm-platform-header-title">
-                              <div style="display: flex; align-items: center; gap: 6px;">
-                                <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads">
-                                <span>Microsoft Ads</span>
-                              </div>
+                              <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft Ads">
+                              <span>Microsoft</span>
+                            </div>
+                            <div class="ps-gtm-platform-header-controls">
                               <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Microsoft Ads Platform' mod='ps_gtm_datalayer'}" style="margin: 0;">
                                 <input type="checkbox" name="PS_GTM_ADV_MICROSOFT_ENABLED" id="matrix_master_microsoft" value="1" {if $config_values.PS_GTM_ADV_MICROSOFT_ENABLED}checked{/if}>
                                 <span class="ps-gtm-slider"></span>
                               </label>
-                            </div>
-                            <div class="ps-gtm-platform-toggle-pill">
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('microsoft', true)" title="{l s='Enable All Microsoft Ads' mod='ps_gtm_datalayer'}">
-                                <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
-                              </button>
-                              <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('microsoft', false)" title="{l s='Disable All Microsoft Ads' mod='ps_gtm_datalayer'}">
-                                <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
-                              </button>
+                              <div class="ps-gtm-platform-toggle-pill">
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-enable" onclick="psGtmTogglePlatformColumn('microsoft', true)" title="{l s='Enable All Microsoft Ads' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-check"></i> {l s='All' mod='ps_gtm_datalayer'}
+                                </button>
+                                <button type="button" class="ps-gtm-platform-toggle-btn btn-disable" onclick="psGtmTogglePlatformColumn('microsoft', false)" title="{l s='Disable All Microsoft Ads' mod='ps_gtm_datalayer'}">
+                                  <i class="icon-times"></i> {l s='None' mod='ps_gtm_datalayer'}
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </th>
@@ -979,7 +985,7 @@
                     <tbody>
                       {foreach from=$canonical_events item=e}
                       <tr>
-                        <td style="text-align: left;">
+                        <td style="text-align: left; padding-left: 14px;">
                           <strong style="color: #0f172a; font-size: 15px;">{$e.label|escape:'html':'UTF-8'}</strong>
                           <div style="font-size: 12.5px; color: #64748b; font-family: SFMono-Regular, Menlo, monospace;">{$e.name|escape:'html':'UTF-8'}</div>
                         </td>

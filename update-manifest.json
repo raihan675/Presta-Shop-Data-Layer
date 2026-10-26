@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.4",
+    "latest_version":  "1.40.5",
     "release_date":  "2026-10-26",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.4/ps_gtm_datalayer.zip",
-    "checksum":  "66175395edaed379e76c5a96729a50dfb4fefbd00cdab80f379106da95ababb9",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.5/ps_gtm_datalayer.zip",
+    "checksum":  "602d9d00233bfe861cc80438bdaabce07a1b53248bda53d20acd95a97ae65732",
     "release_type":  "patch",
-    "release_notes":  "1. Event Catalog Clean-up: Completely removed page_view and select_item from the Back Office event catalog and advertising platform matrix.\n2. Advertising Event Routing Persistence: Resolved duplicate form input collisions between Matrix View and Cards View by implementing real-time two-way synchronization and submit-time input deduplication, guaranteeing that event toggles persist accurately across all platforms.\n3. Platform Master Controls: Added dedicated platform master toggle switches directly to Matrix View column headers for Meta, Google Ads, TikTok, Pinterest, and Microsoft Ads.\n4. Form Validation Fix: Removed unnecessary required attribute from GTM Container ID input to prevent silent browser blocking across tab changes."
+    "release_notes":  "1. Responsive Advertising Matrix: Restructured table layout with optimized column widths (25% event, 15% platforms) and compact header controls, ensuring Microsoft Ads and all 5 platforms fit seamlessly on all screen sizes.\n2. Horizontal Scroll Protection: Added native overflow-x touch scrolling to prevent clipping on narrow displays or side-by-side split views."
 }
