@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.41.1",
+    "latest_version":  "1.41.2",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.1/ps_gtm_datalayer.zip",
-    "checksum":  "b8f4b4eaa80178711269db45685a55d11a5fff061e4979d15947ff5ddc518a0b",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.2/ps_gtm_datalayer.zip",
+    "checksum":  "a0e87725389965f4baa6270ba8ed45f3d54a134289124c6f24e36e5bb496b819",
     "release_type":  "patch",
-    "release_notes":  "1. Back Office Advertising Platform Matrix UI: Added native ChatGPT / OpenAI column header, group toggle buttons, and individual event switches in views/templates/admin/configuration.tpl.\n2. Platform Enable State Sync: Added hidden input adv_platform_openai_enabled and connected column and bulk toggle actions in views/js/admin.js.\n3. ChatGPT Ads Configuration Subcard: Added informative configuration card with ISO 4217 minor units, SHA-256 Customer Advanced Matching, and GTM DataLayer variable instructions.\n4. Navigation Counter: Updated active platform counter to reflect all 6 supported advertising channels (X / 6 active)."
+    "release_notes":  "Removed unnecessary OpenAI / ChatGPT Ads informational subcard from the Advertising Platform tab to maintain a unified, uncluttered Back Office matrix layout identical to Meta, TikTok, Pinterest, and Microsoft Advertising."
 }

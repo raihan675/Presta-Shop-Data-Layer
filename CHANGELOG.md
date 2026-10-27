@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.41.2] - 2026-10-27
+
+### Changed
+- **UI Simplification in Advertising Platform Tab**:
+  - Removed redundant OpenAI / ChatGPT Ads informational subcard below the matrix table to keep the layout minimal, unified, and consistent with Meta, TikTok, Pinterest, and Microsoft Advertising.
+  - All event routing configuration remains centralized in the matrix table above.
+
+---
+
 ## [1.41.1] - 2026-10-27
 
 ### Fixed & Enhanced

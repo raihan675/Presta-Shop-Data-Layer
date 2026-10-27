@@ -1512,53 +1512,6 @@
             </div>
           </div>
 
-          <!-- OpenAI / ChatGPT Ads Conversion Measurement Subcard -->
-          <div class="ps-gtm-card" style="margin-top: 20px; border-left: 4px solid #10a37f;">
-            <div class="card-header-bar" style="padding: 12px 18px;">
-              <h4 class="card-header-title" style="font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px;">
-                <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" style="width: 20px; height: 20px; object-fit: contain;" alt="OpenAI">
-                <span>{l s='OpenAI / ChatGPT Ads Conversion Measurement' mod='ps_gtm_datalayer'}</span>
-              </h4>
-              <span class="label {if $config_values.PS_GTM_ADV_OPENAI_ENABLED}label-success{else}label-default{/if}">
-                {if $config_values.PS_GTM_ADV_OPENAI_ENABLED}{l s='Enabled' mod='ps_gtm_datalayer'}{else}{l s='Disabled' mod='ps_gtm_datalayer'}{/if}
-              </span>
-            </div>
-            <div class="card-body-content" style="padding: 16px 18px;">
-              <div style="font-size: 13.5px; color: #475569; line-height: 1.6; margin-bottom: 14px;">
-                {l s='Automatically transforms and dispatches ecommerce events into OpenAI measure payloads directly in window.dataLayer.openai_ads for Google Tag Manager tags with zero DOM scraping.' mod='ps_gtm_datalayer'}
-              </div>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
-                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
-                    <i class="icon-money text-success"></i> {l s='ISO 4217 Minor Units' mod='ps_gtm_datalayer'}
-                  </strong>
-                  <span style="font-size: 12px; color: #64748b;">
-                    {l s='Amounts are converted to minor currency units (cents/satoshis) matching OpenAI measurement requirements for 0-, 2-, 3-, and 4-decimal global currencies.' mod='ps_gtm_datalayer'}
-                  </span>
-                </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
-                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
-                    <i class="icon-user text-primary"></i> {l s='SHA-256 Customer Advanced Matching' mod='ps_gtm_datalayer'}
-                  </strong>
-                  <span style="font-size: 12px; color: #64748b;">
-                    {l s='Customer data is pre-normalized and SHA-256 hashed (email, phone, first/last name, external ID) for highest conversion match rate.' mod='ps_gtm_datalayer'}
-                  </span>
-                </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
-                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
-                    <i class="icon-shield text-info"></i> {l s='Clean Purge & Isolation' mod='ps_gtm_datalayer'}
-                  </strong>
-                  <span style="font-size: 12px; color: #64748b;">
-                    {l s='Zero sticky state: openai_ads: null is pushed before every action to isolate parameters and prevent cross-event pollution.' mod='ps_gtm_datalayer'}
-                  </span>
-                </div>
-              </div>
-              <div style="background: #f1f5f9; border-left: 3px solid #10a37f; padding: 10px 14px; border-radius: 4px; font-size: 12.5px; color: #334155;">
-                <strong>{l s='GTM DataLayer Implementation:' mod='ps_gtm_datalayer'}</strong> {l s='Create Custom HTML tags in GTM to fire oaiq("measure", ...) using variables: {{dlv - openai_ads.event_name}}, {{dlv - openai_ads.data}}, and {{dlv - openai_ads.options.custom_event_name}}.' mod='ps_gtm_datalayer'}
-              </div>
-            </div>
-          </div>
-
           <!-- 4. Footer Bar with Event Count, Unsaved Pill, Reset & Save -->
           <div class="ps-gtm-routing-footer-bar">
             <div class="ps-gtm-routing-footer-left">
