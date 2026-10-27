@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.4';
+        $this->version = '1.42.5';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -240,6 +240,7 @@ class Ps_Gtm_DataLayer extends Module
 
         // Handle Settings Submission
         if (Tools::isSubmit('submit' . $this->name) || Tools::isSubmit('submitps_gtm_datalayer') || Tools::getValue('submitps_gtm_datalayer')) {
+            $isAjax = (bool)(Tools::getValue('ajax') || Tools::isXmlHttpRequest());
             $settingsSaved = false;
 
             // 1. Process Core Settings if submitted
@@ -255,7 +256,15 @@ class Ps_Gtm_DataLayer extends Module
                 }
 
                 if (!empty($gtmId) && !preg_match('/^GTM-[A-Z0-9]+$/', $gtmId)) {
-                    $output .= $this->displayError($this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).'));
+                    $errorMsg = $this->l('Invalid Google Tag Manager Container ID format (e.g., GTM-XXXXXXX).');
+                    if ($isAjax) {
+                        header('Content-Type: application/json; charset=utf-8');
+                        die(json_encode([
+                            'success' => false,
+                            'error' => $errorMsg,
+                        ]));
+                    }
+                    $output .= $this->displayError($errorMsg);
                 } else {
                     Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
                     Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
@@ -362,7 +371,26 @@ class Ps_Gtm_DataLayer extends Module
             }
 
             if ($settingsSaved) {
+                try {
+                    if (class_exists('PlatformAdapter') && method_exists('PlatformAdapter', 'clearAllCaches')) {
+                        PlatformAdapter::clearAllCaches();
+                    }
+                } catch (\Throwable $ignored) {}
+
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    die(json_encode([
+                        'success' => true,
+                        'message' => $this->l('E-Commerce DataLayer settings successfully saved.'),
+                    ]));
+                }
                 $output .= $this->displayConfirmation($this->l('E-Commerce DataLayer settings successfully saved.'));
+            } elseif ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                die(json_encode([
+                    'success' => true,
+                    'message' => $this->l('Settings saved.'),
+                ]));
             }
         }
 
@@ -371,6 +399,13 @@ class Ps_Gtm_DataLayer extends Module
 
         return $output . $this->renderAdminTabs();
     } catch (\Throwable $e) {
+        if (Tools::getValue('ajax') || Tools::isXmlHttpRequest()) {
+            header('Content-Type: application/json; charset=utf-8');
+            die(json_encode([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ]));
+        }
         if (class_exists('PrestaShopLogger')) {
             PrestaShopLogger::addLog(
                 '[ps_gtm_datalayer] getContent() exception: ' . $e->getMessage(),

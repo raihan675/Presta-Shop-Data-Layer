@@ -6,6 +6,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.5] - 2026-10-27
+
+### Added & Enhanced
+- **Custom Section Icons**:
+  - Integrated 10 dedicated high-resolution custom icon assets across 11 Back Office configuration sections and sub-cards:
+    - `Google Tag Manager Web Container Settings` (`views/img/gtm_web_container.png`)
+    - `Primary GTM Container ID` (`views/img/primary_gtm_id.png`)
+    - `DataLayer Event Prefix (Optional)` (`views/img/datalayer_prefix.png`)
+    - `Product Catalog Identifier Strategy` (`views/img/catalog_identifier_strategy.png`)
+    - `Select Catalog Strategy` (`views/img/select_strategy.png`)
+    - `Advertising Platform DataLayers & Event Routing` (`views/img/advertising_routing_icon.png`)
+    - `Google Ads Conversions with Cart Data (Basket Reporting)` (`views/img/google_ads_cart_data.png`)
+    - `Server-Side Tracking & Webhooks (sGTM)` (`views/img/serverside_tracking.png`)
+    - `Advanced Custom Script Injection` (`views/img/script_injection.png`)
+    - `Raw <head> HTML Snippet` and `Raw <body> HTML Snippet` (`views/img/html_snippet.png`)
+- **Animated Save Settings Button Interaction**:
+  - Upgraded "Save Settings" buttons across all configuration tabs to an interactive, state-driven animated component:
+    - **Default State**: Save icon + "Save Settings".
+    - **Saving State**: Button disabled to prevent duplicate submissions, loading spinner icon, label "Saving...".
+    - **Success State**: Smooth background transition to emerald green (`#16a34a`), checkmark pop animation, label "Saved Successfully".
+    - **Error State**: Smooth transition to crimson red (`#dc2626`), warning icon, label "Save Failed", preserving all user entered values for immediate retry.
+    - **Return to Default**: Automatically transitions back to default state after 2.5s with fixed `min-width: 175px` to eliminate layout shift.
+    - **Asynchronous AJAX Persistence**: Seamless background persistence via `fetch()` with graceful fallback to standard HTML POST.
+    - **Accessibility & Motion Support**: `aria-busy` and `aria-live` screen-reader feedback with `prefers-reduced-motion` compliance.
+
+---
+
 ## [1.42.4] - 2026-10-27
 
 ### Changed & Refined

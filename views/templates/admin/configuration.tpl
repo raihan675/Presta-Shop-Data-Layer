@@ -502,7 +502,25 @@
     background: #f8fafc;
   }
 
-  /* Enterprise Primary Save Button Styling */
+  /* Section & Subcard Custom Header Icons */
+  .ps-gtm-title-icon {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 8px;
+    display: inline-block;
+  }
+  .ps-gtm-subcard-icon {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 7px;
+    display: inline-block;
+  }
+
+  /* Enterprise Primary Save Button Styling & Animated Transitions */
   .ps-gtm-btn-save-primary {
     background: #2563eb !important;
     border: 1.5px solid #1d4ed8 !important;
@@ -513,12 +531,15 @@
     border-radius: 6px !important;
     display: inline-flex !important;
     align-items: center !important;
+    justify-content: center !important;
+    min-width: 175px !important;
     gap: 8px !important;
     cursor: pointer !important;
     box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
-    transition: all 0.15s ease-in-out !important;
+    transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease, opacity 0.2s ease !important;
     text-transform: none !important;
     letter-spacing: normal !important;
+    position: relative !important;
   }
   .ps-gtm-btn-save-primary:hover,
   .ps-gtm-btn-save-primary:focus {
@@ -533,6 +554,42 @@
     background: #1e40af !important;
     transform: translateY(0);
     box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+  }
+  .ps-gtm-btn-save-primary.is-saving {
+    background: #1d4ed8 !important;
+    border-color: #1e40af !important;
+    opacity: 0.92 !important;
+    cursor: wait !important;
+    pointer-events: none !important;
+    box-shadow: 0 2px 4px rgba(29, 78, 216, 0.25) !important;
+  }
+  .ps-gtm-btn-save-primary.is-success {
+    background: #16a34a !important;
+    border-color: #15803d !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3) !important;
+    pointer-events: none !important;
+  }
+  .ps-gtm-btn-save-primary.is-error {
+    background: #dc2626 !important;
+    border-color: #b91c1c !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3) !important;
+  }
+  @keyframes psGtmCheckmarkPop {
+    0% { transform: scale(0.6); opacity: 0; }
+    60% { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .ps-gtm-btn-save-primary.is-success i {
+    animation: psGtmCheckmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ps-gtm-btn-save-primary,
+    .ps-gtm-btn-save-primary i {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 
   /* Unsaved Floating Alert */
@@ -1167,7 +1224,7 @@
           <div class="ps-gtm-card">
             <div class="card-header-bar">
               <h3 class="card-header-title">
-                <i class="icon-google text-primary"></i> {l s='Google Tag Manager Web Container Settings' mod='ps_gtm_datalayer'}
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/gtm_web_container.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-title-icon" alt=""> {l s='Google Tag Manager Web Container Settings' mod='ps_gtm_datalayer'}
               </h3>
               <span class="label {if !empty($config_values.PS_GTM_CONTAINER_ID)}label-success{else}label-warning{/if}">
                 {if !empty($config_values.PS_GTM_CONTAINER_ID)}{l s='Configured' mod='ps_gtm_datalayer'}{else}{l s='Awaiting Setup' mod='ps_gtm_datalayer'}{/if}
@@ -1182,7 +1239,7 @@
               <!-- Sub-card: GTM Container ID -->
               <div class="ps-gtm-subcard">
                 <h4 class="ps-gtm-subcard-title">
-                  <i class="icon-tag text-primary"></i> {l s='Primary GTM Container ID' mod='ps_gtm_datalayer'}
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/primary_gtm_id.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='Primary GTM Container ID' mod='ps_gtm_datalayer'}
                 </h4>
                 <div class="ps-gtm-subcard-desc">
                   {l s='Your unique Google Tag Manager container identifier (e.g., GTM-XXXXXXX). Found in your GTM Admin dashboard.' mod='ps_gtm_datalayer'}
@@ -1198,7 +1255,7 @@
               <!-- Sub-card: Event Prefix -->
               <div class="ps-gtm-subcard">
                 <h4 class="ps-gtm-subcard-title">
-                  <i class="icon-edit text-primary"></i> {l s='DataLayer Event Prefix (Optional)' mod='ps_gtm_datalayer'}
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/datalayer_prefix.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='DataLayer Event Prefix (Optional)' mod='ps_gtm_datalayer'}
                 </h4>
                 <div class="ps-gtm-subcard-desc">
                   {l s='Custom identifier prepended before standard GA4 event names (e.g., entering "ps" results in ps_view_item, ps_add_to_cart, ps_purchase).' mod='ps_gtm_datalayer'}
@@ -1227,7 +1284,7 @@
           <div class="ps-gtm-card">
             <div class="card-header-bar">
               <h3 class="card-header-title">
-                <i class="icon-barcode text-primary"></i> {l s='Product Catalog Identifier Strategy' mod='ps_gtm_datalayer'}
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/catalog_identifier_strategy.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-title-icon" alt=""> {l s='Product Catalog Identifier Strategy' mod='ps_gtm_datalayer'}
               </h3>
               <span class="label label-info">
                 {l s='Dynamic Remarketing' mod='ps_gtm_datalayer'}
@@ -1242,7 +1299,7 @@
               <!-- Sub-card: Strategy Selection -->
               <div class="ps-gtm-subcard">
                 <h4 class="ps-gtm-subcard-title">
-                  <i class="icon-check-circle text-primary"></i> {l s='Select Catalog Strategy' mod='ps_gtm_datalayer'}
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/select_strategy.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='Select Catalog Strategy' mod='ps_gtm_datalayer'}
                 </h4>
                 <div class="ps-gtm-subcard-desc">
                   {l s='Choose the format corresponding to your product feed export module (e.g., Google Shopping Feed, Facebook Product Feed).' mod='ps_gtm_datalayer'}
@@ -1284,7 +1341,7 @@
           <div class="ps-gtm-routing-header-card">
             <div class="ps-gtm-routing-header-left">
               <div class="ps-gtm-routing-header-icon">
-                <i class="icon-random"></i>
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/advertising_routing_icon.png?v={$module_version|escape:'html':'UTF-8'}" style="width: 26px; height: 26px; object-fit: contain;" alt="Ads">
               </div>
               <div>
                 <h3 class="ps-gtm-routing-title">{l s='Advertising Platform DataLayers & Event Routing' mod='ps_gtm_datalayer'}</h3>
@@ -1499,7 +1556,7 @@
           <div class="ps-gtm-card" style="margin-top: 20px; border-left: 4px solid #ea4335;">
             <div class="card-header-bar" style="padding: 12px 18px;">
               <h4 class="card-header-title" style="font-size: 15px; margin: 0;">
-                <i class="icon-shopping-cart text-danger"></i> {l s='Google Ads Conversions with Cart Data (Basket Reporting)' mod='ps_gtm_datalayer'}
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/google_ads_cart_data.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='Google Ads Conversions with Cart Data (Basket Reporting)' mod='ps_gtm_datalayer'}
               </h4>
               <span class="label {if $config_values.PS_GTM_ADV_GADS_CART_DATA}label-success{else}label-default{/if}">
                 {if $config_values.PS_GTM_ADV_GADS_CART_DATA}{l s='Enabled' mod='ps_gtm_datalayer'}{else}{l s='Disabled' mod='ps_gtm_datalayer'}{/if}
@@ -1557,7 +1614,7 @@
           <div class="ps-gtm-card">
             <div class="card-header-bar">
               <h3 class="card-header-title">
-                <i class="icon-server text-primary"></i> {l s='Server-Side Tracking & Webhooks (sGTM)' mod='ps_gtm_datalayer'}
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/serverside_tracking.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-title-icon" alt=""> {l s='Server-Side Tracking & Webhooks (sGTM)' mod='ps_gtm_datalayer'}
               </h3>
               <span class="label {if !empty($config_values.PS_SGTM_TRANSPORT_URL)}label-success{else}label-default{/if}">
                 {if !empty($config_values.PS_SGTM_TRANSPORT_URL)}{l s='sGTM Configured' mod='ps_gtm_datalayer'}{else}{l s='Optional' mod='ps_gtm_datalayer'}{/if}
@@ -1680,7 +1737,7 @@
           <div class="ps-gtm-card">
             <div class="card-header-bar">
               <h3 class="card-header-title">
-                <i class="icon-code text-primary"></i> {l s='Advanced Custom Script Injection' mod='ps_gtm_datalayer'}
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/script_injection.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-title-icon" alt=""> {l s='Advanced Custom Script Injection' mod='ps_gtm_datalayer'}
               </h3>
               <span class="label label-default">
                 {l s='Optional Agency Snippets' mod='ps_gtm_datalayer'}
@@ -1695,7 +1752,7 @@
               <!-- Sub-card: Raw Head Code -->
               <div class="ps-gtm-subcard">
                 <h4 class="ps-gtm-subcard-title">
-                  <i class="icon-file-text-o text-primary"></i> {l s='Raw <head> HTML Snippet' mod='ps_gtm_datalayer'}
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/html_snippet.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='Raw <head> HTML Snippet' mod='ps_gtm_datalayer'}
                 </h4>
                 <div class="ps-gtm-subcard-desc">
                   {l s='Custom script tag injected before the closing </head> tag. Ideal for site verification tags or custom tracking pixels.' mod='ps_gtm_datalayer'}
@@ -1708,7 +1765,7 @@
               <!-- Sub-card: Raw Body Code -->
               <div class="ps-gtm-subcard">
                 <h4 class="ps-gtm-subcard-title">
-                  <i class="icon-file-code-o text-primary"></i> {l s='Raw <body> HTML Snippet' mod='ps_gtm_datalayer'}
+                  <img src="{$module_path|escape:'html':'UTF-8'}views/img/html_snippet.png?v={$module_version|escape:'html':'UTF-8'}" class="ps-gtm-subcard-icon" alt=""> {l s='Raw <body> HTML Snippet' mod='ps_gtm_datalayer'}
                 </h4>
                 <div class="ps-gtm-subcard-desc">
                   {l s='Custom noscript iframe fallback injected immediately after the opening <body> tag.' mod='ps_gtm_datalayer'}

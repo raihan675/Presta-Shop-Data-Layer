@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.4",
+    "latest_version":  "1.42.5",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.4/ps_gtm_datalayer.zip",
-    "checksum":  "53a3fabe5b9f00a47d1c3047bae9dbf2b53afb8e815c4964495c564a4a36af90",
-    "release_type":  "patch",
-    "release_notes":  "Restricted OpenAI contents_viewed event strictly to view_item, and mapped view_item_list and view_search_results to custom events."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.5/ps_gtm_datalayer.zip",
+    "checksum":  "9958a9c6dfc44bb56ac4215ef6adfece45a63455b5e512baea67ef00377cacee",
+    "release_type":  "minor",
+    "release_notes":  "Integrated 10 custom section icons across Back Office configuration panels and added an interactive animated Save Settings button with AJAX state transitions."
 }

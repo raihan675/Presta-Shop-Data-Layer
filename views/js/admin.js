@@ -493,8 +493,10 @@
   }
 
   /**
-   * Unsaved Changes Tracker & Save Feedback
+   * Unsaved Changes Tracker & Save Feedback with Animated State Transitions
    */
+  var isSaving = false;
+
   function initUnsavedChangesTracker() {
     var form = document.querySelector('#ps-gtm-admin-wrapper form');
     if (!form) return;
@@ -509,28 +511,150 @@
       }
     });
 
-    form.addEventListener('submit', function () {
-      // Find all save buttons within the form to show a clean submitting feedback
-      var saveButtons = form.querySelectorAll('button[type="submit"]');
-      if (saveButtons && saveButtons.length) {
-        saveButtons.forEach(function (btn) {
-          btn.style.pointerEvents = 'none';
-          btn.style.opacity = '0.85';
-          var icon = btn.querySelector('i');
-          if (icon) {
-            icon.className = 'icon-spinner icon-spin';
-          }
-        });
-      }
-      isFormDirty = false;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      handleFormSave(form);
     });
 
     window.addEventListener('beforeunload', function (e) {
-      if (isFormDirty) {
+      if (isFormDirty && !isSaving) {
         e.preventDefault();
         e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
         return e.returnValue;
       }
+    });
+  }
+
+  function handleFormSave(form) {
+    if (isSaving) return;
+    isSaving = true;
+
+    var saveButtons = form.querySelectorAll('.ps-gtm-btn-save-primary');
+
+    // 1. Transition all Save Buttons to SAVING state
+    saveButtons.forEach(function (btn) {
+      btn.classList.remove('is-success', 'is-error');
+      btn.classList.add('is-saving');
+      btn.setAttribute('aria-busy', 'true');
+      btn.disabled = true;
+
+      var icon = btn.querySelector('i');
+      if (icon) {
+        icon.className = 'icon-spinner icon-spin';
+      }
+      var label = btn.querySelector('span');
+      if (label) {
+        label.textContent = 'Saving...';
+      }
+    });
+
+    // Build FormData payload
+    var formData = new FormData(form);
+    formData.append('ajax', '1');
+    formData.append('submitps_gtm_datalayer', '1');
+
+    var actionUrl = form.getAttribute('action') || window.location.href;
+
+    fetch(actionUrl, {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(function (res) {
+      return res.json().catch(function () {
+        return { success: res.ok, message: 'Settings saved.' };
+      });
+    })
+    .then(function (data) {
+      if (data && data.success) {
+        // 2. Transition to SUCCESS state
+        saveButtons.forEach(function (btn) {
+          btn.classList.remove('is-saving', 'is-error');
+          btn.classList.add('is-success');
+          btn.removeAttribute('aria-busy');
+
+          var icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = 'icon-check';
+          }
+          var label = btn.querySelector('span');
+          if (label) {
+            label.textContent = 'Saved Successfully';
+          }
+        });
+
+        // Clear unsaved changes indicator
+        isFormDirty = false;
+        var alertBar = document.getElementById('ps-gtm-unsaved-alert');
+        if (alertBar) {
+          alertBar.style.display = 'none';
+        }
+        var footerPill = document.getElementById('ps-gtm-footer-unsaved-pill');
+        if (footerPill) {
+          footerPill.style.display = 'none';
+        }
+
+        // Return to DEFAULT state after 2.5 seconds
+        setTimeout(function () {
+          saveButtons.forEach(function (btn) {
+            btn.classList.remove('is-success', 'is-saving', 'is-error');
+            btn.disabled = false;
+
+            var icon = btn.querySelector('i');
+            if (icon) {
+              icon.className = 'icon-save';
+            }
+            var label = btn.querySelector('span');
+            if (label) {
+              label.textContent = 'Save Settings';
+            }
+          });
+          isSaving = false;
+        }, 2500);
+
+      } else {
+        throw new Error((data && data.error) ? data.error : 'Save failed');
+      }
+    })
+    .catch(function (err) {
+      console.error('Error saving settings:', err);
+
+      // 3. Transition to ERROR state
+      saveButtons.forEach(function (btn) {
+        btn.classList.remove('is-saving', 'is-success');
+        btn.classList.add('is-error');
+        btn.removeAttribute('aria-busy');
+
+        var icon = btn.querySelector('i');
+        if (icon) {
+          icon.className = 'icon-warning';
+        }
+        var label = btn.querySelector('span');
+        if (label) {
+          label.textContent = (err && err.message && err.message.length < 35) ? err.message : 'Save Failed';
+        }
+      });
+
+      // Keep user inputs and dirty flag intact
+      // Return button to default state after 3 seconds so user can retry
+      setTimeout(function () {
+        saveButtons.forEach(function (btn) {
+          btn.classList.remove('is-error', 'is-saving', 'is-success');
+          btn.disabled = false;
+
+          var icon = btn.querySelector('i');
+          if (icon) {
+            icon.className = 'icon-save';
+          }
+          var label = btn.querySelector('span');
+          if (label) {
+            label.textContent = 'Save Settings';
+          }
+        });
+        isSaving = false;
+      }, 3000);
     });
   }
 

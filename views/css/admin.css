@@ -1268,3 +1268,93 @@ select.ps-gtm-form-control {
   color: #334155;
   line-height: 1.5;
 }
+
+/* Section & Subcard Custom Header Icons */
+.ps-gtm-title-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 8px;
+  display: inline-block;
+}
+.ps-gtm-subcard-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 7px;
+  display: inline-block;
+}
+
+/* Enterprise Primary Save Button Styling & Animated Transitions */
+.ps-gtm-btn-save-primary {
+  background: #2563eb !important;
+  border: 1.5px solid #1d4ed8 !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  padding: 9px 24px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 175px !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+  transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease, opacity 0.2s ease !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  position: relative !important;
+}
+.ps-gtm-btn-save-primary:hover,
+.ps-gtm-btn-save-primary:focus {
+  background: #1d4ed8 !important;
+  border-color: #1e40af !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3) !important;
+  transform: translateY(-1px);
+  outline: none !important;
+}
+.ps-gtm-btn-save-primary:active {
+  background: #1e40af !important;
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+}
+.ps-gtm-btn-save-primary.is-saving {
+  background: #1d4ed8 !important;
+  border-color: #1e40af !important;
+  opacity: 0.92 !important;
+  cursor: wait !important;
+  pointer-events: none !important;
+  box-shadow: 0 2px 4px rgba(29, 78, 216, 0.25) !important;
+}
+.ps-gtm-btn-save-primary.is-success {
+  background: #16a34a !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(22, 163, 74, 0.3) !important;
+  pointer-events: none !important;
+}
+.ps-gtm-btn-save-primary.is-error {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3) !important;
+}
+@keyframes psGtmCheckmarkPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.ps-gtm-btn-save-primary.is-success i {
+  animation: psGtmCheckmarkPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ps-gtm-btn-save-primary,
+  .ps-gtm-btn-save-primary i {
+    animation: none !important;
+    transition: none !important;
+  }
+}
