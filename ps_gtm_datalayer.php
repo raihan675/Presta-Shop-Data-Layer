@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.1';
+        $this->version = '1.42.2';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1258,11 +1258,11 @@ class Ps_Gtm_DataLayer extends Module
                 'platform_mappings' => [
                     'meta' => "fbq('track', 'ViewContent', { content_type: 'product', content_ids: ['1_1', '68_299'], num_items: 2 });",
                     'gads' => "gtag('event', 'view_cart', { currency: 'EUR', value: 36.90, items: [...] });",
-                    'tiktok' => "ttq.track('ViewContent', { content_type: 'product', contents: [...], quantity: 2 });",
+                    'tiktok' => "ttq.track('Custom', { custom_event_name: 'ViewCart', content_type: 'product', contents: [...], quantity: 2 });",
                     'pinterest' => "pintrk('trackCustom', 'ViewCart', { line_items: [...], value: 36.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'view_cart', { revenue_value: 36.90, currency: 'EUR', items: [...] });",
-                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1_1', name: 'Hummingbird Printed T-Shirt', content_type: 'product' }, { id: '68_299', name: 'Sip-N-Snack Cup', content_type: 'product' }] });",
-                    'snapchat' => "snaptr('track', 'VIEW_CONTENT', { price: 36.90, currency: 'EUR', item_ids: ['1_1', '68_299'], number_items: 2 });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'view_cart' });",
+                    'snapchat' => "snaptr('track', 'CUSTOM_EVENT_4', { price: 36.90, currency: 'EUR', item_ids: ['1_1', '68_299'], number_items: 2 });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_cart',
@@ -1921,12 +1921,12 @@ class Ps_Gtm_DataLayer extends Module
                 'label' => 'View Cart',
                 'desc' => 'Visiting the shopping cart summary page (/cart)',
                 'meta_spec' => 'fbq: ViewContent, CAPI: ViewContent, content_type: product, content_ids, contents, num_items',
-                'tiktok_spec' => 'ttq: ViewContent, Events API: ViewContent, content_type: product, contents, quantity',
+                'tiktok_spec' => 'ttq: Custom (ViewCart), content_type: product, contents, value, currency, quantity',
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Custom (ViewCart), line_items, value, currency, order_quantity',
                 'microsoft_spec' => 'event_action: view_cart, revenue_value, currency, ecomm_pagetype: cart, ecomm_prodid: [ids], items',
-                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id, name, content_type: product}]',
-                'snapchat_spec' => 'snaptr: VIEW_CONTENT, CAPI: VIEW_CONTENT, price, currency, item_ids, number_items, dynamic_ads: {contents}',
+                'openai_spec' => 'oaiq: custom, type: custom, custom_event_name: view_cart',
+                'snapchat_spec' => 'snaptr: CUSTOM_EVENT_4 (ViewCart), CAPI: CUSTOM_EVENT_4, price, currency, item_ids, number_items, dynamic_ads: {contents}',
             ],
             'begin_checkout' => [
                 'name' => 'begin_checkout',
@@ -2121,7 +2121,7 @@ class Ps_Gtm_DataLayer extends Module
                 'config_key' => 'PS_GTM_ADV_SNAPCHAT_ENABLED',
                 'enabled' => $advSnapchat,
                 'active_events' => $snapchatEvents,
-                'icon_img' => $imgBase . 'snapchat.png',
+                'icon_img' => $imgBase . 'snapchat_app.png?v=' . $this->version,
                 'icon_class' => 'icon-camera',
                 'brand_color' => '#fffc00',
                 'brand_bg' => '#fefee6',

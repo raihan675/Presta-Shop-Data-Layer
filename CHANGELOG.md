@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.2] - 2026-10-27
+
+### Changed & Fixed
+- **Custom Event Mapping for `view_cart`**:
+  - **TikTok**: Mapped `view_cart` to `event_name: 'Custom'` with `custom_event_name: 'ViewCart'` (aligning with Meta and Pinterest custom action standards, rather than standard `ViewContent`).
+  - **OpenAI Ads**: Mapped `view_cart` to `event_name: 'custom'`, `type: 'custom'`, `custom_event_name: 'view_cart'`.
+  - **Snapchat Ads**: Mapped `view_cart` to `event_name: 'CUSTOM_EVENT_4'` with `custom_event_name: 'ViewCart'`, preserving full itemized cart line contents while isolating from single PDP `VIEW_CONTENT`.
+- **Snapchat Brand Icon Cache Buster**:
+  - Renamed icon reference to `snapchat_app.png?v={$module_version}` across Back Office table and group headers to permanently prevent browser HTTP disk caching of stale icon assets.
+
+---
+
 ## [1.42.1] - 2026-10-27
 
 ### Changed

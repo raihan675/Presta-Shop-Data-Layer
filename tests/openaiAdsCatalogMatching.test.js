@@ -137,7 +137,7 @@ describe('OpenAI / ChatGPT Ads Measurement Specification Test Suite', function (
       assert.strictEqual(payload.openai_ads.data.contents[0].id, '15');
     });
 
-    it('should build contents_viewed for view_cart', function () {
+    it('should build custom event for view_cart with custom_event_name', function () {
       const items = [
         { item_id: '68', variant_id: '299', item_name: 'Cup', price: 13.00, quantity: 2 }
       ];
@@ -149,8 +149,9 @@ describe('OpenAI / ChatGPT Ads Measurement Specification Test Suite', function (
 
       const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
       assert.ok(payload.openai_ads);
-      assert.strictEqual(payload.openai_ads.event_name, 'contents_viewed');
-      assert.strictEqual(payload.openai_ads.data.contents[0].id, '68_299');
+      assert.strictEqual(payload.openai_ads.event_name, 'custom');
+      assert.strictEqual(payload.openai_ads.data.type, 'custom');
+      assert.deepStrictEqual(payload.openai_ads.options, { custom_event_name: 'view_cart' });
     });
 
     it('should build items_added for add_to_cart with minor unit amounts on line items and overall data', function () {

@@ -786,12 +786,13 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(p.tiktok.event_name, 'Custom');
     assert.strictEqual(p.tiktok.custom_event_name, 'RemoveFromCart');
 
-    // 4b. view_cart -> Meta: Custom (ViewCart), TikTok: ViewContent
+    // 4b. view_cart -> Meta: Custom (ViewCart), TikTok: Custom (ViewCart)
     EDL.pushEvent('view_cart', { currency: 'EUR', value: 26.00, items: [item1] });
     p = global.window.dataLayer[global.window.dataLayer.length - 1];
     assert.strictEqual(p.meta.event_name, 'Custom');
     assert.strictEqual(p.meta.custom_event_name, 'ViewCart');
-    assert.strictEqual(p.tiktok.event_name, 'ViewContent');
+    assert.strictEqual(p.tiktok.event_name, 'Custom');
+    assert.strictEqual(p.tiktok.custom_event_name, 'ViewCart');
 
     // 5. begin_checkout -> Meta: InitiateCheckout, TikTok: InitiateCheckout
     EDL.pushEvent('begin_checkout', { currency: 'EUR', value: 26.00, items: [item1] });

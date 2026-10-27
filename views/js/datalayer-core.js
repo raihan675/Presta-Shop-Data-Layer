@@ -459,8 +459,11 @@
     var tiktokEventName = 'Custom';
     var tiktokCustomName = null;
 
-    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_cart' || canonicalEventName === 'view_item_list') {
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'select_item' || canonicalEventName === 'view_item_list') {
       tiktokEventName = 'ViewContent';
+    } else if (canonicalEventName === 'view_cart') {
+      tiktokEventName = 'Custom';
+      tiktokCustomName = 'ViewCart';
     } else if (canonicalEventName === 'add_to_cart') {
       tiktokEventName = 'AddToCart';
     } else if (canonicalEventName === 'purchase') {
@@ -760,10 +763,14 @@
     var includeAmount = false;
     var includeContents = false;
 
-    if (canonicalEventName === 'view_item' || canonicalEventName === 'view_item_list' || canonicalEventName === 'view_search_results' || canonicalEventName === 'view_cart') {
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'view_item_list' || canonicalEventName === 'view_search_results') {
       openAiEventName = 'contents_viewed';
       openAiType = 'contents';
       includeContents = true;
+    } else if (canonicalEventName === 'view_cart') {
+      openAiEventName = 'custom';
+      openAiType = 'custom';
+      openAiCustomName = 'view_cart';
     } else if (canonicalEventName === 'add_to_cart') {
       openAiEventName = 'items_added';
       openAiType = 'contents';
@@ -842,6 +849,7 @@
     // Snapchat Ads Namespace Builder (Dual-Object: pixel & dynamic_ads)
     // -------------------------------------------------------------
     var snapchatEventName = 'CUSTOM_EVENT_1';
+    var snapchatCustomName = null;
     switch (canonicalEventName) {
       case 'view_item_list':
         snapchatEventName = 'LIST_VIEW';
@@ -864,15 +872,18 @@
         break;
       case 'remove_from_cart':
         snapchatEventName = 'CUSTOM_EVENT_2';
+        snapchatCustomName = 'RemoveFromCart';
         break;
       case 'view_cart':
-        snapchatEventName = 'VIEW_CONTENT';
+        snapchatEventName = 'CUSTOM_EVENT_4';
+        snapchatCustomName = 'ViewCart';
         break;
       case 'begin_checkout':
         snapchatEventName = 'START_CHECKOUT';
         break;
       case 'add_shipping_info':
         snapchatEventName = 'CUSTOM_EVENT_3';
+        snapchatCustomName = 'AddShippingInfo';
         break;
       case 'add_payment_info':
         snapchatEventName = 'ADD_BILLING';
@@ -882,6 +893,7 @@
         break;
       default:
         snapchatEventName = 'CUSTOM_EVENT_1';
+        snapchatCustomName = canonicalEventName;
         break;
     }
 
@@ -979,6 +991,9 @@
       pixel: snapchatPixel,
       dynamic_ads: snapchatDynamicAds
     };
+    if (snapchatCustomName) {
+      snapchatNamespace.custom_event_name = snapchatCustomName;
+    }
     if (snapchatUserData && typeof snapchatUserData === 'object' && Object.keys(snapchatUserData).length > 0) {
       snapchatNamespace.user_data = snapchatUserData;
     }

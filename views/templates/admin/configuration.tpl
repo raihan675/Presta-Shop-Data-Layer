@@ -1367,7 +1367,7 @@
                     <span>ChatGPT</span>
                   </div>
                   <div class="ps-gtm-platform-col-head" title="{l s='Toggle Snapchat Column' mod='ps_gtm_datalayer'}" onclick="psGtmTogglePlatformColumn('snapchat')">
-                    <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat.png" alt="Snapchat">
+                    <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat_app.png?v={$module_version|escape:'html':'UTF-8'}" alt="Snapchat">
                     <span>Snapchat</span>
                   </div>
                 </div>
@@ -1411,7 +1411,7 @@
                       <span>ChatGPT</span>
                     </div>
                     <div class="ps-gtm-platform-col-head" title="{l s='Toggle Snapchat for this group' mod='ps_gtm_datalayer'}" onclick="psGtmToggleGroupPlatform('{$grpKey|escape:'html':'UTF-8'}', 'snapchat')">
-                      <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat.png" alt="Snapchat">
+                      <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat_app.png?v={$module_version|escape:'html':'UTF-8'}" alt="Snapchat">
                       <span>Snapchat</span>
                     </div>
                   </div>

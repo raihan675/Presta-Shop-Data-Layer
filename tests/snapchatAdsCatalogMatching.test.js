@@ -180,6 +180,23 @@ describe('Snapchat Ads Pixel & Conversions API (CAPI) Specification Test Suite',
       assert.strictEqual(payload.snapchat.dynamic_ads.value, 19.99);
     });
 
+    it('should build CUSTOM_EVENT_4 for view_cart', function () {
+      const item = { item_id: '5', item_name: 'Cart Item', price: 29.99, quantity: 2 };
+      EDL.pushEvent('view_cart', {
+        currency: 'EUR',
+        value: 59.98,
+        items: [item]
+      });
+
+      const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
+      assert.ok(payload.snapchat);
+      assert.strictEqual(payload.snapchat.event_name, 'CUSTOM_EVENT_4');
+      assert.strictEqual(payload.snapchat.custom_event_name, 'ViewCart');
+      assert.strictEqual(payload.snapchat.pixel.price, 59.98);
+      assert.strictEqual(payload.snapchat.pixel.number_items, 2);
+      assert.strictEqual(payload.snapchat.dynamic_ads.value, 59.98);
+    });
+
     it('should build START_CHECKOUT for begin_checkout and CUSTOM_EVENT_3 for add_shipping_info', function () {
       const items = [{ item_id: '68', variant_id: '299', item_name: 'Glasses', price: 380.00, quantity: 1 }];
       EDL.pushEvent('begin_checkout', {

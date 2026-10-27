@@ -429,9 +429,12 @@ class PayloadBuilder
         switch ($canonicalEvent) {
             case 'view_item':
             case 'select_item':
-            case 'view_cart':
             case 'view_item_list':
                 $tiktokEventName = 'ViewContent';
+                break;
+            case 'view_cart':
+                $tiktokEventName = 'Custom';
+                $tiktokCustomName = 'ViewCart';
                 break;
             case 'add_to_cart':
                 $tiktokEventName = 'AddToCart';
@@ -838,10 +841,14 @@ class PayloadBuilder
         $includeAmount = false;
         $includeContents = false;
 
-        if (in_array($canonicalEvent, ['view_item', 'view_item_list', 'view_search_results', 'view_cart'])) {
+        if (in_array($canonicalEvent, ['view_item', 'view_item_list', 'view_search_results'])) {
             $openAiEventName = 'contents_viewed';
             $openAiType = 'contents';
             $includeContents = true;
+        } elseif ($canonicalEvent === 'view_cart') {
+            $openAiEventName = 'custom';
+            $openAiType = 'custom';
+            $openAiCustomName = 'view_cart';
         } elseif ($canonicalEvent === 'add_to_cart') {
             $openAiEventName = 'items_added';
             $openAiType = 'contents';
@@ -933,6 +940,7 @@ class PayloadBuilder
         // Snapchat Ads Namespace Builder (Dual-Object: pixel & dynamic_ads)
         // -------------------------------------------------------------
         $snapchatEventName = 'CUSTOM_EVENT_1';
+        $snapchatCustomName = null;
         switch ($canonicalEvent) {
             case 'view_item_list':
                 $snapchatEventName = 'LIST_VIEW';
@@ -955,15 +963,18 @@ class PayloadBuilder
                 break;
             case 'remove_from_cart':
                 $snapchatEventName = 'CUSTOM_EVENT_2';
+                $snapchatCustomName = 'RemoveFromCart';
                 break;
             case 'view_cart':
-                $snapchatEventName = 'VIEW_CONTENT';
+                $snapchatEventName = 'CUSTOM_EVENT_4';
+                $snapchatCustomName = 'ViewCart';
                 break;
             case 'begin_checkout':
                 $snapchatEventName = 'START_CHECKOUT';
                 break;
             case 'add_shipping_info':
                 $snapchatEventName = 'CUSTOM_EVENT_3';
+                $snapchatCustomName = 'AddShippingInfo';
                 break;
             case 'add_payment_info':
                 $snapchatEventName = 'ADD_BILLING';
@@ -973,6 +984,7 @@ class PayloadBuilder
                 break;
             default:
                 $snapchatEventName = 'CUSTOM_EVENT_1';
+                $snapchatCustomName = $canonicalEvent;
                 break;
         }
 
@@ -1057,6 +1069,9 @@ class PayloadBuilder
             'pixel' => $snapchatPixel,
             'dynamic_ads' => $snapchatDynamicAds,
         ];
+        if (!empty($snapchatCustomName)) {
+            $snapchat['custom_event_name'] = $snapchatCustomName;
+        }
         if (!empty($snapchatUserData)) {
             $snapchat['user_data'] = $snapchatUserData;
         }
