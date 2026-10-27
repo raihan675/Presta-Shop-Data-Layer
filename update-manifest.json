@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.0",
+    "latest_version":  "1.42.1",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.0/ps_gtm_datalayer.zip",
-    "checksum":  "8706248a07686072913e0d395087113b524c7e519c48badffe64cc758191bfd8",
-    "release_type":  "minor",
-    "release_notes":  "Added native Snapchat Ads Pixel \u0026 Conversions API (CAPI) DataLayer schema integration with official dual sub-object architecture (pixel \u0026 dynamic_ads), advanced matching SHA-256 user data, catalog-accurate product IDs, and 7th column Back Office matrix event routing."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.1/ps_gtm_datalayer.zip",
+    "checksum":  "69700bad63b62a1dd7f90f397bfb28beda01d57443fe4496beb32be7e281840d",
+    "release_type":  "patch",
+    "release_notes":  "Updated Snapchat icon with custom user design and removed the 7/7 badge counter from the Advertising Platforms menu item to maintain a consistent right chevron navigation layout across all menu items."
 }

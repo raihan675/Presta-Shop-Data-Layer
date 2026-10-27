@@ -1104,7 +1104,7 @@
                   <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Pinterest, Bing, OpenAI, Snapchat' mod='ps_gtm_datalayer'}</span>
                 </div>
               </div>
-              <span class="badge {if $active_platforms_count > 0}badge-success{else}badge-default{/if}">{$active_platforms_count|escape:'html':'UTF-8'}/7</span>
+              <i class="icon-chevron-right" style="color: #cbd5e1; font-size: 12px;"></i>
             </a>
 
             <!-- 4. Server-Side & Webhooks -->

@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.1] - 2026-10-27
+
+### Changed
+- **Back Office UI & Branding Refinement**:
+  - Replaced Snapchat icon with user-provided custom icon in `views/img/snapchat.png`.
+  - Removed `7/7` badge counter from the left navigation menu item (`Advertising Platforms`) and restored standard right chevron icon (`icon-chevron-right`) for clean, uniform alignment across all 5 configuration menu items.
+
+---
+
 ## [1.42.0] - 2026-10-27
 
 ### Added
