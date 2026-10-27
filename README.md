@@ -10,6 +10,13 @@ Includes **Server-Side GTM (sGTM)** support, **Server-to-Server Webhook Engine (
 
 ---
 
+## 📚 Technical Documentation & Implementation Guides
+* **[Comprehensive Tracking Implementation Manual (9 Phases)](file:///C:/Users/Webanalyticspro%20BD/.gemini/antigravity/scratch/ps_gtm_datalayer/docs/TRACKING_IMPLEMENTATION_MANUAL.md)**: End-to-end technical guide for tracking specialists covering installation, configuration, data layer architecture, GTM engineering, platform-by-platform tag setup, QA testing, and troubleshooting.
+* **[GTM Variables & Event Triggers Cheat Sheet](file:///C:/Users/Webanalyticspro%20BD/.gemini/antigravity/scratch/ps_gtm_datalayer/docs/GTM_VARIABLE_AND_EVENT_CHEATSHEET.md)**: Fast copy-paste reference for Data Layer Variables (DLVs), Custom Event Triggers, and console debugging snippets.
+* **[Server-Side GTM Client Template](file:///C:/Users/Webanalyticspro%20BD/.gemini/antigravity/scratch/ps_gtm_datalayer/templates/prestashop-client-template.tpl)**: Pre-built sGTM client template for receiving server-to-server refund, offline purchase, and order status update webhooks.
+
+---
+
 ## Supported E-Commerce Events
 
 The module supports all core ecommerce actions across the full customer funnel with native platform payload generation:
