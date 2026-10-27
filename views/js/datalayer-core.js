@@ -763,10 +763,18 @@
     var includeAmount = false;
     var includeContents = false;
 
-    if (canonicalEventName === 'view_item' || canonicalEventName === 'view_item_list' || canonicalEventName === 'view_search_results') {
+    if (canonicalEventName === 'view_item') {
       openAiEventName = 'contents_viewed';
       openAiType = 'contents';
       includeContents = true;
+    } else if (canonicalEventName === 'view_item_list') {
+      openAiEventName = 'custom';
+      openAiType = 'custom';
+      openAiCustomName = 'view_item_list';
+    } else if (canonicalEventName === 'view_search_results') {
+      openAiEventName = 'custom';
+      openAiType = 'custom';
+      openAiCustomName = 'view_search_results';
     } else if (canonicalEventName === 'view_cart') {
       openAiEventName = 'custom';
       openAiType = 'custom';

@@ -98,7 +98,7 @@ describe('OpenAI / ChatGPT Ads Measurement Specification Test Suite', function (
       assert.strictEqual(payload.openai_ads.event_id, undefined, 'event_id must strictly NOT be present');
     });
 
-    it('should build contents_viewed for view_item_list with product_group content_type', function () {
+    it('should build custom event for view_item_list with custom_event_name', function () {
       const items = [
         { item_id: '1', item_name: 'Product 1', price: 20.00, quantity: 1 },
         { item_id: '2', item_name: 'Product 2', price: 30.00, quantity: 1 }
@@ -113,15 +113,12 @@ describe('OpenAI / ChatGPT Ads Measurement Specification Test Suite', function (
 
       const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
       assert.ok(payload.openai_ads);
-      assert.strictEqual(payload.openai_ads.event_name, 'contents_viewed');
-      assert.strictEqual(payload.openai_ads.data.contents.length, 2);
-      assert.strictEqual(payload.openai_ads.data.contents[0].id, '1');
-      assert.strictEqual(payload.openai_ads.data.contents[0].content_type, 'product_group');
-      assert.strictEqual(payload.openai_ads.data.contents[1].id, '2');
-      assert.strictEqual(payload.openai_ads.data.contents[1].content_type, 'product_group');
+      assert.strictEqual(payload.openai_ads.event_name, 'custom');
+      assert.strictEqual(payload.openai_ads.data.type, 'custom');
+      assert.deepStrictEqual(payload.openai_ads.options, { custom_event_name: 'view_item_list' });
     });
 
-    it('should build contents_viewed for view_search_results', function () {
+    it('should build custom event for view_search_results with custom_event_name', function () {
       const items = [{ item_id: '15', item_name: 'Mug', price: 10.00, quantity: 1 }];
       EDL.pushEvent('view_search_results', {
         search_term: 'cup',
@@ -132,9 +129,9 @@ describe('OpenAI / ChatGPT Ads Measurement Specification Test Suite', function (
 
       const payload = global.window.dataLayer[global.window.dataLayer.length - 1];
       assert.ok(payload.openai_ads);
-      assert.strictEqual(payload.openai_ads.event_name, 'contents_viewed');
-      assert.strictEqual(payload.openai_ads.data.type, 'contents');
-      assert.strictEqual(payload.openai_ads.data.contents[0].id, '15');
+      assert.strictEqual(payload.openai_ads.event_name, 'custom');
+      assert.strictEqual(payload.openai_ads.data.type, 'custom');
+      assert.deepStrictEqual(payload.openai_ads.options, { custom_event_name: 'view_search_results' });
     });
 
     it('should build custom event for view_cart with custom_event_name', function () {

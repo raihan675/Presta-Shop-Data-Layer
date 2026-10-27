@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.4] - 2026-10-27
+
+### Changed & Refined
+- **OpenAI / ChatGPT Ads Event Precision**:
+  - Restricted OpenAI `contents_viewed` standard event to fire strictly on `view_item` (Product Detail Page and variant combinations).
+  - Re-mapped catalog discovery events `view_item_list` and `view_search_results` to standard OpenAI custom measurement actions (`command: 'measure'`, `event_name: 'custom'`, `data: { type: 'custom' }`, and `options: { custom_event_name: 'view_item_list' | 'view_search_results' }`), preventing false PDP view inflation while retaining granular discovery analytics.
+
+---
+
 ## [1.42.3] - 2026-10-27
 
 ### Changed & Fixed

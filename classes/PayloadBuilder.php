@@ -841,10 +841,18 @@ class PayloadBuilder
         $includeAmount = false;
         $includeContents = false;
 
-        if (in_array($canonicalEvent, ['view_item', 'view_item_list', 'view_search_results'])) {
+        if ($canonicalEvent === 'view_item') {
             $openAiEventName = 'contents_viewed';
             $openAiType = 'contents';
             $includeContents = true;
+        } elseif ($canonicalEvent === 'view_item_list') {
+            $openAiEventName = 'custom';
+            $openAiType = 'custom';
+            $openAiCustomName = 'view_item_list';
+        } elseif ($canonicalEvent === 'view_search_results') {
+            $openAiEventName = 'custom';
+            $openAiType = 'custom';
+            $openAiCustomName = 'view_search_results';
         } elseif ($canonicalEvent === 'view_cart') {
             $openAiEventName = 'custom';
             $openAiType = 'custom';

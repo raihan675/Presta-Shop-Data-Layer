@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.3",
+    "latest_version":  "1.42.4",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.3/ps_gtm_datalayer.zip",
-    "checksum":  "01751034408b4bd55365abea7cc607446eed92149f3738183010868d8205925e",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.4/ps_gtm_datalayer.zip",
+    "checksum":  "53a3fabe5b9f00a47d1c3047bae9dbf2b53afb8e815c4964495c564a4a36af90",
     "release_type":  "patch",
-    "release_notes":  "Added Snapchat Ads to the module displayName and description in ps_gtm_datalayer.php, and refreshed the Snapchat brand icon to the circular high-res asset."
+    "release_notes":  "Restricted OpenAI contents_viewed event strictly to view_item, and mapped view_item_list and view_search_results to custom events."
 }

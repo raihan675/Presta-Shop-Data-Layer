@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.3';
+        $this->version = '1.42.4';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1012,7 +1012,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('ViewContent', { content_type: 'product_group', contents: [...] });",
                     'pinterest' => "pintrk('track', 'ViewCategory', { category_name: 'Clothes', line_items: [...] });",
                     'microsoft' => "uetq.push('event', 'view_item_list', { ecomm_pagetype: 'category', items: [...] });",
-                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1', name: 'Hummingbird Printed T-Shirt', content_type: 'product_group' }] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'view_item_list' });",
                     'snapchat' => "snaptr('track', 'LIST_VIEW', { item_category: 'Clothes', item_ids: ['1', '2'] });",
                 ],
                 'example_json' => json_encode([
@@ -1054,7 +1054,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('Search', { query: 't-shirt', content_ids: ['1_1'] });",
                     'pinterest' => "pintrk('track', 'Search', { search_query: 't-shirt', line_items: [...] });",
                     'microsoft' => "uetq.push('event', 'view_search_results', { search_term: 't-shirt', items: [...] });",
-                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1_1', name: 'Hummingbird Printed T-Shirt', content_type: 'product' }] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'view_search_results' });",
                     'snapchat' => "snaptr('track', 'SEARCH', { search_string: 't-shirt', item_ids: ['1_1'] });",
                 ],
                 'example_json' => json_encode([
@@ -1865,7 +1865,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: ViewCategory, category_name, line_items, value, currency',
                 'microsoft_spec' => 'event_action: view_item_list, ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue, items',
-                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id: base_id, name, content_type: product_group}]',
+                'openai_spec' => 'oaiq: custom, type: custom, custom_event_name: view_item_list',
                 'snapchat_spec' => 'snaptr: LIST_VIEW, CAPI: LIST_VIEW, item_category, item_ids: [ids], dynamic_ads: {content_type: product_group, contents}',
             ],
             'view_search_results' => [
@@ -1877,7 +1877,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'event: view_search_results, ecomm_pagetype: searchresults, ecomm_prodid: [ids], search_term, items',
                 'pinterest_spec' => 'pintrk: Search, search_query, line_items, product_ids',
                 'microsoft_spec' => 'event_action: view_search_results, search_term, ecomm_pagetype: searchresults, ecomm_prodid: [ids], items',
-                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id, name, content_type: product}]',
+                'openai_spec' => 'oaiq: custom, type: custom, custom_event_name: view_search_results',
                 'snapchat_spec' => 'snaptr: SEARCH, CAPI: SEARCH, search_string, item_ids: [ids], dynamic_ads: {contents}',
             ],
             'view_item' => [
