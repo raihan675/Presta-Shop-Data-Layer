@@ -70,6 +70,50 @@ class PayloadBuilder
     }
 
     /**
+     * Universal ISO 4217 minor unit converter for OpenAI Ads
+     * Converts floating point / integer currency values to exact integer minor units.
+     *
+     * @param float|int|string $amount
+     * @param string $currencyCode
+     * @param int|null $customPrecision
+     * @return int
+     */
+    public static function toMinorUnits($amount, $currencyCode = 'EUR', $customPrecision = null)
+    {
+        $amount = (float)$amount;
+        $currencyCode = strtoupper(trim((string)$currencyCode));
+
+        // Zero-decimal currencies (multiplier = 1)
+        $zeroDecimal = [
+            'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA',
+            'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+        ];
+        if (in_array($currencyCode, $zeroDecimal, true)) {
+            return (int)round($amount);
+        }
+
+        // Three-decimal currencies (multiplier = 1000)
+        $threeDecimal = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'];
+        if (in_array($currencyCode, $threeDecimal, true)) {
+            return (int)round($amount * 1000);
+        }
+
+        // Four-decimal currencies (multiplier = 10000)
+        $fourDecimal = ['CLF', 'UYW'];
+        if (in_array($currencyCode, $fourDecimal, true)) {
+            return (int)round($amount * 10000);
+        }
+
+        // Custom precision override if provided and valid
+        if ($customPrecision !== null && is_numeric($customPrecision) && (int)$customPrecision !== 2) {
+            return (int)round($amount * pow(10, (int)$customPrecision));
+        }
+
+        // Standard two-decimal currencies (USD, EUR, GBP, AUD, CAD, BDT, INR, etc.)
+        return (int)round($amount * 100);
+    }
+
+    /**
      * Authoritative search keyword extractor across native PrestaShop and third-party modules
      * (Warehouse/iqitsearch, Leo Search, Jolisearch, PM AdvancedSearch4, etc.)
      *
@@ -763,6 +807,107 @@ class PayloadBuilder
             }
         }
 
+        // -------------------------------------------------------------
+        // OpenAI / ChatGPT Ads Namespace Builder
+        // -------------------------------------------------------------
+        $precision = class_exists('PlatformAdapter') ? PlatformAdapter::getCurrencyPrecision($this->context) : 2;
+        $openAiEventName = 'custom';
+        $openAiType = 'custom';
+        $openAiCustomName = null;
+        $includeAmount = false;
+        $includeContents = false;
+
+        if (in_array($canonicalEvent, ['view_item', 'view_item_list', 'view_search_results', 'view_cart'])) {
+            $openAiEventName = 'contents_viewed';
+            $openAiType = 'contents';
+            $includeContents = true;
+        } elseif ($canonicalEvent === 'add_to_cart') {
+            $openAiEventName = 'items_added';
+            $openAiType = 'contents';
+            $includeAmount = true;
+            $includeContents = true;
+        } elseif ($canonicalEvent === 'begin_checkout') {
+            $openAiEventName = 'checkout_started';
+            $openAiType = 'contents';
+            $includeAmount = true;
+            $includeContents = true;
+        } elseif ($canonicalEvent === 'purchase') {
+            $openAiEventName = 'order_created';
+            $openAiType = 'contents';
+            $includeAmount = true;
+            $includeContents = true;
+        } else {
+            $openAiEventName = 'custom';
+            $openAiType = 'custom';
+            $openAiCustomName = $canonicalEvent;
+        }
+
+        $openAiContents = [];
+        if ($includeContents) {
+            foreach ($items as $it) {
+                $cId = $this->resolveCatalogItemId($it, $strategy);
+                $itQty = isset($it['quantity']) ? (int)$it['quantity'] : 1;
+                if ($itQty <= 0) {
+                    $itQty = 1;
+                }
+                $itPrice = isset($it['price']) ? (float)$it['price'] : 0.0;
+                $cItem = [
+                    'id' => $isList ? (string)$it['item_id'] : $cId,
+                    'name' => isset($it['item_name']) ? (string)$it['item_name'] : '',
+                    'content_type' => $isList ? 'product_group' : 'product',
+                ];
+                if ($openAiEventName === 'items_added') {
+                    $cItem['quantity'] = $itQty;
+                    $cItem['amount'] = self::toMinorUnits($itPrice, $currencyCode, $precision);
+                    $cItem['currency'] = $currencyCode;
+                } elseif ($openAiEventName === 'checkout_started' || $openAiEventName === 'order_created') {
+                    $cItem['quantity'] = $itQty;
+                }
+                $openAiContents[] = $cItem;
+            }
+        }
+
+        $openAiData = [
+            'type' => $openAiType,
+        ];
+        if ($includeAmount) {
+            $openAiData['amount'] = self::toMinorUnits($val, $currencyCode, $precision);
+            $openAiData['currency'] = $currencyCode;
+        }
+        if ($includeContents) {
+            $openAiData['contents'] = $openAiContents;
+        }
+
+        // Advanced Matching User Data
+        if (!empty($options['openai_user_data']) && is_array($options['openai_user_data'])) {
+            $openAiData['user'] = $options['openai_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $hashedUser = CustomerDataEngine::hashOpenAiUserData($options['user_data']);
+            if (!empty($hashedUser)) {
+                $openAiData['user'] = $hashedUser;
+            }
+        } elseif ($canonicalEvent === 'purchase' && isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $oaiUserData = CustomerDataEngine::buildOpenAiUserData($this->context->customer, $addr);
+            if (!empty($oaiUserData)) {
+                $openAiData['user'] = $oaiUserData;
+            }
+        }
+
+        $openaiAds = [
+            'command' => 'measure',
+            'event_name' => $openAiEventName,
+            'data' => $openAiData,
+        ];
+        if (!empty($openAiCustomName)) {
+            $openaiAds['options'] = [
+                'custom_event_name' => $openAiCustomName,
+            ];
+        }
+
         $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
         if (!$masterEnabled) {
             return [];
@@ -773,6 +918,7 @@ class PayloadBuilder
         $gadsEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0') : true;
         $pinterestEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') : true;
         $microsoftEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0') : true;
+        $openaiEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0') : true;
 
         $metaEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_META_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_META_EVENTS'), true)
@@ -788,6 +934,9 @@ class PayloadBuilder
             : null;
         $microsoftEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS'), true)
+            : null;
+        $openaiEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_OPENAI_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_OPENAI_EVENTS'), true)
             : null;
 
         $isSearchListing = ($canonicalEvent === 'view_item_list' && $pageType === 'searchresults');
@@ -816,6 +965,11 @@ class PayloadBuilder
         $isMicrosoftActive = ($microsoftEvents === null) ? true : (is_array($microsoftEvents) && in_array($canonicalEvent, $microsoftEvents));
         if ($microsoftEnabled && $isMicrosoftActive) {
             $result['microsoft_ads'] = $microsoftAds;
+        }
+
+        $isOpenAiActive = ($openaiEvents === null) ? true : (is_array($openaiEvents) && in_array($canonicalEvent, $openaiEvents));
+        if ($openaiEnabled && $isOpenAiActive) {
+            $result['openai_ads'] = $openaiAds;
         }
 
         return $result;
@@ -1502,6 +1656,7 @@ class PayloadBuilder
             'pinterest_user_data' => CustomerDataEngine::buildPinterestUserData($customer, $address),
             'tiktok_user_data' => CustomerDataEngine::buildTikTokUserData($customer, $address),
             'microsoft_user_data' => CustomerDataEngine::buildMicrosoftUserData($customer, $address),
+            'openai_user_data' => CustomerDataEngine::buildOpenAiUserData($customer, $address),
         ]);
 
         $purchasePayload = [
@@ -1549,6 +1704,9 @@ class PayloadBuilder
         }
         if (isset($platformNamespaces['microsoft_ads'])) {
             $purchasePayload['microsoft_ads'] = $platformNamespaces['microsoft_ads'];
+        }
+        if (isset($platformNamespaces['openai_ads'])) {
+            $purchasePayload['openai_ads'] = $platformNamespaces['openai_ads'];
         }
 
         return $purchasePayload;

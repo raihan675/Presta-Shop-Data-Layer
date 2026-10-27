@@ -11,6 +11,7 @@ This document serves as the authoritative, production-grade implementation guide
 * **Pinterest Tag & Conversions API (CAPI)**
 * **TikTok Pixel & Events API**
 * **Microsoft Advertising (Bing Ads & UET)**
+* **OpenAI / ChatGPT Ads Measurement (`oaiq`)**
 * **Server-to-Server sGTM Webhooks (Refunds, Offline Orders & Status Changes)**
 
 ---
@@ -169,6 +170,7 @@ The module allows granular control over which advertising namespaces are generat
 * **Pinterest Ads**: Enables `pinterest.*` namespaces (`PageVisit`, `AddToCart`, `Checkout`, etc.).
 * **TikTok Ads**: Enables `tiktok.*` namespaces (`ViewContent`, `AddToCart`, `CompletePayment`, etc.).
 * **Microsoft Advertising (Bing Ads)**: Enables `microsoft_ads.*` namespaces (`view_item`, `add_to_cart`, `purchase`).
+* **OpenAI / ChatGPT Ads**: Enables `openai_ads.*` namespaces (`contents_viewed`, `items_added`, `checkout_started`, `order_created`, `custom`) with ISO 4217 minor unit conversion and SHA-256 Advanced Matching.
 
 #### Event-Level Routing Matrix:
 Expand the **Advertising Platform DataLayers & Event Routing** section. You can toggle each platform individually for each of the 11 storefront events.
@@ -339,6 +341,25 @@ window.dataLayer.push({
       "ecomm_prodid": ["68_299"],
       "ecomm_totalvalue": 26.00
     }
+  },
+
+  // 8. Native OpenAI / ChatGPT Ads Measurement Namespace
+  "openai_ads": {
+    "command": "measure",
+    "event_name": "contents_viewed",
+    "data": {
+      "type": "contents",
+      "amount": 2600,
+      "currency": "EUR",
+      "contents": [
+        {
+          "id": "68_299",
+          "amount": 1300,
+          "content_type": "product",
+          "quantity": 2
+        }
+      ]
+    }
   }
 });
 ```
@@ -355,7 +376,8 @@ To prevent "sticky" parameters across Single Page Application (SPA) actions and 
      google_ads: null,
      pinterest: null,
      tiktok: null,
-     microsoft_ads: null
+     microsoft_ads: null,
+     openai_ads: null
    });
    ```
 2. **Transaction Deduplication**: Storefront `purchase` events store the transaction ID in `gtm_purchase_log` and local session storage. Refreshing the Thank-You / Order Confirmation page will never emit a duplicate `purchase` event.
@@ -442,6 +464,17 @@ Create the following **Data Layer Variables** in GTM under **Variables > User-De
 | `{{dlv - microsoft_ads.dynamic_remarketing.ecomm_prodid}}` | `microsoft_ads.dynamic_remarketing.ecomm_prodid` | Array of product IDs for Microsoft UET |
 | `{{dlv - microsoft_ads.revenue_value}}` | `microsoft_ads.revenue_value` | Normalized Microsoft conversion value |
 | `{{dlv - microsoft_ads.pid}}` | `microsoft_ads.pid` | Microsoft Enhanced Conversions customer hashes |
+
+#### OpenAI / ChatGPT Ads Variables:
+| Variable Name in GTM | Data Layer Variable Name | Description |
+| :--- | :--- | :--- |
+| `{{dlv - openai_ads.command}}` | `openai_ads.command` | API command (`"measure"`) |
+| `{{dlv - openai_ads.event_name}}` | `openai_ads.event_name` | Event name (`contents_viewed`, `items_added`, `checkout_started`, `order_created`, `custom`) |
+| `{{dlv - openai_ads.data.amount}}` | `openai_ads.data.amount` | Total amount expressed in ISO 4217 minor units (e.g. cents) |
+| `{{dlv - openai_ads.data.currency}}` | `openai_ads.data.currency` | 3-letter ISO Currency code (`"EUR"`, `"USD"`) |
+| `{{dlv - openai_ads.data.contents}}` | `openai_ads.data.contents` | Array of content items with minor unit amounts and quantities |
+| `{{dlv - openai_ads.data.user}}` | `openai_ads.data.user` | SHA-256 Advanced Matching customer identity object |
+| `{{dlv - openai_ads.options.custom_event_name}}` | `openai_ads.options.custom_event_name` | Custom event name for custom measurement actions |
 
 ---
 
@@ -615,7 +648,72 @@ Deploy your standard Meta Base Code (`fbq('init', 'PIXEL_ID');`) on `All Pages` 
 
 ---
 
-### 5.7 Server-Side GTM (sGTM) & Webhook Integration
+### 5.7 OpenAI / ChatGPT Ads Measurement Implementation
+
+The module generates native OpenAI / ChatGPT Ads conversion measurement payloads directly into `window.dataLayer.openai_ads`, eliminating manual client-side mapping.
+
+#### Step 1: Base Measurement Initialization (Custom HTML Tag)
+1. In GTM Web Container, create a new Tag: **Custom HTML**.
+2. Name: `c - OpenAI Pixel Base Script`.
+3. Add your official OpenAI measurement snippet:
+   ```html
+   <script>
+   !function(w,d,s,u,o,t){w[o]=w[o]||function(){(w[o].q=w[o].q||[]).push(arguments)};
+   t=d.createElement(s);t.async=1;t.src=u;
+   d.getElementsByTagName(s)[0].parentNode.insertBefore(t,d.getElementsByTagName(s)[0]);
+   }(window,document,'script','https://oaiq.min.js','oaiq');
+   oaiq('init', 'YOUR_OPENAI_PIXEL_ID');
+   oaiq('measure', 'page_viewed');
+   </script>
+   ```
+4. **Trigger**: `Consent Initialization - All Pages` or `All Pages`.
+
+#### Step 2: E-Commerce Conversion Tag (Standard & Custom Events)
+1. Create a new Tag: **Custom HTML**.
+2. Name: `c - OpenAI Ads Conversion Dispatcher`.
+3. Paste the following script:
+   ```html
+   <script>
+   (function() {
+     if (typeof window.oaiq !== 'function') return;
+     var dlv = {{dlv - openai_ads.data}};
+     var eventName = {{dlv - openai_ads.event_name}};
+     var customName = {{dlv - openai_ads.options.custom_event_name}};
+     
+     if (!eventName) return;
+     
+     if (eventName === 'custom') {
+       window.oaiq('measure', 'custom', dlv, { custom_event_name: customName });
+     } else {
+       window.oaiq('measure', eventName, dlv);
+     }
+   })();
+   </script>
+   ```
+4. **Firing Triggers**: Bind to all relevant Custom Event triggers:
+   * `ce - view_item_list` (`contents_viewed`)
+   * `ce - view_search_results` (`contents_viewed`)
+   * `ce - view_item` (`contents_viewed`)
+   * `ce - add_to_cart` (`items_added`)
+   * `ce - remove_from_cart` (`custom`)
+   * `ce - view_cart` (`contents_viewed`)
+   * `ce - begin_checkout` (`checkout_started`)
+   * `ce - add_shipping_info` (`custom`)
+   * `ce - add_payment_info` (`custom`)
+   * `ce - purchase` (`order_created`)
+   * `ce - add_to_wishlist` (`custom`)
+
+#### Step 3: ISO 4217 Minor Units & Advanced Matching
+* **ISO 4217 Minor Units**: OpenAI Ads requires monetary values in minor units (e.g. cents). The module automatically converts values based on currency:
+  * 2 decimals: `EUR`, `USD`, `GBP`, `BDT` -> amount * 100 (e.g. €26.00 -> `2600`).
+  * 0 decimals: `JPY`, `KRW`, `VND`, `CLP` -> amount * 1 (e.g. ¥1500 -> `1500`).
+  * 3 decimals: `KWD`, `BHD`, `OMR` -> amount * 1000 (e.g. 1.250 KWD -> `1250`).
+  * 4 decimals: `CLF`, `UYW` -> amount * 10000.
+* **SHA-256 Customer Advanced Matching**: `openai_ads.data.user` passes pre-normalized, SHA-256 hashed fields (`email_sha256`, `phone_number_sha256` in E.164 format, `first_name_sha256`, `last_name_sha256`, `external_id_sha256`) and unhashed address metadata (`country`, `city`, `region`, `postal_code`) for maximal conversion attribution.
+
+---
+
+### 5.8 Server-Side GTM (sGTM) & Webhook Integration
 
 ```mermaid
 flowchart LR
@@ -648,22 +746,22 @@ flowchart LR
 
 ### Master Event & Namespace Matrix
 
-| # | Storefront Action | GA4 Event Name | Meta Event | Google Ads Remarketing | Pinterest Event | TikTok Event | Microsoft UET Action |
-| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | Category / Listing View | `view_item_list` | `ViewCategory` | `category` | `ViewCategory` | `ViewContent` | `view_item_list` |
-| **2** | Search Results View | `view_search_results` | `Search` | `searchresults`| `Search` | `Search` | `view_search_results` |
-| **3** | Product Detail View | `view_item` | `ViewContent` | `product` | `PageVisit` | `ViewContent` | `view_item` |
-| **4** | Product Card Click | `select_item` | *(Custom)* | `category` | *(Custom)* | *(Custom)* | `select_item` |
-| **5** | Add to Wishlist | `add_to_wishlist` | `AddToWishlist`| `other` | `AddToWishList` | `AddToWishlist`| `add_to_wishlist` |
-| **6** | Add to Cart / Increment | `add_to_cart` | `AddToCart` | `cart` | `AddToCart` | `AddToCart` | `add_to_cart` |
-| **7** | Remove / Decrement Cart | `remove_from_cart` | *(Custom)* | `cart` | *(Custom)* | *(Custom)* | `remove_from_cart` |
-| **8** | View Cart Summary | `view_cart` | *(Custom)* | `cart` | *(Custom)* | *(Custom)* | `view_cart` |
-| **9** | Enter Checkout (Step 1) | `begin_checkout` | `InitiateCheckout`| `cart` | `InitiateCheckout`| `InitiateCheckout`| `begin_checkout` |
-| **10**| Confirm Carrier (Step 3)| `add_shipping_info`| *(Custom)* | `cart` | *(Custom)* | `AddShippingInfo` | `add_shipping_info` |
-| **11**| Select Payment (Step 4)| `add_payment_info` | `AddPaymentInfo`| `cart` | `AddPaymentInfo` | `AddPaymentInfo` | `add_payment_info` |
-| **12**| Order Completed | `purchase` | `Purchase` | `purchase` | `Checkout` | `CompletePayment`| `purchase` |
-| **13**| Credit Slip Issued | `refund` *(Server)* | `Refund` *(CAPI)*| Retract/Adjustment | *(Custom)* | *(CAPI)* | N/A |
-| **14**| Payment Status Changed | `order_status_update`*(Server)*| Offline Event | Offline Adjustment | *(Custom)* | *(CAPI)* | N/A |
+| # | Storefront Action | GA4 Event Name | Meta Event | Google Ads Remarketing | Pinterest Event | TikTok Event | Microsoft UET Action | OpenAI / ChatGPT Ads |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1** | Category / Listing View | `view_item_list` | `ViewCategory` | `category` | `ViewCategory` | `ViewContent` | `view_item_list` | `contents_viewed` (`product_group`) |
+| **2** | Search Results View | `view_search_results` | `Search` | `searchresults`| `Search` | `Search` | `view_search_results` | `contents_viewed` |
+| **3** | Product Detail View | `view_item` | `ViewContent` | `product` | `PageVisit` | `ViewContent` | `view_item` | `contents_viewed` (`product`) |
+| **4** | Product Card Click | `select_item` | *(Custom)* | `category` | *(Custom)* | *(Custom)* | `select_item` | *(Custom)* |
+| **5** | Add to Wishlist | `add_to_wishlist` | `AddToWishlist`| `other` | `AddToWishList` | `AddToWishlist`| `add_to_wishlist` | `custom` (`add_to_wishlist`) |
+| **6** | Add to Cart / Increment | `add_to_cart` | `AddToCart` | `cart` | `AddToCart` | `AddToCart` | `add_to_cart` | `items_added` |
+| **7** | Remove / Decrement Cart | `remove_from_cart` | *(Custom)* | `cart` | *(Custom)* | *(Custom)* | `remove_from_cart` | `custom` (`remove_from_cart`) |
+| **8** | View Cart Summary | `view_cart` | *(Custom)* | `cart` | *(Custom)* | *(Custom)* | `view_cart` | `contents_viewed` |
+| **9** | Enter Checkout (Step 1) | `begin_checkout` | `InitiateCheckout`| `cart` | `InitiateCheckout`| `InitiateCheckout`| `begin_checkout` | `checkout_started` |
+| **10**| Confirm Carrier (Step 3)| `add_shipping_info`| *(Custom)* | `cart` | *(Custom)* | `AddShippingInfo` | `add_shipping_info` | `custom` (`add_shipping_info`) |
+| **11**| Select Payment (Step 4)| `add_payment_info` | `AddPaymentInfo`| `cart` | `AddPaymentInfo` | `AddPaymentInfo` | `add_payment_info` | `custom` (`add_payment_info`) |
+| **12**| Order Completed | `purchase` | `Purchase` | `purchase` | `Checkout` | `CompletePayment`| `purchase` | `order_created` |
+| **13**| Credit Slip Issued | `refund` *(Server)* | `Refund` *(CAPI)*| Retract/Adjustment | *(Custom)* | *(CAPI)* | N/A | *(CAPI / Server)* |
+| **14**| Payment Status Changed | `order_status_update`*(Server)*| Offline Event | Offline Adjustment | *(Custom)* | *(CAPI)* | N/A | *(CAPI / Server)* |
 
 ---
 

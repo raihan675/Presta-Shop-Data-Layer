@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.41.0] - 2026-10-27
+
+### Added
+- **OpenAI / ChatGPT Ads DataLayer Integration**:
+  - Introduced dedicated `openai_ads` namespace across storefront dataLayer events.
+  - Generates standard OpenAI measurement commands `oaiq('measure', '<event_name>', { ... })` for standard events (`contents_viewed`, `items_added`, `checkout_started`, `order_created`) and custom events (`custom`).
+  - **Universal ISO 4217 Minor Currency Unit Engine**: Converts monetary values to exact integer minor units for all currencies worldwide (0-decimal JPY/KRW/VND, 3-decimal KWD/BHD/OMR, 4-decimal CLF, and standard 2-decimal USD/EUR/GBP/BDT).
+  - **Advanced Customer Matching**: Standardized SHA-256 encrypted fields (`email_sha256`, `phone_number_sha256`, `first_name_sha256`, `last_name_sha256`, `external_id_sha256`) and unhashed address parameters (`country`, `city`, `region`, `postal_code`) for OpenAI Ads measurement.
+  - Strictly omits `event_id` per measurement specification.
+  - Full Back Office integration in **Advertising Platform DataLayers & Event Routing** matrix with master switch, platform toggle, event routing matrix, and DataLayer purge reset (`openai_ads: null`).
+  - Added official OpenAI brand logo icon at `views/img/openai.png`.
+  - Added comprehensive test suite `tests/openaiAdsCatalogMatching.test.js` covering 23 unit and integration scenarios.
+
+---
+
 ## [1.40.10] - 2026-10-26
 
 ### Security & Reliability

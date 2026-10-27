@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.40.10",
-    "release_date":  "2026-10-26",
+    "latest_version":  "1.41.0",
+    "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.40.10/ps_gtm_datalayer.zip",
-    "checksum":  "6407c9e952cb9bd46b62d46720c88080ac28454cd8ed8aa6cd7d5b96c47f3545",
-    "release_type":  "patch",
-    "release_notes":  "1. 100% Defensive Hook Encapsulation: Sealed all 10 registered storefront and back-office lifecycle hooks (including hookActionCartUpdateQuantityBefore, hookDisplayAfterBodyOpeningTag, hookDisplayBackOfficeTop, hookDisplayBackOfficeHeader, and queuePendingEvent) with top-level \\Throwable containment and error logging.\n2. Production Readiness Verification: Completed comprehensive 10-point audit verifying zero DOM scraping, authoritative backend data hydration, multi-platform parameter compliance (GA4, Meta, Google Ads, TikTok, Pinterest, Microsoft Ads), and non-blocking sGTM webhooks."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.0/ps_gtm_datalayer.zip",
+    "checksum":  "c37a269bbf11622d256f67d08999f5fcfffad391c761725f0304f8e4aa5efe2b",
+    "release_type":  "minor",
+    "release_notes":  "1. OpenAI / ChatGPT Ads Measurement Integration: Dedicated window.dataLayer.openai_ads namespace emitting standard (contents_viewed, items_added, checkout_started, order_created) and custom ecommerce actions with command \u0027measure\u0027.\n2. Universal ISO 4217 Minor Currency Units: Strict minor unit monetary conversion for all global currencies (0-decimal JPY/KRW/VND, 3-decimal KWD/BHD/OMR, 4-decimal CLF, and standard 2-decimal USD/EUR/GBP/BDT).\n3. Advanced Customer Matching: SHA-256 normalized email, phone, name, external_id, and unhashed address matching for OpenAI measurement.\n4. Complete BO Advertising Routing Matrix: Full support for master switch, platform toggle, event routing matrix, and DataLayer purge reset (openai_ads: null)."
 }

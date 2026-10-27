@@ -115,6 +115,15 @@
   {else}
   window.psGtmConfig.microsoftUserData = null;
   {/if}
+  {if !empty($openai_user_data)}
+  try {
+    window.psGtmConfig.openaiUserData = {$openai_user_data nofilter};
+  } catch(e) {
+    window.psGtmConfig.openaiUserData = null;
+  }
+  {else}
+  window.psGtmConfig.openaiUserData = null;
+  {/if}
   {if isset($page_context)}
   try {
     window.psGtmConfig.pageContext = {$page_context nofilter};
@@ -160,7 +169,8 @@
             tiktok: null,
             google_ads: null,
             pinterest: null,
-            microsoft_ads: null
+            microsoft_ads: null,
+            openai_ads: null
           });
           window.dataLayer.push(p);
         }
@@ -183,7 +193,8 @@
             tiktok: null,
             google_ads: null,
             pinterest: null,
-            microsoft_ads: null
+            microsoft_ads: null,
+            openai_ads: null
           });
           window.dataLayer.push(pending[i]);
         }

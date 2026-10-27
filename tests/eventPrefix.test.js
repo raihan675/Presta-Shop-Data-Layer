@@ -53,7 +53,8 @@ describe('Dynamic Data Layer Event Prefix Test Suite', function () {
       tiktok: null,
       google_ads: null,
       pinterest: null,
-      microsoft_ads: null
+      microsoft_ads: null,
+      openai_ads: null
     });
 
     const payload = global.window.dataLayer[1];

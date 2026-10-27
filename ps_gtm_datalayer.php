@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.40.10';
+        $this->version = '1.41.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -35,8 +35,8 @@ class Ps_Gtm_DataLayer extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads');
-        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, Pinterest, TikTok, Google Ads, and Microsoft Advertising (Bing Ads) dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
+        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google, Microsoft & OpenAI Ads');
+        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, Pinterest, TikTok, Google Ads, Microsoft Advertising, and OpenAI ChatGPT Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
         // Keep ps_module database version table synchronized with active version
@@ -103,11 +103,13 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::updateValue('PS_GTM_ADV_GADS_MERCHANT_ID', '')
             && Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_MICROSOFT_ENABLED', '1')
+            && Configuration::updateValue('PS_GTM_ADV_OPENAI_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($allEvents))
             && Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($allEvents))
             && Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($allEvents))
             && Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($allEvents))
-            && Configuration::updateValue('PS_GTM_ADV_MICROSOFT_EVENTS', json_encode($allEvents));
+            && Configuration::updateValue('PS_GTM_ADV_MICROSOFT_EVENTS', json_encode($allEvents))
+            && Configuration::updateValue('PS_GTM_ADV_OPENAI_EVENTS', json_encode($allEvents));
     }
 
     public function uninstall()
@@ -132,11 +134,13 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_ADV_GADS_MERCHANT_ID')
             && Configuration::deleteByName('PS_GTM_ADV_PINTEREST_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_MICROSOFT_ENABLED')
+            && Configuration::deleteByName('PS_GTM_ADV_OPENAI_ENABLED')
             && Configuration::deleteByName('PS_GTM_ADV_META_EVENTS')
             && Configuration::deleteByName('PS_GTM_ADV_TIKTOK_EVENTS')
             && Configuration::deleteByName('PS_GTM_ADV_GADS_EVENTS')
             && Configuration::deleteByName('PS_GTM_ADV_PINTEREST_EVENTS')
-            && Configuration::deleteByName('PS_GTM_ADV_MICROSOFT_EVENTS');
+            && Configuration::deleteByName('PS_GTM_ADV_MICROSOFT_EVENTS')
+            && Configuration::deleteByName('PS_GTM_ADV_OPENAI_EVENTS');
     }
 
     
@@ -277,6 +281,7 @@ class Ps_Gtm_DataLayer extends Module
                 $advGads = Tools::getValue('PS_GTM_ADV_GADS_ENABLED') ? '1' : '0';
                 $advPinterest = Tools::getValue('PS_GTM_ADV_PINTEREST_ENABLED') ? '1' : '0';
                 $advMicrosoft = Tools::getValue('PS_GTM_ADV_MICROSOFT_ENABLED') ? '1' : '0';
+                $advOpenAi = Tools::getValue('PS_GTM_ADV_OPENAI_ENABLED') ? '1' : '0';
 
                 Configuration::updateValue('PS_GTM_ADV_MASTER_ENABLED', $advMaster);
                 Configuration::updateValue('PS_GTM_ADV_META_ENABLED', $advMeta);
@@ -286,12 +291,14 @@ class Ps_Gtm_DataLayer extends Module
                 Configuration::updateValue('PS_GTM_ADV_GADS_MERCHANT_ID', trim((string)Tools::getValue('PS_GTM_ADV_GADS_MERCHANT_ID', '')));
                 Configuration::updateValue('PS_GTM_ADV_PINTEREST_ENABLED', $advPinterest);
                 Configuration::updateValue('PS_GTM_ADV_MICROSOFT_ENABLED', $advMicrosoft);
+                Configuration::updateValue('PS_GTM_ADV_OPENAI_ENABLED', $advOpenAi);
 
                 $metaEvts = [];
                 $tiktokEvts = [];
                 $gadsEvts = [];
                 $pinterestEvts = [];
                 $microsoftEvts = [];
+                $openaiEvts = [];
                 foreach (array_keys(self::getSupportedEvents()) as $evtName) {
                     if (Tools::getValue('adv_meta_' . $evtName)) {
                         $metaEvts[] = $evtName;
@@ -308,12 +315,16 @@ class Ps_Gtm_DataLayer extends Module
                     if (Tools::getValue('adv_microsoft_' . $evtName)) {
                         $microsoftEvts[] = $evtName;
                     }
+                    if (Tools::getValue('adv_openai_' . $evtName)) {
+                        $openaiEvts[] = $evtName;
+                    }
                 }
                 Configuration::updateValue('PS_GTM_ADV_META_EVENTS', json_encode($metaEvts));
                 Configuration::updateValue('PS_GTM_ADV_TIKTOK_EVENTS', json_encode($tiktokEvts));
                 Configuration::updateValue('PS_GTM_ADV_GADS_EVENTS', json_encode($gadsEvts));
                 Configuration::updateValue('PS_GTM_ADV_PINTEREST_EVENTS', json_encode($pinterestEvts));
                 Configuration::updateValue('PS_GTM_ADV_MICROSOFT_EVENTS', json_encode($microsoftEvts));
+                Configuration::updateValue('PS_GTM_ADV_OPENAI_EVENTS', json_encode($openaiEvts));
 
                 $settingsSaved = true;
             }
@@ -591,12 +602,14 @@ class Ps_Gtm_DataLayer extends Module
         $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
         $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
         $rawMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS');
+        $rawOpenAi = Configuration::get('PS_GTM_ADV_OPENAI_EVENTS');
 
         $metaActive = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys($supportedAdvEvents);
         $tiktokActive = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys($supportedAdvEvents);
         $gadsActive = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys($supportedAdvEvents);
         $pinterestActive = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys($supportedAdvEvents);
         $microsoftActive = ($rawMicrosoft !== false && $rawMicrosoft !== null) ? json_decode($rawMicrosoft, true) : array_keys($supportedAdvEvents);
+        $openaiActive = ($rawOpenAi !== false && $rawOpenAi !== null) ? json_decode($rawOpenAi, true) : array_keys($supportedAdvEvents);
 
         if (!is_array($metaActive)) {
             $metaActive = array_keys($supportedAdvEvents);
@@ -613,6 +626,9 @@ class Ps_Gtm_DataLayer extends Module
         if (!is_array($microsoftActive)) {
             $microsoftActive = array_keys($supportedAdvEvents);
         }
+        if (!is_array($openaiActive)) {
+            $openaiActive = array_keys($supportedAdvEvents);
+        }
 
         // Active platforms calculation
         $advMaster = Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0';
@@ -623,6 +639,7 @@ class Ps_Gtm_DataLayer extends Module
             if (Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0') $activePlatformsCount++;
             if (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') $activePlatformsCount++;
             if (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0') $activePlatformsCount++;
+            if (Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0') $activePlatformsCount++;
         }
 
         // Diagnostics metrics
@@ -715,6 +732,15 @@ class Ps_Gtm_DataLayer extends Module
                     'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0'),
                     'routed' => in_array($eName, $microsoftActive),
                     'code' => isset($evt['platform_mappings']['microsoft']) ? $evt['platform_mappings']['microsoft'] : '',
+                ],
+                'openai' => [
+                    'key' => 'openai',
+                    'name' => 'OpenAI / ChatGPT Ads Measurement',
+                    'short_name' => 'OpenAI Ads',
+                    'supported' => in_array($eName, array_keys($supportedAdvEvents)),
+                    'globally_enabled' => $advMaster && (Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0'),
+                    'routed' => in_array($eName, $openaiActive),
+                    'code' => isset($evt['platform_mappings']['openai']) ? $evt['platform_mappings']['openai'] : '',
                 ],
             ];
             if (!empty($evt['has_sgtm_webhook'])) {
@@ -864,6 +890,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_ADV_GADS_MERCHANT_ID' => (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID'),
                 'PS_GTM_ADV_PINTEREST_ENABLED' => Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0',
                 'PS_GTM_ADV_MICROSOFT_ENABLED' => Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0',
+                'PS_GTM_ADV_OPENAI_ENABLED' => Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0',
             ],
             'canonical_events' => $eventsCatalog,
             'events_total' => count($eventsCatalog),
@@ -873,11 +900,13 @@ class Ps_Gtm_DataLayer extends Module
             'tiktok_events_count' => count($tiktokActive),
             'pinterest_events_count' => count($pinterestActive),
             'microsoft_events_count' => count($microsoftActive),
+            'openai_events_count' => count($openaiActive),
             'meta_active_events' => $metaActive,
             'gads_active_events' => $gadsActive,
             'tiktok_active_events' => $tiktokActive,
             'pinterest_active_events' => $pinterestActive,
             'microsoft_active_events' => $microsoftActive,
+            'openai_active_events' => $openaiActive,
             'adv_event_groups' => $eventGroups,
             'adv_flat_events' => $advFlatEvents,
             'adv_total_events_count' => count($advFlatEvents),
@@ -954,6 +983,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('ViewContent', { content_type: 'product_group', contents: [...] });",
                     'pinterest' => "pintrk('track', 'ViewCategory', { category_name: 'Clothes', line_items: [...] });",
                     'microsoft' => "uetq.push('event', 'view_item_list', { ecomm_pagetype: 'category', items: [...] });",
+                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1', name: 'Hummingbird Printed T-Shirt', content_type: 'product_group' }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_item_list',
@@ -994,6 +1024,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('Search', { query: 't-shirt', content_ids: ['1_1'] });",
                     'pinterest' => "pintrk('track', 'Search', { search_query: 't-shirt', line_items: [...] });",
                     'microsoft' => "uetq.push('event', 'view_search_results', { search_term: 't-shirt', items: [...] });",
+                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1_1', name: 'Hummingbird Printed T-Shirt', content_type: 'product' }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_search_results',
@@ -1033,6 +1064,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('ViewContent', { content_id: '68_299', content_name: 'Sip-N-Snack Cup', value: 13.00, currency: 'EUR' });",
                     'pinterest' => "pintrk('track', 'PageVisit', { line_items: [{ product_id: '68_299' }], value: 13.00, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'view_item', { ecomm_prodid: '68_299', ecomm_totalvalue: 13.00, items: [...] });",
+                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '68_299', name: 'Sip-N-Snack Cup', content_type: 'product' }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_item',
@@ -1073,6 +1105,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('AddToWishlist', { content_id: '1_1', value: 23.90, currency: 'EUR' });",
                     'pinterest' => "pintrk('track', 'AddToWishList', { line_items: [{ product_id: '1_1' }], value: 23.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'add_to_wishlist', { ecomm_prodid: '1_1', items: [...] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'add_to_wishlist' });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_to_wishlist',
@@ -1112,6 +1145,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('AddToCart', { content_id: '68_299', value: 26.00, currency: 'EUR', contents: [...] });",
                     'pinterest' => "pintrk('track', 'AddToCart', { line_items: [...], value: 26.00, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'add_to_cart', { revenue_value: 26.00, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'items_added', { type: 'contents', amount: 2600, currency: 'EUR', contents: [{ id: '68_299', quantity: 2, amount: 1300, currency: 'EUR' }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_to_cart',
@@ -1152,6 +1186,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.trackCustom('RemoveFromCart', { content_id: '68_299', value: 13.00, currency: 'EUR' });",
                     'pinterest' => "pintrk('trackCustom', 'RemoveFromCart', { line_items: [...], value: 13.00, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'remove_from_cart', { revenue_value: 13.00, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'remove_from_cart' });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'remove_from_cart',
@@ -1191,6 +1226,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('ViewContent', { content_type: 'product', contents: [...], quantity: 2 });",
                     'pinterest' => "pintrk('trackCustom', 'ViewCart', { line_items: [...], value: 36.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'view_cart', { revenue_value: 36.90, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'contents_viewed', { type: 'contents', contents: [{ id: '1_1', name: 'Hummingbird Printed T-Shirt', content_type: 'product' }, { id: '68_299', name: 'Sip-N-Snack Cup', content_type: 'product' }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'view_cart',
@@ -1236,6 +1272,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('InitiateCheckout', { contents: [...], quantity: 1, value: 36.90, currency: 'EUR' });",
                     'pinterest' => "pintrk('track', 'InitiateCheckout', { line_items: [...], value: 36.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'begin_checkout', { revenue_value: 36.90, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'checkout_started', { type: 'contents', amount: 3690, currency: 'EUR', contents: [{ id: '1_1', quantity: 1 }] });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'begin_checkout',
@@ -1275,6 +1312,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('AddShippingInfo', { contents: [...], value: 41.90, currency: 'EUR' });",
                     'pinterest' => "pintrk('trackCustom', 'AddShippingInfo', { line_items: [...], value: 41.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'add_shipping_info', { revenue_value: 41.90, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'add_shipping_info' });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_shipping_info',
@@ -1315,6 +1353,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('AddPaymentInfo', { contents: [...], value: 41.90, currency: 'EUR' });",
                     'pinterest' => "pintrk('track', 'AddPaymentInfo', { line_items: [...], value: 41.90, currency: 'EUR' });",
                     'microsoft' => "uetq.push('event', 'add_payment_info', { revenue_value: 41.90, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'custom', { type: 'custom' }, { custom_event_name: 'add_payment_info' });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'add_payment_info',
@@ -1358,6 +1397,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => "ttq.track('CompletePayment', { content_id: '68_299', value: 17.50, currency: 'EUR', order_id: '1255' });",
                     'pinterest' => "pintrk('track', 'Checkout', { order_id: '1255', value: 17.50, currency: 'EUR', line_items: [...] });",
                     'microsoft' => "uetq.push('event', 'purchase', { transaction_id: '1255', revenue_value: 17.50, currency: 'EUR', items: [...] });",
+                    'openai' => "oaiq('measure', 'order_created', { type: 'contents', amount: 1750, currency: 'EUR', contents: [{ id: '68_299', quantity: 1 }], user: { email_sha256: '...' } });",
                 ],
                 'example_json' => json_encode([
                     'event' => 'purchase',
@@ -1412,6 +1452,7 @@ class Ps_Gtm_DataLayer extends Module
                     'tiktok' => 'TikTok Events API Order Retraction via sGTM',
                     'pinterest' => 'Pinterest Conversions API Refund via sGTM',
                     'microsoft' => 'Microsoft Advertising Offline Conversion Retraction',
+                    'openai' => 'OpenAI ChatGPT Ads Conversion Adjustment via sGTM',
                 ],
                 'example_json' => json_encode([
                     'event_name' => 'refund',
@@ -1513,6 +1554,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_ADV_GADS_ENABLED' => Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_PINTEREST_ENABLED' => Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_MICROSOFT_ENABLED' => Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0' ? 1 : 0,
+                'PS_GTM_ADV_OPENAI_ENABLED' => Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0' ? 1 : 0,
                 'PS_GTM_ADV_MATRIX_TABLE' => $this->renderAdvertisingMatrixTable(),
             ],
             'languages' => $this->context->controller->getLanguages(),
@@ -1782,6 +1824,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: ViewCategory, category_name, line_items, value, currency',
                 'microsoft_spec' => 'event_action: view_item_list, ecomm_pagetype: category/searchresults, ecomm_prodid: [ids], ecomm_totalvalue, items',
+                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id: base_id, name, content_type: product_group}]',
             ],
             'view_search_results' => [
                 'name' => 'view_search_results',
@@ -1792,6 +1835,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'event: view_search_results, ecomm_pagetype: searchresults, ecomm_prodid: [ids], search_term, items',
                 'pinterest_spec' => 'pintrk: Search, search_query, line_items, product_ids',
                 'microsoft_spec' => 'event_action: view_search_results, search_term, ecomm_pagetype: searchresults, ecomm_prodid: [ids], items',
+                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id, name, content_type: product}]',
             ],
             'view_item' => [
                 'name' => 'view_item',
@@ -1802,6 +1846,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: PageVisit, line_items: [{product_id, ...}], value, currency, order_quantity: 1',
                 'microsoft_spec' => 'event_action: view_item, ecomm_pagetype: product, ecomm_prodid: catalog_id, ecomm_totalvalue, items',
+                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id: catalog_id, name, content_type: product}]',
             ],
             'add_to_cart' => [
                 'name' => 'add_to_cart',
@@ -1812,6 +1857,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: AddToCart, line_items: [{product_id, ...}], value, currency, order_quantity',
                 'microsoft_spec' => 'event_action: add_to_cart, revenue_value, currency, ecomm_pagetype: cart, ecomm_prodid: [ids], items',
+                'openai_spec' => 'oaiq: items_added, type: contents, amount: minor_units, currency, contents: [{id, name, quantity, amount: item_minor_units, currency}]',
             ],
             'remove_from_cart' => [
                 'name' => 'remove_from_cart',
@@ -1822,6 +1868,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Custom (RemoveFromCart), line_items, value, currency, order_quantity',
                 'microsoft_spec' => 'event_action: remove_from_cart, revenue_value, currency, ecomm_pagetype: cart, ecomm_prodid: [ids], items',
+                'openai_spec' => 'oaiq: custom, type: custom, options: {custom_event_name: remove_from_cart}',
             ],
             'view_cart' => [
                 'name' => 'view_cart',
@@ -1832,6 +1879,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Custom (ViewCart), line_items, value, currency, order_quantity',
                 'microsoft_spec' => 'event_action: view_cart, revenue_value, currency, ecomm_pagetype: cart, ecomm_prodid: [ids], items',
+                'openai_spec' => 'oaiq: contents_viewed, type: contents, contents: [{id, name, content_type: product}]',
             ],
             'begin_checkout' => [
                 'name' => 'begin_checkout',
@@ -1842,6 +1890,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: InitiateCheckout, line_items, value, currency, order_quantity',
                 'microsoft_spec' => 'event_action: begin_checkout, revenue_value, currency, checkout_step: 1, ecomm_pagetype: cart, items',
+                'openai_spec' => 'oaiq: checkout_started, type: contents, amount: minor_units, currency, contents: [{id, name, quantity}]',
             ],
             'add_shipping_info' => [
                 'name' => 'add_shipping_info',
@@ -1852,6 +1901,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Custom (AddShippingInfo), line_items, value, currency, property',
                 'microsoft_spec' => 'event_action: add_shipping_info, revenue_value, currency, checkout_step: 3, items',
+                'openai_spec' => 'oaiq: custom, type: custom, options: {custom_event_name: add_shipping_info}',
             ],
             'add_payment_info' => [
                 'name' => 'add_payment_info',
@@ -1862,6 +1912,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: cart, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: AddPaymentInfo, line_items, value, currency, property',
                 'microsoft_spec' => 'event_action: add_payment_info, revenue_value, currency, checkout_step: 4, items',
+                'openai_spec' => 'oaiq: custom, type: custom, options: {custom_event_name: add_payment_info}',
             ],
             'purchase' => [
                 'name' => 'purchase',
@@ -1872,6 +1923,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: purchase, ecomm_prodid: [ids], ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: Checkout, order_id, value, currency, order_quantity, line_items, user_data',
                 'microsoft_spec' => 'event_action: purchase, transaction_id, revenue_value, currency, tax, shipping, coupon, items, pid, ecomm_pagetype: purchase',
+                'openai_spec' => 'oaiq: order_created, type: contents, amount: minor_units, currency, contents: [{id, name, quantity}], user: {email_sha256, ...}',
             ],
             'add_to_wishlist' => [
                 'name' => 'add_to_wishlist',
@@ -1882,6 +1934,7 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_spec' => 'ecomm_pagetype: other, ecomm_prodid: catalog_id, ecomm_totalvalue',
                 'pinterest_spec' => 'pintrk: AddToWishList, line_items, value, currency',
                 'microsoft_spec' => 'event_action: add_to_wishlist, revenue_value, currency, ecomm_pagetype: other, items',
+                'openai_spec' => 'oaiq: custom, type: custom, options: {custom_event_name: add_to_wishlist}',
             ],
         ];
     }
@@ -1895,24 +1948,28 @@ class Ps_Gtm_DataLayer extends Module
         $advTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_ENABLED') !== '0';
         $advPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0';
         $advMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0';
+        $advOpenAi = Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0';
 
         $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
         $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
         $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
         $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
         $rawMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS');
+        $rawOpenAi = Configuration::get('PS_GTM_ADV_OPENAI_EVENTS');
 
         $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys($events);
         $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys($events);
         $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys($events);
         $pinterestEvents = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys($events);
         $microsoftEvents = ($rawMicrosoft !== false && $rawMicrosoft !== null) ? json_decode($rawMicrosoft, true) : array_keys($events);
+        $openaiEvents = ($rawOpenAi !== false && $rawOpenAi !== null) ? json_decode($rawOpenAi, true) : array_keys($events);
 
         if (!is_array($metaEvents)) $metaEvents = array_keys($events);
         if (!is_array($tiktokEvents)) $tiktokEvents = array_keys($events);
         if (!is_array($gadsEvents)) $gadsEvents = array_keys($events);
         if (!is_array($pinterestEvents)) $pinterestEvents = array_keys($events);
         if (!is_array($microsoftEvents)) $microsoftEvents = array_keys($events);
+        if (!is_array($openaiEvents)) $openaiEvents = array_keys($events);
 
         $imgBase = $this->_path . 'views/img/';
         $platforms = [
@@ -1985,6 +2042,20 @@ class Ps_Gtm_DataLayer extends Module
                 'brand_color' => '#008272',
                 'brand_bg' => '#e6f7f5',
                 'spec_key' => 'microsoft_spec',
+            ],
+            'openai' => [
+                'key' => 'openai',
+                'name' => 'OpenAI / ChatGPT Ads Measurement',
+                'short_name' => 'OpenAI Ads',
+                'desc' => $this->l('Tracks contents viewed, items added, checkout started, and order created in ISO 4217 minor currency units for OpenAI / ChatGPT Ads measurement.'),
+                'config_key' => 'PS_GTM_ADV_OPENAI_ENABLED',
+                'enabled' => $advOpenAi,
+                'active_events' => $openaiEvents,
+                'icon_img' => $imgBase . 'openai.png',
+                'icon_class' => 'icon-comment',
+                'brand_color' => '#10a37f',
+                'brand_bg' => '#e8f7f2',
+                'spec_key' => 'openai_spec',
             ],
         ];
 
@@ -2322,7 +2393,7 @@ class Ps_Gtm_DataLayer extends Module
             }
 
             function psGtmExpandAllPanels(expand) {
-                var platforms = ["meta", "gads", "tiktok", "pinterest", "microsoft"];
+                var platforms = ["meta", "gads", "tiktok", "pinterest", "microsoft", "openai"];
                 for (var i = 0; i < platforms.length; i++) {
                     var body = document.getElementById("body_" + platforms[i]);
                     var chevron = document.getElementById("chevron_" + platforms[i]);
@@ -2410,7 +2481,7 @@ class Ps_Gtm_DataLayer extends Module
             }
 
             function psGtmToggleAllPlatforms(state) {
-                var platforms = ["meta", "gads", "tiktok", "pinterest", "microsoft"];
+                var platforms = ["meta", "gads", "tiktok", "pinterest", "microsoft", "openai"];
                 for (var i = 0; i < platforms.length; i++) {
                     psGtmOnMasterToggle(platforms[i], state);
                     var cbs = document.querySelectorAll(".ps-gtm-evt-" + platforms[i]);
@@ -3212,18 +3283,21 @@ class Ps_Gtm_DataLayer extends Module
             $advGads = Configuration::get('PS_GTM_ADV_GADS_ENABLED') !== '0';
             $advPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0';
             $advMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0';
+            $advOpenAi = Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0';
 
             $rawMeta = Configuration::get('PS_GTM_ADV_META_EVENTS');
             $rawTiktok = Configuration::get('PS_GTM_ADV_TIKTOK_EVENTS');
             $rawGads = Configuration::get('PS_GTM_ADV_GADS_EVENTS');
             $rawPinterest = Configuration::get('PS_GTM_ADV_PINTEREST_EVENTS');
             $rawMicrosoft = Configuration::get('PS_GTM_ADV_MICROSOFT_EVENTS');
+            $rawOpenAi = Configuration::get('PS_GTM_ADV_OPENAI_EVENTS');
 
             $metaEvents = ($rawMeta !== false && $rawMeta !== null) ? json_decode($rawMeta, true) : array_keys(self::getSupportedEvents());
             $tiktokEvents = ($rawTiktok !== false && $rawTiktok !== null) ? json_decode($rawTiktok, true) : array_keys(self::getSupportedEvents());
             $gadsEvents = ($rawGads !== false && $rawGads !== null) ? json_decode($rawGads, true) : array_keys(self::getSupportedEvents());
             $pinterestEvents = ($rawPinterest !== false && $rawPinterest !== null) ? json_decode($rawPinterest, true) : array_keys(self::getSupportedEvents());
             $microsoftEvents = ($rawMicrosoft !== false && $rawMicrosoft !== null) ? json_decode($rawMicrosoft, true) : array_keys(self::getSupportedEvents());
+            $openaiEvents = ($rawOpenAi !== false && $rawOpenAi !== null) ? json_decode($rawOpenAi, true) : array_keys(self::getSupportedEvents());
 
             $advSettings = [
                 'master_enabled' => (bool)$advMaster,
@@ -3234,11 +3308,13 @@ class Ps_Gtm_DataLayer extends Module
                 'gads_merchant_id' => (string)Configuration::get('PS_GTM_ADV_GADS_MERCHANT_ID'),
                 'pinterest_enabled' => (bool)$advPinterest,
                 'microsoft_enabled' => (bool)$advMicrosoft,
+                'openai_enabled' => (bool)$advOpenAi,
                 'meta_events' => is_array($metaEvents) ? $metaEvents : array_keys(self::getSupportedEvents()),
                 'tiktok_events' => is_array($tiktokEvents) ? $tiktokEvents : array_keys(self::getSupportedEvents()),
                 'gads_events' => is_array($gadsEvents) ? $gadsEvents : array_keys(self::getSupportedEvents()),
                 'pinterest_events' => is_array($pinterestEvents) ? $pinterestEvents : array_keys(self::getSupportedEvents()),
                 'microsoft_events' => is_array($microsoftEvents) ? $microsoftEvents : array_keys(self::getSupportedEvents()),
+                'openai_events' => is_array($openaiEvents) ? $openaiEvents : array_keys(self::getSupportedEvents()),
             ];
 
             // Pre-hydrate authoritative carrier names directly from database model (Zero DOM)
@@ -3321,11 +3397,12 @@ class Ps_Gtm_DataLayer extends Module
                 }
             }
 
-            // Pre-hydrate Meta, Pinterest, TikTok and Microsoft Advertising Enhanced Conversions hashed user data
+            // Pre-hydrate Meta, Pinterest, TikTok, Microsoft Advertising and OpenAI Ads Enhanced Conversions hashed user data
             $metaUserData = null;
             $pinterestUserData = null;
             $tiktokUserData = null;
             $microsoftUserData = null;
+            $openaiUserData = null;
             if ($this->context->customer && Validate::isLoadedObject($this->context->customer)) {
                 $customerAddress = null;
                 if ($this->context->cart && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
@@ -3343,6 +3420,7 @@ class Ps_Gtm_DataLayer extends Module
                 $pinterestUserData = CustomerDataEngine::buildPinterestUserData($this->context->customer, $customerAddress);
                 $tiktokUserData = CustomerDataEngine::buildTikTokUserData($this->context->customer, $customerAddress);
                 $microsoftUserData = CustomerDataEngine::buildMicrosoftUserData($this->context->customer, $customerAddress);
+                $openaiUserData = CustomerDataEngine::buildOpenAiUserData($this->context->customer, $customerAddress);
             }
 
             $this->context->smarty->assign([
@@ -3368,6 +3446,7 @@ class Ps_Gtm_DataLayer extends Module
                 'pinterest_user_data' => !empty($pinterestUserData) ? json_encode($pinterestUserData, JSON_UNESCAPED_SLASHES) : null,
                 'tiktok_user_data' => !empty($tiktokUserData) ? json_encode($tiktokUserData, JSON_UNESCAPED_SLASHES) : null,
                 'microsoft_user_data' => !empty($microsoftUserData) ? json_encode($microsoftUserData, JSON_UNESCAPED_SLASHES) : null,
+                'openai_user_data' => !empty($openaiUserData) ? json_encode($openaiUserData, JSON_UNESCAPED_SLASHES) : null,
                 'page_context' => json_encode($pageContext, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'initial_server_payload' => !empty($initialPayloads) ? json_encode((count($initialPayloads) === 1 ? $initialPayloads[0] : $initialPayloads), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
             ]);

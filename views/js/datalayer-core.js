@@ -223,6 +223,43 @@
   }
 
   /**
+   * Universal ISO 4217 minor unit converter for OpenAI Ads.
+   * Converts floating point / integer currency values to exact integer minor units.
+   */
+  function toMinorUnits(amount, currencyCode, customPrecision) {
+    var val = typeof amount === 'number' ? amount : parseFloat(amount) || 0.0;
+    var code = (currencyCode ? String(currencyCode) : 'EUR').trim().toUpperCase();
+
+    // Zero-decimal currencies (multiplier = 1)
+    var zeroDecimal = [
+      'BIF', 'CLP', 'DJF', 'GNF', 'JPY', 'KMF', 'KRW', 'MGA',
+      'PYG', 'RWF', 'UGX', 'VND', 'VUV', 'XAF', 'XOF', 'XPF'
+    ];
+    if (zeroDecimal.indexOf(code) !== -1) {
+      return Math.round(val);
+    }
+
+    // Three-decimal currencies (multiplier = 1000)
+    var threeDecimal = ['BHD', 'IQD', 'JOD', 'KWD', 'LYD', 'OMR', 'TND'];
+    if (threeDecimal.indexOf(code) !== -1) {
+      return Math.round(val * 1000);
+    }
+
+    // Four-decimal currencies (multiplier = 10000)
+    var fourDecimal = ['CLF', 'UYW'];
+    if (fourDecimal.indexOf(code) !== -1) {
+      return Math.round(val * 10000);
+    }
+
+    if (customPrecision !== undefined && customPrecision !== null && !isNaN(customPrecision) && parseInt(customPrecision, 10) !== 2) {
+      return Math.round(val * Math.pow(10, parseInt(customPrecision, 10)));
+    }
+
+    // Standard two-decimal currencies (USD, EUR, GBP, AUD, CAD, BDT, INR, etc.)
+    return Math.round(val * 100);
+  }
+
+  /**
    * Universal Advertising Platform Namespace Builder:
    * Generates exact, catalog-matching payload parameters for Meta, TikTok, and Google Ads Dynamic Remarketing.
    */
@@ -711,6 +748,96 @@
       microsoftAdsNamespace.pid = msUserData.pid || msUserData;
     }
 
+    // -------------------------------------------------------------
+    // OpenAI / ChatGPT Ads Namespace Builder
+    // -------------------------------------------------------------
+    var openAiPrecision = (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined)
+      ? parseInt(window.psGtmConfig.currencyPrecision, 10)
+      : 2;
+    var openAiEventName = 'custom';
+    var openAiType = 'custom';
+    var openAiCustomName = null;
+    var includeAmount = false;
+    var includeContents = false;
+
+    if (canonicalEventName === 'view_item' || canonicalEventName === 'view_item_list' || canonicalEventName === 'view_search_results' || canonicalEventName === 'view_cart') {
+      openAiEventName = 'contents_viewed';
+      openAiType = 'contents';
+      includeContents = true;
+    } else if (canonicalEventName === 'add_to_cart') {
+      openAiEventName = 'items_added';
+      openAiType = 'contents';
+      includeAmount = true;
+      includeContents = true;
+    } else if (canonicalEventName === 'begin_checkout') {
+      openAiEventName = 'checkout_started';
+      openAiType = 'contents';
+      includeAmount = true;
+      includeContents = true;
+    } else if (canonicalEventName === 'purchase') {
+      openAiEventName = 'order_created';
+      openAiType = 'contents';
+      includeAmount = true;
+      includeContents = true;
+    } else {
+      openAiEventName = 'custom';
+      openAiType = 'custom';
+      openAiCustomName = canonicalEventName;
+    }
+
+    var openAiContents = [];
+    if (includeContents) {
+      for (var k = 0; k < items.length; k++) {
+        var openAiIt = items[k];
+        if (!openAiIt) continue;
+        var oaiCId = resolveCatalogItemId(openAiIt, strategy);
+        var oaiQty = typeof openAiIt.quantity === 'number' ? openAiIt.quantity : parseInt(openAiIt.quantity, 10) || 1;
+        if (oaiQty <= 0) oaiQty = 1;
+        var oaiPrice = typeof openAiIt.price === 'number' ? openAiIt.price : parseFloat(openAiIt.price) || 0.0;
+        var oaiItem = {
+          id: isList ? String(openAiIt.item_id) : oaiCId,
+          name: String(openAiIt.item_name || ''),
+          content_type: isList ? 'product_group' : 'product'
+        };
+        if (openAiEventName === 'items_added') {
+          oaiItem.quantity = oaiQty;
+          oaiItem.amount = toMinorUnits(oaiPrice, curr, openAiPrecision);
+          oaiItem.currency = curr;
+        } else if (openAiEventName === 'checkout_started' || openAiEventName === 'order_created') {
+          oaiItem.quantity = oaiQty;
+        }
+        openAiContents.push(oaiItem);
+      }
+    }
+
+    var openAiData = {
+      type: openAiType
+    };
+    if (includeAmount) {
+      openAiData.amount = toMinorUnits(val, curr, openAiPrecision);
+      openAiData.currency = curr;
+    }
+    if (includeContents) {
+      openAiData.contents = openAiContents;
+    }
+
+    var oaiUserData = options.openaiUserData || options.openai_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.openaiUserData ? window.psGtmConfig.openaiUserData : null);
+    if (oaiUserData && typeof oaiUserData === 'object' && Object.keys(oaiUserData).length > 0) {
+      openAiData.user = oaiUserData;
+    }
+
+    var openaiAdsNamespace = {
+      command: 'measure',
+      event_name: openAiEventName,
+      data: openAiData
+    };
+    if (openAiCustomName) {
+      openaiAdsNamespace.options = {
+        custom_event_name: openAiCustomName
+      };
+    }
+
     var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
     if (!masterEnabled) {
       return {};
@@ -721,12 +848,14 @@
     var gadsEnabled = advSettings ? (advSettings.gads_enabled !== false && advSettings.gads_enabled !== 0 && advSettings.gads_enabled !== '0') : true;
     var pinterestEnabled = advSettings ? (advSettings.pinterest_enabled !== false && advSettings.pinterest_enabled !== 0 && advSettings.pinterest_enabled !== '0') : true;
     var microsoftEnabled = advSettings ? (advSettings.microsoft_enabled !== false && advSettings.microsoft_enabled !== 0 && advSettings.microsoft_enabled !== '0') : true;
+    var openaiEnabled = advSettings ? (advSettings.openai_enabled !== false && advSettings.openai_enabled !== 0 && advSettings.openai_enabled !== '0') : true;
 
     var metaEvents = (advSettings && Array.isArray(advSettings.meta_events)) ? advSettings.meta_events : null;
     var tiktokEvents = (advSettings && Array.isArray(advSettings.tiktok_events)) ? advSettings.tiktok_events : null;
     var gadsEvents = (advSettings && Array.isArray(advSettings.gads_events)) ? advSettings.gads_events : null;
     var pinterestEvents = (advSettings && Array.isArray(advSettings.pinterest_events)) ? advSettings.pinterest_events : null;
     var microsoftEvents = (advSettings && Array.isArray(advSettings.microsoft_events)) ? advSettings.microsoft_events : null;
+    var openaiEvents = (advSettings && Array.isArray(advSettings.openai_events)) ? advSettings.openai_events : null;
 
     var isSearchListing = (canonicalEventName === 'view_item_list' && (pageType === 'searchresults' || (options && options.listId && String(options.listId).indexOf('search') !== -1)));
 
@@ -745,6 +874,9 @@
     }
     if (microsoftEnabled && (!microsoftEvents || microsoftEvents.indexOf(canonicalEventName) !== -1)) {
       result.microsoft_ads = microsoftAdsNamespace;
+    }
+    if (openaiEnabled && (!openaiEvents || openaiEvents.indexOf(canonicalEventName) !== -1)) {
+      result.openai_ads = openaiAdsNamespace;
     }
 
     return result;
@@ -785,7 +917,8 @@
       shipping: ecommerceData.shipping !== undefined ? ecommerceData.shipping : (additionalNamespaces && additionalNamespaces.order_totals ? additionalNamespaces.order_totals.shipping_total : undefined),
       coupon: ecommerceData.coupon || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.coupon) || '',
       affiliation: ecommerceData.affiliation || '',
-      microsoftUserData: (additionalNamespaces && additionalNamespaces.microsoft_ads && additionalNamespaces.microsoft_ads.pid) ? additionalNamespaces.microsoft_ads.pid : (additionalNamespaces && additionalNamespaces.microsoft_user_data ? additionalNamespaces.microsoft_user_data : null)
+      microsoftUserData: (additionalNamespaces && additionalNamespaces.microsoft_ads && additionalNamespaces.microsoft_ads.pid) ? additionalNamespaces.microsoft_ads.pid : (additionalNamespaces && additionalNamespaces.microsoft_user_data ? additionalNamespaces.microsoft_user_data : null),
+      openaiUserData: (additionalNamespaces && additionalNamespaces.openai_ads && additionalNamespaces.openai_ads.data && additionalNamespaces.openai_ads.data.user) ? additionalNamespaces.openai_ads.data.user : (additionalNamespaces && additionalNamespaces.openai_user_data ? additionalNamespaces.openai_user_data : null)
     });
 
     var canonicalPayload = {
@@ -825,6 +958,9 @@
     if (platformNamespaces.microsoft_ads) {
       canonicalPayload.microsoft_ads = platformNamespaces.microsoft_ads;
     }
+    if (platformNamespaces.openai_ads) {
+      canonicalPayload.openai_ads = platformNamespaces.openai_ads;
+    }
 
     if (additionalNamespaces && typeof additionalNamespaces === 'object') {
       if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta || {}, additionalNamespaces.meta);
@@ -832,6 +968,7 @@
       if (additionalNamespaces.google_ads) canonicalPayload.google_ads = Object.assign({}, canonicalPayload.google_ads || {}, additionalNamespaces.google_ads);
       if (additionalNamespaces.pinterest) canonicalPayload.pinterest = Object.assign({}, canonicalPayload.pinterest || {}, additionalNamespaces.pinterest);
       if (additionalNamespaces.microsoft_ads) canonicalPayload.microsoft_ads = Object.assign({}, canonicalPayload.microsoft_ads || {}, additionalNamespaces.microsoft_ads);
+      if (additionalNamespaces.openai_ads) canonicalPayload.openai_ads = Object.assign({}, canonicalPayload.openai_ads || {}, additionalNamespaces.openai_ads);
       if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
     }
 
@@ -847,7 +984,8 @@
         tiktok: null,
         google_ads: null,
         pinterest: null,
-        microsoft_ads: null
+        microsoft_ads: null,
+        openai_ads: null
       });
       window.dataLayer.push(canonicalPayload);
     }
@@ -1003,6 +1141,7 @@
     formatVariant: formatVariant,
     processCartDelta: processCartDelta,
     resolveCatalogItemId: resolveCatalogItemId,
-    buildPlatformNamespaces: buildPlatformNamespaces
+    buildPlatformNamespaces: buildPlatformNamespaces,
+    toMinorUnits: toMinorUnits
   };
 });

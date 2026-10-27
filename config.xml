@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
     <name>ps_gtm_datalayer</name>
-    <displayName><![CDATA[E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads]]></displayName>
-    <version><![CDATA[1.40.10]]></version>
-    <description><![CDATA[Catalog-accurate ecommerce DataLayer with native Meta, Pinterest, TikTok, Google Ads, and Microsoft Advertising (Bing Ads) matching, base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.]]></description>
+    <displayName><![CDATA[E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google, Microsoft & OpenAI Ads]]></displayName>
+    <version><![CDATA[1.41.0]]></version>
+    <description><![CDATA[Catalog-accurate ecommerce DataLayer with native Meta, Pinterest, TikTok, Google Ads, Microsoft Advertising (Bing Ads), and OpenAI ChatGPT Ads matching, base item_id, combination variant_id, variant SKU, dynamic prefixing, and sGTM support.]]></description>
     <author><![CDATA[Raihan]]></author>
     <tab><![CDATA[analytics_stats]]></tab>
     <is_configurable>1</is_configurable>

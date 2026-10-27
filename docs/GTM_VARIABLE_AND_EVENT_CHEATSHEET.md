@@ -90,6 +90,19 @@ Use these exact paths when creating **Data Layer Variables** in GTM:
 
 ---
 
+### OpenAI / ChatGPT Ads Variables
+| GTM Variable Name | Data Layer Variable Path | Target Usage |
+| :--- | :--- | :--- |
+| `{{dlv - openai_ads.command}}` | `openai_ads.command` | API Command (`"measure"`) |
+| `{{dlv - openai_ads.event_name}}` | `openai_ads.event_name` | Event Name (`contents_viewed`, `items_added`, `checkout_started`, `order_created`, `custom`) |
+| `{{dlv - openai_ads.data.amount}}` | `openai_ads.data.amount` | Amount in Minor Units (cents/satoshis, e.g. `2600`) |
+| `{{dlv - openai_ads.data.currency}}` | `openai_ads.data.currency` | ISO 4217 Currency Code (`"EUR"`) |
+| `{{dlv - openai_ads.data.contents}}` | `openai_ads.data.contents` | Contents Array (`[{"id":"68_299","amount":1300,"quantity":2}]`) |
+| `{{dlv - openai_ads.data.user}}` | `openai_ads.data.user` | SHA-256 Customer Matching Object (`email_sha256`, `phone_number_sha256`, etc.) |
+| `{{dlv - openai_ads.options.custom_event_name}}` | `openai_ads.options.custom_event_name` | Custom Event Name (`"add_to_wishlist"`, etc.) |
+
+---
+
 ## 2. GTM Custom Event Triggers Matrix
 
 Create these **Custom Event Triggers** in GTM under **Triggers > New > Custom Event**:
@@ -139,6 +152,7 @@ Paste into DevTools Console (`F12`) on any page to audit the dataLayer:
     if (e.pinterest) console.log('  Pinterest:', e.pinterest);
     if (e.tiktok) console.log('  TikTok:', e.tiktok);
     if (e.microsoft_ads) console.log('  Microsoft Ads:', e.microsoft_ads);
+    if (e.openai_ads) console.log('  OpenAI Ads:', e.openai_ads);
   });
   console.groupEnd();
 })();

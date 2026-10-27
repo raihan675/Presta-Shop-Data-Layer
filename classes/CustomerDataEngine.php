@@ -655,6 +655,159 @@ class CustomerDataEngine
     }
 
     /**
+     * Extracts, normalizes, and formats customer data specifically for OpenAI Ads
+     * Advanced Matching (email_sha256, phone_number_sha256, external_id_sha256,
+     * first_name_sha256, last_name_sha256, country, city, region, postal_code).
+     *
+     * @param Customer $customer
+     * @param Address|null $address
+     * @return array
+     */
+    public static function buildOpenAiUserData(Customer $customer, Address $address = null)
+    {
+        if (!Validate::isLoadedObject($customer)) {
+            return [];
+        }
+
+        $rawEmail = (string)$customer->email;
+        $rawPhone = '';
+        if ($address && Validate::isLoadedObject($address)) {
+            $rawPhone = !empty($address->phone_mobile) ? (string)$address->phone_mobile : (string)$address->phone;
+        }
+
+        $firstName = ($address && !empty($address->firstname)) ? (string)$address->firstname : (string)$customer->firstname;
+        $lastName = ($address && !empty($address->lastname)) ? (string)$address->lastname : (string)$customer->lastname;
+        $city = ($address && !empty($address->city)) ? trim((string)$address->city) : '';
+        $postcode = ($address && !empty($address->postcode)) ? trim((string)$address->postcode) : '';
+
+        $stateName = '';
+        if ($address && !empty($address->id_state) && class_exists('State')) {
+            $stateObj = new State((int)$address->id_state);
+            if (Validate::isLoadedObject($stateObj) && !empty($stateObj->name)) {
+                $stateName = trim((string)$stateObj->name);
+            }
+        }
+
+        $countryIso = '';
+        if ($address && !empty($address->id_country) && class_exists('Country')) {
+            $countryIso = strtoupper(trim((string)Country::getIsoById((int)$address->id_country)));
+        }
+
+        return self::hashOpenAiUserData([
+            'email' => $rawEmail,
+            'phone' => $rawPhone,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'external_id' => (string)$customer->id,
+            'city' => $city,
+            'region' => $stateName,
+            'postal_code' => $postcode,
+            'country' => $countryIso,
+        ], $address);
+    }
+
+    /**
+     * Hashes and formats normalized customer dictionary for OpenAI Ads Advanced Matching.
+     *
+     * @param array $userData
+     * @param Address|null $address
+     * @return array
+     */
+    public static function hashOpenAiUserData(array $userData, Address $address = null)
+    {
+        $openAiUser = [];
+
+        // 1. Email: lowercase, trimmed, UTF-8, sha256
+        $email = !empty($userData['email']) ? trim((string)$userData['email']) : '';
+        if ($email !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $email)) {
+                $openAiUser['email_sha256'] = strtolower($email);
+            } else {
+                $cleanEmail = strtolower($email);
+                if (filter_var($cleanEmail, FILTER_VALIDATE_EMAIL)) {
+                    $openAiUser['email_sha256'] = hash('sha256', $cleanEmail);
+                }
+            }
+        }
+
+        // 2. Phone: country code + digits only, without leading '+' and without leading zeros, sha256
+        $phone = !empty($userData['phone_number']) ? (string)$userData['phone_number'] : (!empty($userData['phone']) ? (string)$userData['phone'] : '');
+        if ($phone !== '') {
+            $cleanPhone = trim($phone);
+            if (preg_match('/^[a-f0-9]{64}$/i', $cleanPhone)) {
+                $openAiUser['phone_number_sha256'] = strtolower($cleanPhone);
+            } else {
+                $metaPhone = self::normalizeMetaPhone($cleanPhone, $address);
+                if ($metaPhone !== '') {
+                    $digits = ltrim($metaPhone, '0');
+                    if (strlen($digits) >= 6) {
+                        $openAiUser['phone_number_sha256'] = hash('sha256', $digits);
+                    }
+                }
+            }
+        }
+
+        // 3. External ID: trimmed, sha256
+        $extId = !empty($userData['external_id']) ? trim((string)$userData['external_id']) : '';
+        if ($extId !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $extId)) {
+                $openAiUser['external_id_sha256'] = strtolower($extId);
+            } else {
+                $openAiUser['external_id_sha256'] = hash('sha256', $extId);
+            }
+        }
+
+        // 4. First Name: lowercase, strip whitespace & ASCII punctuation, preserve accents, sha256
+        $addr = !empty($userData['address']) && is_array($userData['address']) ? $userData['address'] : $userData;
+        $fn = !empty($addr['first_name']) ? (string)$addr['first_name'] : (!empty($userData['first_name']) ? (string)$userData['first_name'] : '');
+        if ($fn !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $fn)) {
+                $openAiUser['first_name_sha256'] = strtolower($fn);
+            } else {
+                $cleanFn = mb_strtolower(trim($fn), 'UTF-8');
+                $cleanFn = preg_replace('/[\s\p{P}]+/u', '', $cleanFn);
+                if ($cleanFn !== '') {
+                    $openAiUser['first_name_sha256'] = hash('sha256', $cleanFn);
+                }
+            }
+        }
+
+        // 5. Last Name: lowercase, strip whitespace & ASCII punctuation, preserve accents, sha256
+        $ln = !empty($addr['last_name']) ? (string)$addr['last_name'] : (!empty($userData['last_name']) ? (string)$userData['last_name'] : '');
+        if ($ln !== '') {
+            if (preg_match('/^[a-f0-9]{64}$/i', $ln)) {
+                $openAiUser['last_name_sha256'] = strtolower($ln);
+            } else {
+                $cleanLn = mb_strtolower(trim($ln), 'UTF-8');
+                $cleanLn = preg_replace('/[\s\p{P}]+/u', '', $cleanLn);
+                if ($cleanLn !== '') {
+                    $openAiUser['last_name_sha256'] = hash('sha256', $cleanLn);
+                }
+            }
+        }
+
+        // 6. Location fields: unhashed strings
+        $country = !empty($addr['country']) ? (string)$addr['country'] : (!empty($userData['country']) ? (string)$userData['country'] : '');
+        if (!empty($country)) {
+            $openAiUser['country'] = strtoupper(trim($country));
+        }
+        $city = !empty($addr['city']) ? (string)$addr['city'] : (!empty($userData['city']) ? (string)$userData['city'] : '');
+        if (!empty($city)) {
+            $openAiUser['city'] = trim($city);
+        }
+        $region = !empty($addr['region']) ? (string)$addr['region'] : (!empty($addr['state']) ? (string)$addr['state'] : (!empty($userData['region']) ? (string)$userData['region'] : ''));
+        if (!empty($region)) {
+            $openAiUser['region'] = trim($region);
+        }
+        $postalCode = !empty($addr['postal_code']) ? (string)$addr['postal_code'] : (!empty($addr['postcode']) ? (string)$addr['postcode'] : (!empty($userData['postal_code']) ? (string)$userData['postal_code'] : ''));
+        if (!empty($postalCode)) {
+            $openAiUser['postal_code'] = trim($postalCode);
+        }
+
+        return $openAiUser;
+    }
+
+    /**
      * Normalizes phone number to strict E.164 format (+[country code][digits]).
      *
      * @param string $phone
