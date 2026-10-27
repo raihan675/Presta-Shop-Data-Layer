@@ -276,7 +276,7 @@
     destContainer.innerHTML = '';
 
     var destinations = schemaData.destinations || {};
-    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'sgtm'];
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai', 'sgtm'];
 
     pKeys.forEach(function (pk) {
       var pData = destinations[pk];
@@ -394,7 +394,7 @@
 
     var count = 0;
     var activeNames = [];
-    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft'];
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai'];
 
     var masterSw = document.querySelector('input[name="PS_GTM_ADV_MASTER_ENABLED"]');
     var isMaster = masterSw ? masterSw.checked : true;
@@ -459,7 +459,8 @@
       gads: 'Google Ads Dynamic Remarketing',
       tiktok: 'TikTok Pixel & Events API',
       pinterest: 'Pinterest Tag & Conversions API',
-      microsoft: 'Microsoft Advertising (UET)'
+      microsoft: 'Microsoft Advertising (UET)',
+      openai: 'OpenAI / ChatGPT Ads Measurement'
     };
 
     var count = 0;
@@ -774,6 +775,10 @@
     switches.forEach(function (s) {
       s.checked = targetState;
     });
+    var platHidden = document.getElementById('adv_platform_' + platformKey + '_enabled');
+    if (platHidden) {
+      platHidden.value = targetState ? '1' : '0';
+    }
     document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
       var evt = row.getAttribute('data-event');
       if (evt) window.psGtmSyncRowState(evt);
@@ -782,12 +787,16 @@
   };
 
   window.psGtmToggleAllPlatforms = function (state) {
-    var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft'];
+    var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai'];
     platforms.forEach(function (pk) {
       var switches = document.querySelectorAll('.ps-gtm-evt-' + pk);
       switches.forEach(function (s) {
         s.checked = state;
       });
+      var platHidden = document.getElementById('adv_platform_' + pk + '_enabled');
+      if (platHidden) {
+        platHidden.value = state ? '1' : '0';
+      }
     });
     document.querySelectorAll('.ps-gtm-event-row').forEach(function (row) {
       var evt = row.getAttribute('data-event');

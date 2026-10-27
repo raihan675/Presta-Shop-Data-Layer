@@ -717,7 +717,7 @@
     padding-bottom: 6px;
   }
   .ps-gtm-routing-inner-minwidth {
-    min-width: 760px;
+    min-width: 860px;
   }
 
   /* Group Card Container */
@@ -781,8 +781,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 440px;
-    max-width: 440px;
+    min-width: 528px;
+    max-width: 528px;
   }
   .ps-gtm-platform-col-head {
     width: 88px;
@@ -912,8 +912,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 440px;
-    max-width: 440px;
+    min-width: 528px;
+    max-width: 528px;
   }
   .ps-gtm-switch-cell {
     width: 88px;
@@ -946,8 +946,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 440px;
-    max-width: 440px;
+    min-width: 528px;
+    max-width: 528px;
   }
 
   /* Modern Footer Bar */
@@ -1101,10 +1101,10 @@
                 </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Advertising Platforms' mod='ps_gtm_datalayer'}</span>
-                  <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Bing' mod='ps_gtm_datalayer'}</span>
+                  <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Bing, OpenAI' mod='ps_gtm_datalayer'}</span>
                 </div>
               </div>
-              <span class="badge {if $active_platforms_count > 0}badge-success{else}badge-default{/if}">{$active_platforms_count|escape:'html':'UTF-8'}/5</span>
+              <span class="badge {if $active_platforms_count > 0}badge-success{else}badge-default{/if}">{$active_platforms_count|escape:'html':'UTF-8'}/6</span>
             </a>
 
             <!-- 4. Server-Side & Webhooks -->
@@ -1309,6 +1309,7 @@
           <input type="hidden" name="PS_GTM_ADV_TIKTOK_ENABLED" id="adv_platform_tiktok_enabled" value="{if $config_values.PS_GTM_ADV_TIKTOK_ENABLED}1{else}0{/if}">
           <input type="hidden" name="PS_GTM_ADV_PINTEREST_ENABLED" id="adv_platform_pinterest_enabled" value="{if $config_values.PS_GTM_ADV_PINTEREST_ENABLED}1{else}0{/if}">
           <input type="hidden" name="PS_GTM_ADV_MICROSOFT_ENABLED" id="adv_platform_microsoft_enabled" value="{if $config_values.PS_GTM_ADV_MICROSOFT_ENABLED}1{else}0{/if}">
+          <input type="hidden" name="PS_GTM_ADV_OPENAI_ENABLED" id="adv_platform_openai_enabled" value="{if $config_values.PS_GTM_ADV_OPENAI_ENABLED}1{else}0{/if}">
 
           <!-- 2. Toolbar: Display Mode & Bulk Actions -->
           <div class="ps-gtm-routing-toolbar">
@@ -1360,6 +1361,10 @@
                     <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft">
                     <span>Microsoft</span>
                   </div>
+                  <div class="ps-gtm-platform-col-head" title="{l s='Toggle ChatGPT / OpenAI Ads Column' mod='ps_gtm_datalayer'}" onclick="psGtmTogglePlatformColumn('openai')">
+                    <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" alt="ChatGPT">
+                    <span>ChatGPT</span>
+                  </div>
                 </div>
               </div>
 
@@ -1395,6 +1400,10 @@
                     <div class="ps-gtm-platform-col-head" title="{l s='Toggle Microsoft for this group' mod='ps_gtm_datalayer'}" onclick="psGtmToggleGroupPlatform('{$grpKey|escape:'html':'UTF-8'}', 'microsoft')">
                       <img src="{$module_path|escape:'html':'UTF-8'}views/img/microsoft_ads.png" alt="Microsoft">
                       <span>Microsoft</span>
+                    </div>
+                    <div class="ps-gtm-platform-col-head" title="{l s='Toggle ChatGPT for this group' mod='ps_gtm_datalayer'}" onclick="psGtmToggleGroupPlatform('{$grpKey|escape:'html':'UTF-8'}', 'openai')">
+                      <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" alt="ChatGPT">
+                      <span>ChatGPT</span>
                     </div>
                   </div>
                 </div>
@@ -1453,6 +1462,13 @@
                           <span class="ps-gtm-slider"></span>
                         </label>
                       </div>
+                      <!-- ChatGPT / OpenAI Switch -->
+                      <div class="ps-gtm-switch-cell">
+                        <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle ChatGPT for %s' sprintf=[$e.label] mod='ps_gtm_datalayer'}">
+                          <input type="checkbox" name="adv_openai_{$e.name|escape:'html':'UTF-8'}" class="ps-gtm-evt-openai ps-gtm-row-evt-{$e.name|escape:'html':'UTF-8'} ps-gtm-grp-{$grpKey|escape:'html':'UTF-8'}-openai" value="1" {if in_array($e.name, $openai_active_events)}checked{/if} onchange="psGtmSyncRowState('{$e.name|escape:'html':'UTF-8'}')">
+                          <span class="ps-gtm-slider"></span>
+                        </label>
+                      </div>
                     </div>
                   </div>
                   {/foreach}
@@ -1492,6 +1508,53 @@
                 <div class="ps-gtm-help-text" style="font-size: 12.5px;">
                   {l s='If provided, automatically populates Merchant Center ID inside cart data.' mod='ps_gtm_datalayer'}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- OpenAI / ChatGPT Ads Conversion Measurement Subcard -->
+          <div class="ps-gtm-card" style="margin-top: 20px; border-left: 4px solid #10a37f;">
+            <div class="card-header-bar" style="padding: 12px 18px;">
+              <h4 class="card-header-title" style="font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" style="width: 20px; height: 20px; object-fit: contain;" alt="OpenAI">
+                <span>{l s='OpenAI / ChatGPT Ads Conversion Measurement' mod='ps_gtm_datalayer'}</span>
+              </h4>
+              <span class="label {if $config_values.PS_GTM_ADV_OPENAI_ENABLED}label-success{else}label-default{/if}">
+                {if $config_values.PS_GTM_ADV_OPENAI_ENABLED}{l s='Enabled' mod='ps_gtm_datalayer'}{else}{l s='Disabled' mod='ps_gtm_datalayer'}{/if}
+              </span>
+            </div>
+            <div class="card-body-content" style="padding: 16px 18px;">
+              <div style="font-size: 13.5px; color: #475569; line-height: 1.6; margin-bottom: 14px;">
+                {l s='Automatically transforms and dispatches ecommerce events into OpenAI measure payloads directly in window.dataLayer.openai_ads for Google Tag Manager tags with zero DOM scraping.' mod='ps_gtm_datalayer'}
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
+                    <i class="icon-money text-success"></i> {l s='ISO 4217 Minor Units' mod='ps_gtm_datalayer'}
+                  </strong>
+                  <span style="font-size: 12px; color: #64748b;">
+                    {l s='Amounts are converted to minor currency units (cents/satoshis) matching OpenAI measurement requirements for 0-, 2-, 3-, and 4-decimal global currencies.' mod='ps_gtm_datalayer'}
+                  </span>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
+                    <i class="icon-user text-primary"></i> {l s='SHA-256 Customer Advanced Matching' mod='ps_gtm_datalayer'}
+                  </strong>
+                  <span style="font-size: 12px; color: #64748b;">
+                    {l s='Customer data is pre-normalized and SHA-256 hashed (email, phone, first/last name, external ID) for highest conversion match rate.' mod='ps_gtm_datalayer'}
+                  </span>
+                </div>
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;">
+                  <strong style="color: #0f172a; font-size: 13px; display: block; margin-bottom: 4px;">
+                    <i class="icon-shield text-info"></i> {l s='Clean Purge & Isolation' mod='ps_gtm_datalayer'}
+                  </strong>
+                  <span style="font-size: 12px; color: #64748b;">
+                    {l s='Zero sticky state: openai_ads: null is pushed before every action to isolate parameters and prevent cross-event pollution.' mod='ps_gtm_datalayer'}
+                  </span>
+                </div>
+              </div>
+              <div style="background: #f1f5f9; border-left: 3px solid #10a37f; padding: 10px 14px; border-radius: 4px; font-size: 12.5px; color: #334155;">
+                <strong>{l s='GTM DataLayer Implementation:' mod='ps_gtm_datalayer'}</strong> {l s='Create Custom HTML tags in GTM to fire oaiq("measure", ...) using variables: {{dlv - openai_ads.event_name}}, {{dlv - openai_ads.data}}, and {{dlv - openai_ads.options.custom_event_name}}.' mod='ps_gtm_datalayer'}
               </div>
             </div>
           </div>

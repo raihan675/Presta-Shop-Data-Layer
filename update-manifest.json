@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.41.0",
+    "latest_version":  "1.41.1",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.0/ps_gtm_datalayer.zip",
-    "checksum":  "c37a269bbf11622d256f67d08999f5fcfffad391c761725f0304f8e4aa5efe2b",
-    "release_type":  "minor",
-    "release_notes":  "1. OpenAI / ChatGPT Ads Measurement Integration: Dedicated window.dataLayer.openai_ads namespace emitting standard (contents_viewed, items_added, checkout_started, order_created) and custom ecommerce actions with command \u0027measure\u0027.\n2. Universal ISO 4217 Minor Currency Units: Strict minor unit monetary conversion for all global currencies (0-decimal JPY/KRW/VND, 3-decimal KWD/BHD/OMR, 4-decimal CLF, and standard 2-decimal USD/EUR/GBP/BDT).\n3. Advanced Customer Matching: SHA-256 normalized email, phone, name, external_id, and unhashed address matching for OpenAI measurement.\n4. Complete BO Advertising Routing Matrix: Full support for master switch, platform toggle, event routing matrix, and DataLayer purge reset (openai_ads: null)."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.1/ps_gtm_datalayer.zip",
+    "checksum":  "b8f4b4eaa80178711269db45685a55d11a5fff061e4979d15947ff5ddc518a0b",
+    "release_type":  "patch",
+    "release_notes":  "1. Back Office Advertising Platform Matrix UI: Added native ChatGPT / OpenAI column header, group toggle buttons, and individual event switches in views/templates/admin/configuration.tpl.\n2. Platform Enable State Sync: Added hidden input adv_platform_openai_enabled and connected column and bulk toggle actions in views/js/admin.js.\n3. ChatGPT Ads Configuration Subcard: Added informative configuration card with ISO 4217 minor units, SHA-256 Customer Advanced Matching, and GTM DataLayer variable instructions.\n4. Navigation Counter: Updated active platform counter to reflect all 6 supported advertising channels (X / 6 active)."
 }

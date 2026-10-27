@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.41.1] - 2026-10-27
+
+### Fixed & Enhanced
+- **Back Office Advertising Platform Routing Matrix UI**:
+  - Integrated native **ChatGPT / OpenAI Ads** column header with brand logo into `views/templates/admin/configuration.tpl`.
+  - Added category group toggle buttons (`psGtmToggleGroupPlatform(groupId, 'openai')`) across Product Discovery, Cart & Checkout, and Conversion sections.
+  - Added individual event toggle switches (`adv_openai_{$e.name}`) across all 11 storefront events.
+  - Added hidden state input `PS_GTM_ADV_OPENAI_ENABLED` to preserve platform master state on form submission.
+- **Back Office JavaScript Architecture**:
+  - Registered `openai` in `pKeys` and `platforms` arrays in `views/js/admin.js`.
+  - Connected column header toggle (`psGtmTogglePlatformColumn('openai')`) and global bulk toggles (`psGtmToggleAllPlatforms(state)`).
+  - Added label mapping for Schema Inspector drawer: `'OpenAI / ChatGPT Ads Measurement'`.
+- **ChatGPT Ads Configuration Subcard**:
+  - Added dedicated configuration subcard below the Event Routing matrix table detailing ISO 4217 minor unit conversion, SHA-256 Customer Advanced Matching, and GTM DataLayer variable implementation.
+- **Admin Navigation Counter**:
+  - Synchronized active advertising platforms badge to display `X / 6` (supporting Meta, Google Ads, TikTok, Pinterest, Microsoft, and OpenAI).
+
+---
+
 ## [1.41.0] - 2026-10-27
 
 ### Added
