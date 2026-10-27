@@ -276,7 +276,7 @@
     destContainer.innerHTML = '';
 
     var destinations = schemaData.destinations || {};
-    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai', 'sgtm'];
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai', 'snapchat', 'sgtm'];
 
     pKeys.forEach(function (pk) {
       var pData = destinations[pk];
@@ -394,7 +394,7 @@
 
     var count = 0;
     var activeNames = [];
-    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai'];
+    var pKeys = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai', 'snapchat'];
 
     var masterSw = document.querySelector('input[name="PS_GTM_ADV_MASTER_ENABLED"]');
     var isMaster = masterSw ? masterSw.checked : true;
@@ -460,7 +460,8 @@
       tiktok: 'TikTok Pixel & Events API',
       pinterest: 'Pinterest Tag & Conversions API',
       microsoft: 'Microsoft Advertising (UET)',
-      openai: 'OpenAI / ChatGPT Ads Measurement'
+      openai: 'OpenAI / ChatGPT Ads Measurement',
+      snapchat: 'Snapchat Pixel & Conversions API (CAPI)'
     };
 
     var count = 0;
@@ -787,7 +788,7 @@
   };
 
   window.psGtmToggleAllPlatforms = function (state) {
-    var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai'];
+    var platforms = ['meta', 'gads', 'tiktok', 'pinterest', 'microsoft', 'openai', 'snapchat'];
     platforms.forEach(function (pk) {
       var switches = document.querySelectorAll('.ps-gtm-evt-' + pk);
       switches.forEach(function (s) {

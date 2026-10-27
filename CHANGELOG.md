@@ -1,8 +1,30 @@
 # Changelog
 
-All notable changes to the **Enterprise GA4, Meta, Pinterest, TikTok, Google & Microsoft Ads DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
+All notable changes to the **Enterprise GA4, Meta, Pinterest, TikTok, Google, Microsoft, OpenAI & Snapchat Ads DataLayer (`ps_gtm_datalayer`)** module are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+---
+
+## [1.42.0] - 2026-10-27
+
+### Added
+- **Snapchat Ads Pixel & Conversions API (CAPI) Integration**:
+  - Native `snapchat` namespace emitted across all 12 canonical e-commerce events with zero DOM scraping and authoritative PrestaShop backend models.
+  - **Dual Sub-Object Architecture**:
+    - `snapchat.pixel`: Browser-focused parameters for client-side Snap Pixel (`price`, `currency`, `item_ids`, `number_items`, `item_category`, `transaction_id`, `search_string`, `description`).
+    - `snapchat.dynamic_ads`: Official Conversions API (CAPI v3) Dynamic Ads parameters (`content_type`, `content_ids`, `contents` array with `id`/`quantity`/`item_price`/`brand`, `content_name`, `content_category`, `brands`, `value`, `currency`, `order_id`, `num_items`, `search_string`).
+    - `snapchat.user_data`: SHA-256 hashed customer parameters (`em`, `ph` in E.164 without leading symbols, `fn`, `ln`, `ct`, `st`, `zp`, `country`) for maximum Snapchat Event Quality Score (EQS).
+  - **7th Column in Advertising Platform Matrix Table**:
+    - Seamlessly integrated as 7th platform column in the Back Office **Advertising Platform DataLayers & Event Routing** matrix with group toggles, individual event switches, and master sync (`PS_GTM_ADV_SNAPCHAT_ENABLED`, `PS_GTM_ADV_SNAPCHAT_EVENTS`).
+    - Synchronized active platforms counter to display `X / 7`.
+    - Added high-resolution official Snapchat brand logo icon (`views/img/snapchat.png`).
+  - **State Isolation & Pre-Event Purge**:
+    - Registered `snapchat: null` across all pre-event purge reset objects in `datalayer-core.js` and `datalayer_init.tpl` to eliminate cross-event state pollution in GTM.
+  - **Automated Test Suite**:
+    - Added `tests/snapchatAdsCatalogMatching.test.js` validating all 15 unit and integration scenarios across dual sub-object parameters, event mapping, catalog ID strategies (`composite`, `id_product`, `reference_sku`), selective event routing, and state isolation.
+  - **Upgrade Routine**:
+    - Added `upgrade/upgrade-1.42.0.php` with default configuration registration and automated cache flushing.
 
 ---
 

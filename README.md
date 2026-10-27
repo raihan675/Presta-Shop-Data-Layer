@@ -1,10 +1,10 @@
-# Enterprise GA4, Meta, Pinterest, TikTok, Google, Microsoft & OpenAI Ads DataLayer Module for PrestaShop
+# Enterprise GA4, Meta, Pinterest, TikTok, Google, Microsoft, OpenAI & Snapchat Ads DataLayer Module for PrestaShop
 
 [![PrestaShop Compatibility](https://img.shields.io/badge/PrestaShop-1.7.0.0%20--%208.2.x%20%2F%209.x-blue.svg)](https://www.prestashop.com/)
 [![License: Academic Free License (AFL 3.0)](https://img.shields.io/badge/License-AFL%203.0-green.svg)](https://opensource.org/licenses/AFL-3.0)
 [![Latest Release](https://img.shields.io/github/v/release/raihan675/Presta-Shop-Data-Layer?color=brightgreen)](https://github.com/raihan675/Presta-Shop-Data-Layer/releases/latest)
 
-An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, **Google Ads Dynamic Remarketing (Retail vertical)**, **Microsoft Advertising (Bing Ads) & UET**, and **OpenAI / ChatGPT Ads Measurement** with zero client-side transformation required in Google Tag Manager.
+An enterprise-grade, high-performance PrestaShop tracking module implementing canonical **Google Analytics 4 (GA4)** ecommerce alongside native, first-class namespaces for **Meta (Facebook/Instagram) Pixel & CAPI**, **Pinterest Ads Tag & Conversions API (CAPI)**, **TikTok Pixel & Events API**, **Google Ads Dynamic Remarketing (Retail vertical)**, **Microsoft Advertising (Bing Ads) & UET**, **OpenAI / ChatGPT Ads Measurement**, and **Snapchat Ads Pixel & Conversions API (CAPI)** with zero client-side transformation required in Google Tag Manager.
 
 Includes **Server-Side GTM (sGTM)** support, **Server-to-Server Webhook Engine (Refunds, Offline Orders & Status Changes)**, and **100% backend-derived data sourcing (Zero DOM Scraping)**.
 
@@ -23,17 +23,17 @@ The module supports all core ecommerce actions across the full customer funnel w
 
 | # | GA4 Event Name | Trigger Location / User Action | Advertising Namespaces Captured |
 | :-: | :--- | :--- | :--- |
-| **1** | **`view_item_list`** | Visiting a genuine product listing page (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**). Carries authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`). Never fires on search pages. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` pagetype), `meta` (`ViewCategory`), `pinterest` (`ViewCategory`), `tiktok` (`ViewContent`), `microsoft_ads` (`view_item_list`, `category` pagetype), `openai_ads` (`contents_viewed`, `contents: [{id: base_id, content_type: 'product_group'}]`) |
-| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme search controllers). Strictly represents search action with authoritative `search_term`, `search_results_count`, and returned `items`. Never triggers `view_item_list`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `google_ads` (`searchresults` pagetype, `search_term`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), `microsoft_ads` (`view_search_results`, `search_term`, `searchresults` pagetype), `openai_ads` (`contents_viewed`, `contents`) |
-| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`), `microsoft_ads` (`view_item`, `product` pagetype, `items`), `openai_ads` (`contents_viewed`, `contents: [{id: catalog_id}]`) |
-| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports PrestaShop official `blockwishlist` and standard endpoints with zero DOM scraping). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads`, `microsoft_ads` (`add_to_wishlist`, `other` pagetype), `openai_ads` (`custom`, `custom_event_name: 'add_to_wishlist'`) |
-| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add, or incrementing quantities in the cart/modal via Universal Cart Delta Engine. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_to_cart`, `cart` pagetype, `revenue_value`), `openai_ads` (`items_added`, `amount: minor_units`, `contents: [{id, amount: item_minor_units, quantity}]`) |
-| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart via Universal Cart Delta Engine. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`remove_from_cart`, `cart` pagetype), `openai_ads` (`custom`, `custom_event_name: 'remove_from_cart'`) |
-| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`Custom: ViewCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`view_cart`, `cart` pagetype), `openai_ads` (`contents_viewed`, `contents`) |
-| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`begin_checkout`, `checkout_step: 1`, `cart` pagetype), `openai_ads` (`checkout_started`, `amount: minor_units`, `contents`) |
-| **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_shipping_info`, `checkout_step: 3`), `openai_ads` (`custom`, `custom_event_name: 'add_shipping_info'`) |
-| **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_payment_info`, `checkout_step: 4`), `openai_ads` (`custom`, `custom_event_name: 'add_payment_info'`) |
-| **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data`), `microsoft_ads` (`purchase`, `transaction_id`, `revenue_value`, `tax`, `shipping`, `pid`), `openai_ads` (`order_created`, `amount: minor_units`, `contents`, `user: {email_sha256, ...}`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
+| **1** | **`view_item_list`** | Visiting a genuine product listing page (**Category**, **Home Featured**, **Brand / Manufacturer**, **On Sale**, **New Products**, **Best Sellers**). Carries authentic `item_list_id` (e.g. `category_12`) and `item_list_name` (e.g. `Trinkbecher`). Never fires on search pages. | `ecommerce` (`items`, `item_list_id`, `item_list_name`), `google_ads` (`category` pagetype), `meta` (`ViewCategory`), `pinterest` (`ViewCategory`), `tiktok` (`ViewContent`), `microsoft_ads` (`view_item_list`, `category` pagetype), `openai_ads` (`contents_viewed`, `contents: [{id: base_id, content_type: 'product_group'}]`), `snapchat` (`LIST_VIEW`, `pixel: {item_ids, number_items}`, `dynamic_ads: {content_type: 'product_group', content_ids, contents, brands}`) |
+| **2** | **`view_search_results`** | Viewing on-site search results (`/search?s=...` or theme search controllers). Strictly represents search action with authoritative `search_term`, `search_results_count`, and returned `items`. Never triggers `view_item_list`. | `ecommerce` (`search_term`, `search_results_count`, `items`), `google_ads` (`searchresults` pagetype, `search_term`, `items`), `meta` (`Search`, `search_string`, `contents`), `pinterest` (`Search`, `search_query`, `line_items`), `tiktok` (`Search`, `search_string`, `query`, `contents`), `microsoft_ads` (`view_search_results`, `search_term`, `searchresults` pagetype), `openai_ads` (`contents_viewed`, `contents`), `snapchat` (`SEARCH`, `pixel: {search_string}`, `dynamic_ads: {search_string, contents}`) |
+| **3** | **`view_item`** | Loading a **Product Detail Page (PDP)**, and dynamically re-firing when switching attributes/variants (Size, Color, etc.). | `ecommerce`, `meta` (`content_ids`, `contents`), `pinterest` (`PageVisit`, `line_items`), `tiktok` (`content_id`, `contents`), `google_ads` (`product`), `microsoft_ads` (`view_item`, `product` pagetype, `items`), `openai_ads` (`contents_viewed`, `contents: [{id: catalog_id}]`), `snapchat` (`VIEW_CONTENT`, `pixel: {item_ids, price, description, item_category}`, `dynamic_ads: {content_ids, contents, content_name, content_category, value}`) |
+| **4** | **`add_to_wishlist`** | Adding an item to a wishlist from the PDP or listing cards (supports PrestaShop official `blockwishlist` and standard endpoints with zero DOM scraping). | `ecommerce`, `meta`, `pinterest` (`AddToWishList`, `line_items`), `tiktok`, `google_ads`, `microsoft_ads` (`add_to_wishlist`, `other` pagetype), `openai_ads` (`custom`, `custom_event_name: 'add_to_wishlist'`), `snapchat` (`ADD_TO_WISHLIST`, `pixel: {item_ids, price}`, `dynamic_ads: {content_ids, contents, value}`) |
+| **5** | **`add_to_cart`** | Adding an item from PDP, quick-add, or incrementing quantities in the cart/modal via Universal Cart Delta Engine. | `ecommerce`, `meta`, `pinterest` (`AddToCart`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_to_cart`, `cart` pagetype, `revenue_value`), `openai_ads` (`items_added`, `amount: minor_units`, `contents: [{id, amount: item_minor_units, quantity}]`), `snapchat` (`ADD_CART`, `pixel: {item_ids, price, number_items}`, `dynamic_ads: {content_ids, contents, value, num_items}`) |
+| **6** | **`remove_from_cart`** | Removing an item, decreasing quantity, or clearing the entire cart via Universal Cart Delta Engine. | `ecommerce`, `meta`, `pinterest` (`Custom: RemoveFromCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`remove_from_cart`, `cart` pagetype), `openai_ads` (`custom`, `custom_event_name: 'remove_from_cart'`), `snapchat` (`CUSTOM_EVENT_2`, `pixel: {item_ids, price}`, `dynamic_ads: {content_ids, contents, value}`) |
+| **7** | **`view_cart`** | Viewing the shopping cart summary page (`/cart`). | `ecommerce`, `meta`, `pinterest` (`Custom: ViewCart`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`view_cart`, `cart` pagetype), `openai_ads` (`contents_viewed`, `contents`), `snapchat` (`VIEW_CONTENT`, `pixel: {item_ids, price, number_items}`, `dynamic_ads: {content_ids, contents, value, num_items}`) |
+| **8** | **`begin_checkout`** | Entering the checkout funnel / order step 1 (`/order`). | `ecommerce`, `meta` (`num_items`), `pinterest` (`InitiateCheckout`, `line_items`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`begin_checkout`, `checkout_step: 1`, `cart` pagetype), `openai_ads` (`checkout_started`, `amount: minor_units`, `contents`), `snapchat` (`START_CHECKOUT`, `pixel: {item_ids, price, number_items}`, `dynamic_ads: {content_ids, contents, value, num_items}`) |
+| **9** | **`add_shipping_info`** | Selecting and confirming a shipping carrier during checkout step 3. | `ecommerce` (`shipping_tier`), `meta`, `pinterest` (`Custom: AddShippingInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_shipping_info`, `checkout_step: 3`), `openai_ads` (`custom`, `custom_event_name: 'add_shipping_info'`), `snapchat` (`CUSTOM_EVENT_3`, `pixel: {price}`, `dynamic_ads: {value, contents}`) |
+| **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_payment_info`, `checkout_step: 4`), `openai_ads` (`custom`, `custom_event_name: 'add_payment_info'`), `snapchat` (`ADD_BILLING`, `pixel: {price}`, `dynamic_ads: {value, contents}`) |
+| **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data`), `microsoft_ads` (`purchase`, `transaction_id`, `revenue_value`, `tax`, `shipping`, `pid`), `openai_ads` (`order_created`, `amount: minor_units`, `contents`, `user: {email_sha256, ...}`), `snapchat` (`PURCHASE`, `pixel: {item_ids, price, transaction_id}`, `dynamic_ads: {content_ids, contents, value, order_id}`, `user_data: {em, ph, fn, ln, ct, st, zp, country}`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
 | **12** | **`refund`** *(Server-to-Server)* | Administrator generates a partial or full Credit Slip in PrestaShop Back Office (`actionOrderSlipAdd`). | Server-to-server HTTP POST to sGTM (`/g/collect?v=2`) with refunded items, catalog IDs, quantities, values, and SHA-256 customer data. Deduplicated via `ps_gtm_refund_log`. |
 | **13** | **`order_status_update`** *(Server-to-Server)* | Order/payment status changes in Back Office (`actionOrderStatusPostUpdate`), e.g. Bank Wire `#10` to Payment Accepted `#2`, Mirakl `#11`. | Dispatches new status ID, localized name, native `is_paid` and `is_shipped` flags, items, and SHA-256 customer data. Features self-healing `payment_revoked` classification and `conversion_action: "retract"`. |
 
@@ -227,6 +227,52 @@ To eliminate brittle client-side custom JavaScript variables in GTM, every event
   * `postal_code`: Postal / ZIP code (unhashed).
 * **Privacy & Isolation**: Strictly omits `event_id` per specification. Reset to `openai_ads: null` during GTM dataLayer purge.
 
+### 7. Snapchat Ads (Snap Pixel & Conversions API)
+* **Dual Sub-Object Model**: Emitted with separate sub-objects for client-side Pixel (`pixel`) and server-side Conversions API (`dynamic_ads`):
+  * `snapchat.event_name`: Official Snapchat conversion events (`'VIEW_CONTENT'`, `'LIST_VIEW'`, `'SEARCH'`, `'ADD_CART'`, `'ADD_TO_WISHLIST'`, `'START_CHECKOUT'`, `'ADD_BILLING'`, `'PURCHASE'`, `'CUSTOM_EVENT_1'`, `'CUSTOM_EVENT_2'`, `'CUSTOM_EVENT_3'`).
+  * `snapchat.action_source`: Always set to `'WEB'`.
+* `snapchat.pixel`: Browser parameters for client-side Snap Pixel (`snaptr('track', ...)`):
+  * `currency`: 3-letter ISO currency code (e.g. `'EUR'`).
+  * `price`: Float decimal price or total cart/order revenue.
+  * `item_ids`: Array of strings matching the catalog product ID strategy (`composite`, `id_product`, or `reference_sku`).
+  * `number_items`: Integer count of total item quantity.
+  * `item_category`: Primary category name.
+  * `description`: Product name on PDP.
+  * `search_string`: Search query string on search events.
+  * `transaction_id`: PrestaShop order ID on purchase.
+* `snapchat.dynamic_ads`: Official Conversions API (CAPI v3) Dynamic Ads parameters:
+  * `currency`: 3-letter ISO currency code.
+  * `value`: Float decimal conversion value.
+  * `content_type`: `'product'` (PDP, cart, checkout, purchase) or `'product_group'` (category listing).
+  * `content_ids`: Array of catalog-matched product IDs.
+  * `contents`: Array of line items matching Snap CAPI specifications (`id`, `quantity`, `item_price`, `brand`):
+    ```json
+    [
+      {
+        "id": "68_299",
+        "quantity": 2,
+        "item_price": 13.00,
+        "brand": "Dooky"
+      }
+    ]
+    ```
+  * `content_name`: Product name.
+  * `content_category`: Product category.
+  * `brands`: Array of brand names.
+  * `num_items`: Total number of items.
+  * `order_id`: Order transaction ID on purchase.
+  * `search_string`: Search keyword.
+* `snapchat.user_data`: SHA-256 Customer Parameters for maximum Event Quality Score (EQS):
+  * `em`: SHA-256 lowercase trimmed email.
+  * `ph`: SHA-256 E.164 phone number without leading zeros/symbols.
+  * `fn`: SHA-256 lowercase first name.
+  * `ln`: SHA-256 lowercase last name.
+  * `ct`: SHA-256 lowercase city.
+  * `st`: SHA-256 lowercase state code.
+  * `zp`: SHA-256 lowercase postal code.
+  * `country`: Lowercase 2-letter ISO country code.
+* **State Isolation**: Reset to `snapchat: null` during GTM dataLayer purge before every event.
+
 > [!NOTE]
 > **Strict Event Separation: Search vs Product-List Tracking**:
 > * `view_search_results`: Strictly fires when a user performs a search action and views on-site search results. Communicates search intent and query parameters (`search_term`, `search_results_count`) alongside returned catalog `items` directly to GA4 Site Search reports, and triggers authoritative `Search` / dynamic remarketing tracking across Meta, TikTok, Pinterest, Google Ads, and Microsoft Advertising (`ecomm_pagetype: 'searchresults'`).
@@ -301,6 +347,25 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 | `{{dlv - openai_ads.data.contents}}` | `openai_ads.data.contents` | OpenAI Ads Contents Array (`id`, `amount`, `quantity`, `content_type`) |
 | `{{dlv - openai_ads.data.user}}` | `openai_ads.data.user` | OpenAI Ads Advanced Matching (`email_sha256`, `phone_number_sha256`, etc.) |
 | `{{dlv - openai_ads.options.custom_event_name}}` | `openai_ads.options.custom_event_name` | OpenAI Ads Custom Event Name (used when event is `'custom'`) |
+| `{{dlv - snapchat.event_name}}` | `snapchat.event_name` | Snapchat Event Name (`VIEW_CONTENT`, `LIST_VIEW`, `SEARCH`, `ADD_CART`, `PURCHASE`, etc.) |
+| `{{dlv - snapchat.pixel.price}}` | `snapchat.pixel.price` | Snapchat Pixel Price / Revenue Float Value |
+| `{{dlv - snapchat.pixel.currency}}` | `snapchat.pixel.currency` | Snapchat Pixel ISO Currency Code |
+| `{{dlv - snapchat.pixel.item_ids}}` | `snapchat.pixel.item_ids` | Snapchat Pixel Item IDs Array (`item_ids`) |
+| `{{dlv - snapchat.pixel.number_items}}` | `snapchat.pixel.number_items` | Snapchat Pixel Total Items Count (`number_items`) |
+| `{{dlv - snapchat.pixel.item_category}}` | `snapchat.pixel.item_category` | Snapchat Pixel Item Category |
+| `{{dlv - snapchat.pixel.description}}` | `snapchat.pixel.description` | Snapchat Pixel Item Description / Title |
+| `{{dlv - snapchat.pixel.search_string}}` | `snapchat.pixel.search_string` | Snapchat Pixel Search Query (`search_string`) |
+| `{{dlv - snapchat.pixel.transaction_id}}` | `snapchat.pixel.transaction_id` | Snapchat Pixel Transaction / Order ID |
+| `{{dlv - snapchat.dynamic_ads.value}}` | `snapchat.dynamic_ads.value` | Snapchat CAPI Dynamic Ads Total Value |
+| `{{dlv - snapchat.dynamic_ads.currency}}` | `snapchat.dynamic_ads.currency` | Snapchat CAPI Dynamic Ads Currency |
+| `{{dlv - snapchat.dynamic_ads.content_type}}` | `snapchat.dynamic_ads.content_type` | Snapchat CAPI Dynamic Ads Content Type (`product` / `product_group`) |
+| `{{dlv - snapchat.dynamic_ads.content_ids}}` | `snapchat.dynamic_ads.content_ids` | Snapchat CAPI Dynamic Ads Product IDs Array |
+| `{{dlv - snapchat.dynamic_ads.contents}}` | `snapchat.dynamic_ads.contents` | Snapchat CAPI Dynamic Ads Line Items Array (`id`, `quantity`, `item_price`, `brand`) |
+| `{{dlv - snapchat.dynamic_ads.brands}}` | `snapchat.dynamic_ads.brands` | Snapchat CAPI Dynamic Ads Brands Array |
+| `{{dlv - snapchat.dynamic_ads.num_items}}` | `snapchat.dynamic_ads.num_items` | Snapchat CAPI Dynamic Ads Number of Items |
+| `{{dlv - snapchat.dynamic_ads.order_id}}` | `snapchat.dynamic_ads.order_id` | Snapchat CAPI Dynamic Ads Order ID |
+| `{{dlv - snapchat.dynamic_ads.search_string}}` | `snapchat.dynamic_ads.search_string` | Snapchat CAPI Dynamic Ads Search Query |
+| `{{dlv - snapchat.user_data}}` | `snapchat.user_data` | Snapchat Event Quality Score (EQS) Advanced Matching Object (`em`, `ph`, `fn`, `ln`, `ct`, `st`, `zp`, `country`) |
 
 ---
 
@@ -309,8 +374,8 @@ Create these simple **Data Layer Variables (DLVs)** in your GTM container and bi
 In your PrestaShop Back Office (**Modules > Module Manager > E-Commerce DataLayer > Configure**), the module features a modern 6-tab navigation layout designed for enterprise manageability and zero vertical scrolling:
 
 ### 1. Overview Tab
-* **Executive Metrics Grid**: Real-time status cards displaying GTM Web Container status, Server-Side GTM status, active advertising channels (X / 6 active), and canonical tracked event count.
-* **Channel Status Overview**: High-level health cards for Meta, Google Ads, TikTok, Pinterest, Microsoft Advertising, OpenAI Ads, and Server-to-Server Webhooks.
+* **Executive Metrics Grid**: Real-time status cards displaying GTM Web Container status, Server-Side GTM status, active advertising channels (X / 7 active), and canonical tracked event count.
+* **Channel Status Overview**: High-level health cards for Meta, Google Ads, TikTok, Pinterest, Microsoft Advertising, OpenAI Ads, Snapchat Ads, and Server-to-Server Webhooks.
 * **Configuration Warning Callouts**: Immediate notifications for missing Container IDs, unconfigured transport URLs, or misconfigured routes.
 * **Quick Configuration Navigator**: Direct jump tiles to any technical subsection with one click.
 

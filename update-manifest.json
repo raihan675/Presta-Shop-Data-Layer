@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.41.2",
+    "latest_version":  "1.42.0",
     "release_date":  "2026-10-27",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.41.2/ps_gtm_datalayer.zip",
-    "checksum":  "a0e87725389965f4baa6270ba8ed45f3d54a134289124c6f24e36e5bb496b819",
-    "release_type":  "patch",
-    "release_notes":  "Removed unnecessary OpenAI / ChatGPT Ads informational subcard from the Advertising Platform tab to maintain a unified, uncluttered Back Office matrix layout identical to Meta, TikTok, Pinterest, and Microsoft Advertising."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.0/ps_gtm_datalayer.zip",
+    "checksum":  "8706248a07686072913e0d395087113b524c7e519c48badffe64cc758191bfd8",
+    "release_type":  "minor",
+    "release_notes":  "Added native Snapchat Ads Pixel \u0026 Conversions API (CAPI) DataLayer schema integration with official dual sub-object architecture (pixel \u0026 dynamic_ads), advanced matching SHA-256 user data, catalog-accurate product IDs, and 7th column Back Office matrix event routing."
 }

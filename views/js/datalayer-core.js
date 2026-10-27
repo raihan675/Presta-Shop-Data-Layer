@@ -838,6 +838,151 @@
       };
     }
 
+    // -------------------------------------------------------------
+    // Snapchat Ads Namespace Builder (Dual-Object: pixel & dynamic_ads)
+    // -------------------------------------------------------------
+    var snapchatEventName = 'CUSTOM_EVENT_1';
+    switch (canonicalEventName) {
+      case 'view_item_list':
+        snapchatEventName = 'LIST_VIEW';
+        break;
+      case 'view_search_results':
+      case 'search':
+        snapchatEventName = 'SEARCH';
+        break;
+      case 'view_item':
+        snapchatEventName = 'VIEW_CONTENT';
+        break;
+      case 'select_item':
+        snapchatEventName = 'CUSTOM_EVENT_1';
+        break;
+      case 'add_to_wishlist':
+        snapchatEventName = 'ADD_TO_WISHLIST';
+        break;
+      case 'add_to_cart':
+        snapchatEventName = 'ADD_CART';
+        break;
+      case 'remove_from_cart':
+        snapchatEventName = 'CUSTOM_EVENT_2';
+        break;
+      case 'view_cart':
+        snapchatEventName = 'VIEW_CONTENT';
+        break;
+      case 'begin_checkout':
+        snapchatEventName = 'START_CHECKOUT';
+        break;
+      case 'add_shipping_info':
+        snapchatEventName = 'CUSTOM_EVENT_3';
+        break;
+      case 'add_payment_info':
+        snapchatEventName = 'ADD_BILLING';
+        break;
+      case 'purchase':
+        snapchatEventName = 'PURCHASE';
+        break;
+      default:
+        snapchatEventName = 'CUSTOM_EVENT_1';
+        break;
+    }
+
+    var snapItemIds = [];
+    var snapContents = [];
+    var snapBrands = [];
+
+    for (var snIdx = 0; snIdx < items.length; snIdx++) {
+      var sIt = items[snIdx];
+      if (!sIt) continue;
+      var sCatId = resolveCatalogItemId(sIt, strategy);
+      var sId = isList ? String(sIt.item_id) : sCatId;
+      var sQty = typeof sIt.quantity === 'number' ? sIt.quantity : parseInt(sIt.quantity, 10) || 1;
+      if (sQty <= 0) sQty = 1;
+      var sPrice = typeof sIt.price === 'number' ? sIt.price : parseFloat(sIt.price) || 0.0;
+
+      if (snapItemIds.indexOf(sId) === -1) {
+        snapItemIds.push(sId);
+      }
+      var sItemObj = {
+        id: sId,
+        quantity: sQty,
+        item_price: sPrice
+      };
+      if (sIt.item_brand) {
+        sItemObj.brand = String(sIt.item_brand);
+        if (snapBrands.indexOf(String(sIt.item_brand)) === -1) {
+          snapBrands.push(String(sIt.item_brand));
+        }
+      }
+      snapContents.push(sItemObj);
+    }
+
+    // 1. Snap Pixel Object
+    var snapchatPixel = {
+      currency: curr,
+      price: val,
+      item_ids: snapItemIds,
+      number_items: totalNumItems > 0 ? totalNumItems : 1
+    };
+    if (options && options.categoryName) {
+      snapchatPixel.item_category = String(options.categoryName);
+    } else if (isSingleProduct && items[0] && items[0].item_category) {
+      snapchatPixel.item_category = String(items[0].item_category);
+    }
+    if (options && options.searchTerm) {
+      snapchatPixel.search_string = String(options.searchTerm);
+    }
+    if (isSingleProduct && items[0] && items[0].item_name) {
+      snapchatPixel.description = String(items[0].item_name);
+    }
+    if (canonicalEventName === 'purchase') {
+      var snapTxId = options && (options.transactionId || options.orderId) ? String(options.transactionId || options.orderId) : '';
+      if (snapTxId) {
+        snapchatPixel.transaction_id = snapTxId;
+      }
+    }
+
+    // 2. Dynamic Ads Object (CAPI custom_data)
+    var snapchatDynamicAds = {
+      currency: curr,
+      value: val,
+      content_type: isList ? 'product_group' : 'product',
+      content_ids: snapItemIds,
+      contents: snapContents,
+      num_items: totalNumItems > 0 ? totalNumItems : 1
+    };
+    if (snapBrands.length > 0) {
+      snapchatDynamicAds.brands = snapBrands;
+    }
+    if (isSingleProduct && items[0] && items[0].item_name) {
+      snapchatDynamicAds.content_name = String(items[0].item_name);
+    }
+    if (options && options.categoryName) {
+      snapchatDynamicAds.content_category = String(options.categoryName);
+    } else if (isSingleProduct && items[0] && items[0].item_category) {
+      snapchatDynamicAds.content_category = String(items[0].item_category);
+    }
+    if (options && options.searchTerm) {
+      snapchatDynamicAds.search_string = String(options.searchTerm);
+    }
+    if (canonicalEventName === 'purchase') {
+      var snapOrderId = options && (options.transactionId || options.orderId) ? String(options.transactionId || options.orderId) : '';
+      if (snapOrderId) {
+        snapchatDynamicAds.order_id = snapOrderId;
+      }
+    }
+
+    var snapchatUserData = options.snapchatUserData || options.snapchat_user_data ||
+      (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.snapchatUserData ? window.psGtmConfig.snapchatUserData : null);
+
+    var snapchatNamespace = {
+      event_name: snapchatEventName,
+      action_source: 'WEB',
+      pixel: snapchatPixel,
+      dynamic_ads: snapchatDynamicAds
+    };
+    if (snapchatUserData && typeof snapchatUserData === 'object' && Object.keys(snapchatUserData).length > 0) {
+      snapchatNamespace.user_data = snapchatUserData;
+    }
+
     var masterEnabled = advSettings ? (advSettings.master_enabled !== false && advSettings.master_enabled !== 0 && advSettings.master_enabled !== '0') : true;
     if (!masterEnabled) {
       return {};
@@ -849,6 +994,7 @@
     var pinterestEnabled = advSettings ? (advSettings.pinterest_enabled !== false && advSettings.pinterest_enabled !== 0 && advSettings.pinterest_enabled !== '0') : true;
     var microsoftEnabled = advSettings ? (advSettings.microsoft_enabled !== false && advSettings.microsoft_enabled !== 0 && advSettings.microsoft_enabled !== '0') : true;
     var openaiEnabled = advSettings ? (advSettings.openai_enabled !== false && advSettings.openai_enabled !== 0 && advSettings.openai_enabled !== '0') : true;
+    var snapchatEnabled = advSettings ? (advSettings.snapchat_enabled !== false && advSettings.snapchat_enabled !== 0 && advSettings.snapchat_enabled !== '0') : true;
 
     var metaEvents = (advSettings && Array.isArray(advSettings.meta_events)) ? advSettings.meta_events : null;
     var tiktokEvents = (advSettings && Array.isArray(advSettings.tiktok_events)) ? advSettings.tiktok_events : null;
@@ -856,6 +1002,7 @@
     var pinterestEvents = (advSettings && Array.isArray(advSettings.pinterest_events)) ? advSettings.pinterest_events : null;
     var microsoftEvents = (advSettings && Array.isArray(advSettings.microsoft_events)) ? advSettings.microsoft_events : null;
     var openaiEvents = (advSettings && Array.isArray(advSettings.openai_events)) ? advSettings.openai_events : null;
+    var snapchatEvents = (advSettings && Array.isArray(advSettings.snapchat_events)) ? advSettings.snapchat_events : null;
 
     var isSearchListing = (canonicalEventName === 'view_item_list' && (pageType === 'searchresults' || (options && options.listId && String(options.listId).indexOf('search') !== -1)));
 
@@ -877,6 +1024,9 @@
     }
     if (openaiEnabled && (!openaiEvents || openaiEvents.indexOf(canonicalEventName) !== -1)) {
       result.openai_ads = openaiAdsNamespace;
+    }
+    if (snapchatEnabled && (!snapchatEvents || snapchatEvents.indexOf(canonicalEventName) !== -1)) {
+      result.snapchat = snapchatNamespace;
     }
 
     return result;
@@ -918,7 +1068,8 @@
       coupon: ecommerceData.coupon || (typeof window !== 'undefined' && window.psGtmConfig && window.psGtmConfig.coupon) || '',
       affiliation: ecommerceData.affiliation || '',
       microsoftUserData: (additionalNamespaces && additionalNamespaces.microsoft_ads && additionalNamespaces.microsoft_ads.pid) ? additionalNamespaces.microsoft_ads.pid : (additionalNamespaces && additionalNamespaces.microsoft_user_data ? additionalNamespaces.microsoft_user_data : null),
-      openaiUserData: (additionalNamespaces && additionalNamespaces.openai_ads && additionalNamespaces.openai_ads.data && additionalNamespaces.openai_ads.data.user) ? additionalNamespaces.openai_ads.data.user : (additionalNamespaces && additionalNamespaces.openai_user_data ? additionalNamespaces.openai_user_data : null)
+      openaiUserData: (additionalNamespaces && additionalNamespaces.openai_ads && additionalNamespaces.openai_ads.data && additionalNamespaces.openai_ads.data.user) ? additionalNamespaces.openai_ads.data.user : (additionalNamespaces && additionalNamespaces.openai_user_data ? additionalNamespaces.openai_user_data : null),
+      snapchatUserData: (additionalNamespaces && additionalNamespaces.snapchat && additionalNamespaces.snapchat.user_data) ? additionalNamespaces.snapchat.user_data : (additionalNamespaces && additionalNamespaces.snapchat_user_data ? additionalNamespaces.snapchat_user_data : null)
     });
 
     var canonicalPayload = {
@@ -961,6 +1112,9 @@
     if (platformNamespaces.openai_ads) {
       canonicalPayload.openai_ads = platformNamespaces.openai_ads;
     }
+    if (platformNamespaces.snapchat) {
+      canonicalPayload.snapchat = platformNamespaces.snapchat;
+    }
 
     if (additionalNamespaces && typeof additionalNamespaces === 'object') {
       if (additionalNamespaces.meta) canonicalPayload.meta = Object.assign({}, canonicalPayload.meta || {}, additionalNamespaces.meta);
@@ -969,6 +1123,7 @@
       if (additionalNamespaces.pinterest) canonicalPayload.pinterest = Object.assign({}, canonicalPayload.pinterest || {}, additionalNamespaces.pinterest);
       if (additionalNamespaces.microsoft_ads) canonicalPayload.microsoft_ads = Object.assign({}, canonicalPayload.microsoft_ads || {}, additionalNamespaces.microsoft_ads);
       if (additionalNamespaces.openai_ads) canonicalPayload.openai_ads = Object.assign({}, canonicalPayload.openai_ads || {}, additionalNamespaces.openai_ads);
+      if (additionalNamespaces.snapchat) canonicalPayload.snapchat = Object.assign({}, canonicalPayload.snapchat || {}, additionalNamespaces.snapchat);
       if (additionalNamespaces.order_totals) canonicalPayload.order_totals = additionalNamespaces.order_totals;
     }
 
@@ -985,7 +1140,8 @@
         google_ads: null,
         pinterest: null,
         microsoft_ads: null,
-        openai_ads: null
+        openai_ads: null,
+        snapchat: null
       });
       window.dataLayer.push(canonicalPayload);
     }

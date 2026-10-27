@@ -170,7 +170,8 @@
             google_ads: null,
             pinterest: null,
             microsoft_ads: null,
-            openai_ads: null
+            openai_ads: null,
+            snapchat: null
           });
           window.dataLayer.push(p);
         }
@@ -194,7 +195,8 @@
             google_ads: null,
             pinterest: null,
             microsoft_ads: null,
-            openai_ads: null
+            openai_ads: null,
+            snapchat: null
           });
           window.dataLayer.push(pending[i]);
         }

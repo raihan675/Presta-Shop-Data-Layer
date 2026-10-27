@@ -717,7 +717,7 @@
     padding-bottom: 6px;
   }
   .ps-gtm-routing-inner-minwidth {
-    min-width: 860px;
+    min-width: 948px;
   }
 
   /* Group Card Container */
@@ -781,8 +781,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 528px;
-    max-width: 528px;
+    min-width: 616px;
+    max-width: 616px;
   }
   .ps-gtm-platform-col-head {
     width: 88px;
@@ -912,8 +912,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 528px;
-    max-width: 528px;
+    min-width: 616px;
+    max-width: 616px;
   }
   .ps-gtm-switch-cell {
     width: 88px;
@@ -946,8 +946,8 @@
     align-items: center;
     justify-content: flex-end;
     gap: 0;
-    min-width: 528px;
-    max-width: 528px;
+    min-width: 616px;
+    max-width: 616px;
   }
 
   /* Modern Footer Bar */
@@ -1101,10 +1101,10 @@
                 </div>
                 <div class="ps-gtm-nav-text-block">
                   <span class="ps-gtm-nav-main-title">{l s='Advertising Platforms' mod='ps_gtm_datalayer'}</span>
-                  <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Bing, OpenAI' mod='ps_gtm_datalayer'}</span>
+                  <span class="ps-gtm-nav-sub-desc">{l s='Meta, Google, TikTok, Pinterest, Bing, OpenAI, Snapchat' mod='ps_gtm_datalayer'}</span>
                 </div>
               </div>
-              <span class="badge {if $active_platforms_count > 0}badge-success{else}badge-default{/if}">{$active_platforms_count|escape:'html':'UTF-8'}/6</span>
+              <span class="badge {if $active_platforms_count > 0}badge-success{else}badge-default{/if}">{$active_platforms_count|escape:'html':'UTF-8'}/7</span>
             </a>
 
             <!-- 4. Server-Side & Webhooks -->
@@ -1310,6 +1310,7 @@
           <input type="hidden" name="PS_GTM_ADV_PINTEREST_ENABLED" id="adv_platform_pinterest_enabled" value="{if $config_values.PS_GTM_ADV_PINTEREST_ENABLED}1{else}0{/if}">
           <input type="hidden" name="PS_GTM_ADV_MICROSOFT_ENABLED" id="adv_platform_microsoft_enabled" value="{if $config_values.PS_GTM_ADV_MICROSOFT_ENABLED}1{else}0{/if}">
           <input type="hidden" name="PS_GTM_ADV_OPENAI_ENABLED" id="adv_platform_openai_enabled" value="{if $config_values.PS_GTM_ADV_OPENAI_ENABLED}1{else}0{/if}">
+          <input type="hidden" name="PS_GTM_ADV_SNAPCHAT_ENABLED" id="adv_platform_snapchat_enabled" value="{if $config_values.PS_GTM_ADV_SNAPCHAT_ENABLED}1{else}0{/if}">
 
           <!-- 2. Toolbar: Display Mode & Bulk Actions -->
           <div class="ps-gtm-routing-toolbar">
@@ -1365,6 +1366,10 @@
                     <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" alt="ChatGPT">
                     <span>ChatGPT</span>
                   </div>
+                  <div class="ps-gtm-platform-col-head" title="{l s='Toggle Snapchat Column' mod='ps_gtm_datalayer'}" onclick="psGtmTogglePlatformColumn('snapchat')">
+                    <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat.png" alt="Snapchat">
+                    <span>Snapchat</span>
+                  </div>
                 </div>
               </div>
 
@@ -1404,6 +1409,10 @@
                     <div class="ps-gtm-platform-col-head" title="{l s='Toggle ChatGPT for this group' mod='ps_gtm_datalayer'}" onclick="psGtmToggleGroupPlatform('{$grpKey|escape:'html':'UTF-8'}', 'openai')">
                       <img src="{$module_path|escape:'html':'UTF-8'}views/img/openai.png" alt="ChatGPT">
                       <span>ChatGPT</span>
+                    </div>
+                    <div class="ps-gtm-platform-col-head" title="{l s='Toggle Snapchat for this group' mod='ps_gtm_datalayer'}" onclick="psGtmToggleGroupPlatform('{$grpKey|escape:'html':'UTF-8'}', 'snapchat')">
+                      <img src="{$module_path|escape:'html':'UTF-8'}views/img/snapchat.png" alt="Snapchat">
+                      <span>Snapchat</span>
                     </div>
                   </div>
                 </div>
@@ -1466,6 +1475,13 @@
                       <div class="ps-gtm-switch-cell">
                         <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle ChatGPT for %s' sprintf=[$e.label] mod='ps_gtm_datalayer'}">
                           <input type="checkbox" name="adv_openai_{$e.name|escape:'html':'UTF-8'}" class="ps-gtm-evt-openai ps-gtm-row-evt-{$e.name|escape:'html':'UTF-8'} ps-gtm-grp-{$grpKey|escape:'html':'UTF-8'}-openai" value="1" {if in_array($e.name, $openai_active_events)}checked{/if} onchange="psGtmSyncRowState('{$e.name|escape:'html':'UTF-8'}')">
+                          <span class="ps-gtm-slider"></span>
+                        </label>
+                      </div>
+                      <!-- Snapchat Switch -->
+                      <div class="ps-gtm-switch-cell">
+                        <label class="ps-gtm-switch ps-gtm-switch-sm" title="{l s='Toggle Snapchat for %s' sprintf=[$e.label] mod='ps_gtm_datalayer'}">
+                          <input type="checkbox" name="adv_snapchat_{$e.name|escape:'html':'UTF-8'}" class="ps-gtm-evt-snapchat ps-gtm-row-evt-{$e.name|escape:'html':'UTF-8'} ps-gtm-grp-{$grpKey|escape:'html':'UTF-8'}-snapchat" value="1" {if in_array($e.name, $snapchat_active_events)}checked{/if} onchange="psGtmSyncRowState('{$e.name|escape:'html':'UTF-8'}')">
                           <span class="ps-gtm-slider"></span>
                         </label>
                       </div>

@@ -808,6 +808,179 @@ class CustomerDataEngine
     }
 
     /**
+     * Extracts, normalizes, and SHA-256 hashes customer data for Snapchat Advanced Matching (EQS).
+     *
+     * @param Customer $customer
+     * @param Address|null $address
+     * @return array
+     */
+    public static function buildSnapchatUserData(Customer $customer, Address $address = null)
+    {
+        if (!Validate::isLoadedObject($customer)) {
+            return [];
+        }
+
+        $rawEmail = (string)$customer->email;
+        $rawFirstName = (string)$customer->firstname;
+        $rawLastName = (string)$customer->lastname;
+
+        $rawPhone = '';
+        $city = '';
+        $postcode = '';
+        $stateIso = '';
+        $countryIso = '';
+
+        if ($address && Validate::isLoadedObject($address)) {
+            $rawPhone = !empty($address->phone_mobile) ? (string)$address->phone_mobile : (string)$address->phone;
+            $city = (string)$address->city;
+            $postcode = (string)$address->postcode;
+
+            if (!empty($address->id_state) && class_exists('State')) {
+                try {
+                    $stObj = new State((int)$address->id_state);
+                    if (Validate::isLoadedObject($stObj)) {
+                        $stateIso = (string)$stObj->iso_code;
+                    }
+                } catch (\Throwable $e) {}
+            }
+
+            if (!empty($address->id_country) && class_exists('Country')) {
+                try {
+                    $cObj = new Country((int)$address->id_country);
+                    if (Validate::isLoadedObject($cObj)) {
+                        $countryIso = (string)$cObj->iso_code;
+                    }
+                } catch (\Throwable $e) {}
+            }
+        }
+
+        return self::hashSnapchatUserData([
+            'email' => $rawEmail,
+            'phone' => $rawPhone,
+            'firstname' => $rawFirstName,
+            'lastname' => $rawLastName,
+            'city' => $city,
+            'state' => $stateIso,
+            'postcode' => $postcode,
+            'country' => $countryIso,
+        ], $address);
+    }
+
+    /**
+     * Normalizes and SHA-256 hashes customer parameters for Snapchat Advanced Matching (EQS).
+     *
+     * @param array $userData
+     * @param Address|null $address
+     * @return array
+     */
+    public static function hashSnapchatUserData(array $userData, Address $address = null)
+    {
+        $snapUser = [];
+
+        // 1. Email (em)
+        $email = !empty($userData['email']) ? (string)$userData['email'] : (!empty($userData['em']) ? (string)$userData['em'] : '');
+        if (!empty($email)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $email)) {
+                $snapUser['em'] = strtolower($email);
+            } else {
+                $cleanEmail = self::normalizeEmail($email);
+                if ($cleanEmail !== '') {
+                    $snapUser['em'] = hash('sha256', $cleanEmail);
+                }
+            }
+        }
+
+        // 2. Phone (ph)
+        $phone = !empty($userData['phone']) ? (string)$userData['phone'] : (!empty($userData['ph']) ? (string)$userData['ph'] : (!empty($userData['phone_number']) ? (string)$userData['phone_number'] : ''));
+        if (!empty($phone)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $phone)) {
+                $snapUser['ph'] = strtolower($phone);
+            } else {
+                $e164 = self::normalizeE164Phone($phone, $address);
+                $digitsOnly = preg_replace('/[^0-9]/', '', $e164);
+                if (!empty($digitsOnly)) {
+                    $snapUser['ph'] = hash('sha256', $digitsOnly);
+                }
+            }
+        }
+
+        // 3. First Name (fn)
+        $fn = !empty($userData['firstname']) ? (string)$userData['firstname'] : (!empty($userData['fn']) ? (string)$userData['fn'] : (!empty($userData['first_name']) ? (string)$userData['first_name'] : ''));
+        if (!empty($fn)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $fn)) {
+                $snapUser['fn'] = strtolower($fn);
+            } else {
+                $cleanFn = mb_strtolower(trim($fn), 'UTF-8');
+                $cleanFn = preg_replace('/[\s\p{P}]+/u', '', $cleanFn);
+                if ($cleanFn !== '') {
+                    $snapUser['fn'] = hash('sha256', $cleanFn);
+                }
+            }
+        }
+
+        // 4. Last Name (ln)
+        $ln = !empty($userData['lastname']) ? (string)$userData['lastname'] : (!empty($userData['ln']) ? (string)$userData['ln'] : (!empty($userData['last_name']) ? (string)$userData['last_name'] : ''));
+        if (!empty($ln)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $ln)) {
+                $snapUser['ln'] = strtolower($ln);
+            } else {
+                $cleanLn = mb_strtolower(trim($ln), 'UTF-8');
+                $cleanLn = preg_replace('/[\s\p{P}]+/u', '', $cleanLn);
+                if ($cleanLn !== '') {
+                    $snapUser['ln'] = hash('sha256', $cleanLn);
+                }
+            }
+        }
+
+        // 5. City (ct) - lowercased, only [a-z]
+        $city = !empty($userData['city']) ? (string)$userData['city'] : (!empty($userData['ct']) ? (string)$userData['ct'] : '');
+        if (!empty($city)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $city)) {
+                $snapUser['ct'] = strtolower($city);
+            } else {
+                $cleanCity = preg_replace('/[^a-z]/', '', strtolower(trim($city)));
+                if ($cleanCity !== '') {
+                    $snapUser['ct'] = hash('sha256', $cleanCity);
+                }
+            }
+        }
+
+        // 6. State (st) - lowercased 2-letter abbreviation
+        $state = !empty($userData['state']) ? (string)$userData['state'] : (!empty($userData['st']) ? (string)$userData['st'] : (!empty($userData['region']) ? (string)$userData['region'] : ''));
+        if (!empty($state)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $state)) {
+                $snapUser['st'] = strtolower($state);
+            } else {
+                $cleanState = strtolower(trim($state));
+                if ($cleanState !== '') {
+                    $snapUser['st'] = hash('sha256', $cleanState);
+                }
+            }
+        }
+
+        // 7. Zip/Postal Code (zp) - lowercased, spaces and hyphens removed
+        $zp = !empty($userData['postcode']) ? (string)$userData['postcode'] : (!empty($userData['zp']) ? (string)$userData['zp'] : (!empty($userData['postal_code']) ? (string)$userData['postal_code'] : ''));
+        if (!empty($zp)) {
+            if (preg_match('/^[a-f0-9]{64}$/i', $zp)) {
+                $snapUser['zp'] = strtolower($zp);
+            } else {
+                $cleanZp = preg_replace('/[\s\-]/', '', strtolower(trim($zp)));
+                if ($cleanZp !== '') {
+                    $snapUser['zp'] = hash('sha256', $cleanZp);
+                }
+            }
+        }
+
+        // 8. Country - 2-letter lowercase ISO
+        $country = !empty($userData['country']) ? (string)$userData['country'] : '';
+        if (!empty($country)) {
+            $snapUser['country'] = strtolower(trim($country));
+        }
+
+        return $snapUser;
+    }
+
+    /**
      * Normalizes phone number to strict E.164 format (+[country code][digits]).
      *
      * @param string $phone

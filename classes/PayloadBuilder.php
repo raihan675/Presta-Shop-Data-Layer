@@ -222,6 +222,9 @@ class PayloadBuilder
         $pinterestLineItems = [];
         $microsoftProdIds = [];
         $microsoftItems = [];
+        $snapchatItemIds = [];
+        $snapchatContents = [];
+        $snapchatBrands = [];
         $totalQuantity = 0;
 
         foreach ($items as $it) {
@@ -306,6 +309,24 @@ class PayloadBuilder
                 $msftItem['list_position'] = (int)$it['list_position'];
             }
             $microsoftItems[] = $msftItem;
+
+            // Snapchat Item IDs & Dynamic Ads Contents Schema
+            $snapId = $isList ? (string)$it['item_id'] : $catId;
+            if (!in_array($snapId, $snapchatItemIds)) {
+                $snapchatItemIds[] = $snapId;
+            }
+            $snapItem = [
+                'id' => $snapId,
+                'quantity' => $qty,
+                'item_price' => $price,
+            ];
+            if (!empty($it['item_brand'])) {
+                $snapItem['brand'] = (string)$it['item_brand'];
+                if (!in_array((string)$it['item_brand'], $snapchatBrands)) {
+                    $snapchatBrands[] = (string)$it['item_brand'];
+                }
+            }
+            $snapchatContents[] = $snapItem;
         }
 
         // Meta Event Name Resolution
@@ -908,6 +929,138 @@ class PayloadBuilder
             ];
         }
 
+        // -------------------------------------------------------------
+        // Snapchat Ads Namespace Builder (Dual-Object: pixel & dynamic_ads)
+        // -------------------------------------------------------------
+        $snapchatEventName = 'CUSTOM_EVENT_1';
+        switch ($canonicalEvent) {
+            case 'view_item_list':
+                $snapchatEventName = 'LIST_VIEW';
+                break;
+            case 'view_search_results':
+            case 'search':
+                $snapchatEventName = 'SEARCH';
+                break;
+            case 'view_item':
+                $snapchatEventName = 'VIEW_CONTENT';
+                break;
+            case 'select_item':
+                $snapchatEventName = 'CUSTOM_EVENT_1';
+                break;
+            case 'add_to_wishlist':
+                $snapchatEventName = 'ADD_TO_WISHLIST';
+                break;
+            case 'add_to_cart':
+                $snapchatEventName = 'ADD_CART';
+                break;
+            case 'remove_from_cart':
+                $snapchatEventName = 'CUSTOM_EVENT_2';
+                break;
+            case 'view_cart':
+                $snapchatEventName = 'VIEW_CONTENT';
+                break;
+            case 'begin_checkout':
+                $snapchatEventName = 'START_CHECKOUT';
+                break;
+            case 'add_shipping_info':
+                $snapchatEventName = 'CUSTOM_EVENT_3';
+                break;
+            case 'add_payment_info':
+                $snapchatEventName = 'ADD_BILLING';
+                break;
+            case 'purchase':
+                $snapchatEventName = 'PURCHASE';
+                break;
+            default:
+                $snapchatEventName = 'CUSTOM_EVENT_1';
+                break;
+        }
+
+        // 1. Snap Pixel Object (for snaptr / Web GTM tags)
+        $snapchatPixel = [
+            'currency' => $currencyCode,
+            'price' => $val,
+            'item_ids' => $snapchatItemIds,
+            'number_items' => ($totalQuantity > 0) ? $totalQuantity : 1,
+        ];
+        if (!empty($options['category_name'])) {
+            $snapchatPixel['item_category'] = (string)$options['category_name'];
+        } elseif ($isSingleProduct && !empty($items[0]['item_category'])) {
+            $snapchatPixel['item_category'] = (string)$items[0]['item_category'];
+        }
+        if (!empty($options['search_term'])) {
+            $snapchatPixel['search_string'] = (string)$options['search_term'];
+        }
+        if ($isSingleProduct && !empty($items[0]['item_name'])) {
+            $snapchatPixel['description'] = (string)$items[0]['item_name'];
+        }
+        if ($canonicalEvent === 'purchase') {
+            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+            if (!empty($txId)) {
+                $snapchatPixel['transaction_id'] = $txId;
+            }
+        }
+
+        // 2. Dynamic Ads Object (matches Snap Conversions API custom_data)
+        $snapchatDynamicAds = [
+            'currency' => $currencyCode,
+            'value' => $val,
+            'content_type' => $isList ? 'product_group' : 'product',
+            'content_ids' => $snapchatItemIds,
+            'contents' => $snapchatContents,
+            'num_items' => ($totalQuantity > 0) ? $totalQuantity : 1,
+        ];
+        if (!empty($snapchatBrands)) {
+            $snapchatDynamicAds['brands'] = array_values(array_unique(array_filter($snapchatBrands)));
+        }
+        if ($isSingleProduct && !empty($items[0]['item_name'])) {
+            $snapchatDynamicAds['content_name'] = (string)$items[0]['item_name'];
+        }
+        if (!empty($options['category_name'])) {
+            $snapchatDynamicAds['content_category'] = (string)$options['category_name'];
+        } elseif ($isSingleProduct && !empty($items[0]['item_category'])) {
+            $snapchatDynamicAds['content_category'] = (string)$items[0]['item_category'];
+        }
+        if (!empty($options['search_term'])) {
+            $snapchatDynamicAds['search_string'] = (string)$options['search_term'];
+        }
+        if ($canonicalEvent === 'purchase') {
+            $txId = !empty($options['transaction_id']) ? (string)$options['transaction_id'] : (!empty($options['order_id']) ? (string)$options['order_id'] : '');
+            if (!empty($txId)) {
+                $snapchatDynamicAds['order_id'] = $txId;
+            }
+        }
+
+        // 3. User Data / Advanced Matching for High EQS
+        $snapchatUserData = [];
+        if (!empty($options['snapchat_user_data']) && is_array($options['snapchat_user_data'])) {
+            $snapchatUserData = $options['snapchat_user_data'];
+        } elseif (!empty($options['user_data']) && is_array($options['user_data'])) {
+            $hashedSnapUser = CustomerDataEngine::hashSnapchatUserData($options['user_data']);
+            if (!empty($hashedSnapUser)) {
+                $snapchatUserData = $hashedSnapUser;
+            }
+        } elseif (isset($this->context->customer) && Validate::isLoadedObject($this->context->customer)) {
+            $addr = null;
+            if (isset($this->context->cart) && Validate::isLoadedObject($this->context->cart) && !empty($this->context->cart->id_address_delivery)) {
+                $addr = new Address((int)$this->context->cart->id_address_delivery);
+            }
+            $snapUserData = CustomerDataEngine::buildSnapchatUserData($this->context->customer, $addr);
+            if (!empty($snapUserData)) {
+                $snapchatUserData = $snapUserData;
+            }
+        }
+
+        $snapchat = [
+            'event_name' => $snapchatEventName,
+            'action_source' => 'WEB',
+            'pixel' => $snapchatPixel,
+            'dynamic_ads' => $snapchatDynamicAds,
+        ];
+        if (!empty($snapchatUserData)) {
+            $snapchat['user_data'] = $snapchatUserData;
+        }
+
         $masterEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0') : true;
         if (!$masterEnabled) {
             return [];
@@ -919,6 +1072,7 @@ class PayloadBuilder
         $pinterestEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_PINTEREST_ENABLED') !== '0') : true;
         $microsoftEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_MICROSOFT_ENABLED') !== '0') : true;
         $openaiEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_OPENAI_ENABLED') !== '0') : true;
+        $snapchatEnabled = class_exists('Configuration') ? (Configuration::get('PS_GTM_ADV_SNAPCHAT_ENABLED') !== '0') : true;
 
         $metaEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_META_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_META_EVENTS'), true)
@@ -937,6 +1091,9 @@ class PayloadBuilder
             : null;
         $openaiEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_OPENAI_EVENTS'))
             ? json_decode(Configuration::get('PS_GTM_ADV_OPENAI_EVENTS'), true)
+            : null;
+        $snapchatEvents = (class_exists('Configuration') && Configuration::get('PS_GTM_ADV_SNAPCHAT_EVENTS'))
+            ? json_decode(Configuration::get('PS_GTM_ADV_SNAPCHAT_EVENTS'), true)
             : null;
 
         $isSearchListing = ($canonicalEvent === 'view_item_list' && $pageType === 'searchresults');
@@ -970,6 +1127,11 @@ class PayloadBuilder
         $isOpenAiActive = ($openaiEvents === null) ? true : (is_array($openaiEvents) && in_array($canonicalEvent, $openaiEvents));
         if ($openaiEnabled && $isOpenAiActive) {
             $result['openai_ads'] = $openaiAds;
+        }
+
+        $isSnapchatActive = ($snapchatEvents === null) ? true : (is_array($snapchatEvents) && in_array($canonicalEvent, $snapchatEvents));
+        if ($snapchatEnabled && $isSnapchatActive) {
+            $result['snapchat'] = $snapchat;
         }
 
         return $result;
@@ -1657,6 +1819,7 @@ class PayloadBuilder
             'tiktok_user_data' => CustomerDataEngine::buildTikTokUserData($customer, $address),
             'microsoft_user_data' => CustomerDataEngine::buildMicrosoftUserData($customer, $address),
             'openai_user_data' => CustomerDataEngine::buildOpenAiUserData($customer, $address),
+            'snapchat_user_data' => CustomerDataEngine::buildSnapchatUserData($customer, $address),
         ]);
 
         $purchasePayload = [
