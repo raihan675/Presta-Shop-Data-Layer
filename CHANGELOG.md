@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.3] - 2026-10-27
+
+### Changed & Fixed
+- **Module Display Name & Description Synchronization**:
+  - Updated module runtime `displayName` in `ps_gtm_datalayer.php` to include Snapchat Ads: `"E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google, Microsoft, OpenAI & Snapchat Ads"`.
+  - Updated module runtime `description` in `ps_gtm_datalayer.php` to reflect Snapchat Ads catalog integration alongside Meta, Pinterest, TikTok, Google, Microsoft, and OpenAI ChatGPT Ads.
+- **Brand Asset Refresh**:
+  - Updated Snapchat brand icon with clean circular high-resolution asset across `views/img/snapchat_app.png` and `views/img/snapchat.png`.
+
+---
+
 ## [1.42.2] - 2026-10-27
 
 ### Changed & Fixed

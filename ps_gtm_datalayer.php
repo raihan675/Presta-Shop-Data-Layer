@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.2';
+        $this->version = '1.42.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -35,8 +35,8 @@ class Ps_Gtm_DataLayer extends Module
 
         parent::__construct();
 
-        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google, Microsoft & OpenAI Ads');
-        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, Pinterest, TikTok, Google Ads, Microsoft Advertising, and OpenAI ChatGPT Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
+        $this->displayName = $this->l('E-Commerce DataLayer: GA4, Meta, Pinterest, TikTok, Google, Microsoft, OpenAI & Snapchat Ads');
+        $this->description = $this->l('Universal backend-driven DataLayer with direct Meta, Pinterest, TikTok, Google Ads, Microsoft Advertising, OpenAI ChatGPT Ads, and Snapchat Ads dynamic catalog matching, zero DOM dependency, authoritative database product identifiers, and sGTM support.');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall this module?');
 
         // Keep ps_module database version table synchronized with active version
