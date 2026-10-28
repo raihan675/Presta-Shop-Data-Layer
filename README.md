@@ -453,8 +453,10 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
   * Injects the complete `attribution` object into the webhook payload, enabling Google Ads Conversion Retractions, Meta CAPI Refunds, and TikTok Conversions API matching.
 * **Forensic Status Change Context (`status_change_context`)**:
   * Injects operational context into the payload: `actor_type` (`administrator`, `payment_gateway_webhook`, `system_cron`), employee or gateway ID, actor IP, order age in seconds, time in previous status, attribution eligibility flags (`is_within_google_ads_window`, `is_within_meta_window`), carrier tracking number, and payment gateway charge IDs.
-* **Back Office Order Attribution Card**:
-  * Displays a dedicated **Marketing Attribution & Ad Click IDs** card directly in the PrestaShop Back Office order view (`displayAdminOrderSide`), allowing store staff to inspect attribution identifiers and campaign UTMs for any order.
+* **Back Office Order Attribution Data Table**:
+  * Displays a responsive, full-width **Marketing Attribution & Ad Click IDs** data table directly in the PrestaShop Back Office order view (`displayAdminOrderSide` and `displayAdminOrderMain` with automatic duplicate suppression).
+  * Tabulates Platform, Parameter, Identifier Type (Ad Click ID, Browser Cookie, Analytics ID, UTM Parameter), Captured Value, and sGTM Sync status.
+  * Features native `ps_connections_source` traffic fallback to automatically recover and display historical attribution parameters for past orders.
 
 ### 4. Dedicated PrestaShop Webhook Client Template for sGTM
 To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a purpose-built **Server GTM Client Template** (`prestashop-client-template.tpl`):

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.43.1] - 2026-10-28
+
+### Fixed & Enhanced
+- **PrestaShop 8 Order Details Full Data Table Layout**:
+  - Re-engineered `views/templates/admin/order_attribution.tpl` into a full-width responsive Data Table displaying Platform, Parameter, Type, Captured Value, and sGTM Sync Status.
+  - Enabled support for both `displayAdminOrderSide` and `displayAdminOrderMain` hooks with automatic duplicate suppression, ensuring the card renders seamlessly across all PrestaShop 1.7.x and 8.x Back Office order layouts.
+  - Added self-healing hook auto-registration in `__construct()` and `hookDisplayBackOfficeHeader` so existing installations never require manual re-hooking or uninstallation.
+  - Added native `ps_connections_source` traffic fallback in `AttributionDataEngine::getByOrderId()`, allowing the module to recover and display advertising parameters (`gclid`, `fbclid`, `utm_*`) even if an order was placed before the module was updated.
+
+---
+
 ## [1.43.0] - 2026-10-28
 
 ### Added & Enhanced

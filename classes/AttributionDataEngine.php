@@ -66,47 +66,51 @@ class AttributionDataEngine
             return false;
         }
 
-        $engine = defined('_MYSQL_ENGINE_') ? _MYSQL_ENGINE_ : 'InnoDB';
-        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '` (
-            `id_order` INT(11) UNSIGNED NOT NULL,
-            `id_customer` INT(11) UNSIGNED NOT NULL DEFAULT 0,
-            `gclid` VARCHAR(255) NULL DEFAULT NULL,
-            `gbraid` VARCHAR(255) NULL DEFAULT NULL,
-            `wbraid` VARCHAR(255) NULL DEFAULT NULL,
-            `fbclid` VARCHAR(255) NULL DEFAULT NULL,
-            `ttclid` VARCHAR(255) NULL DEFAULT NULL,
-            `sccid` VARCHAR(255) NULL DEFAULT NULL,
-            `msclkid` VARCHAR(255) NULL DEFAULT NULL,
-            `oppref` VARCHAR(255) NULL DEFAULT NULL,
-            `epik` VARCHAR(255) NULL DEFAULT NULL,
-            `li_fat_id` VARCHAR(255) NULL DEFAULT NULL,
-            `rdt_cid` VARCHAR(255) NULL DEFAULT NULL,
-            `twclid` VARCHAR(255) NULL DEFAULT NULL,
-            `dclid` VARCHAR(255) NULL DEFAULT NULL,
-            `fbp` VARCHAR(100) NULL DEFAULT NULL,
-            `fbc` VARCHAR(150) NULL DEFAULT NULL,
-            `ttp` VARCHAR(100) NULL DEFAULT NULL,
-            `scid` VARCHAR(100) NULL DEFAULT NULL,
-            `uetvid` VARCHAR(100) NULL DEFAULT NULL,
-            `uetsid` VARCHAR(100) NULL DEFAULT NULL,
-            `ga_client_id` VARCHAR(100) NULL DEFAULT NULL,
-            `ga_session_id` VARCHAR(50) NULL DEFAULT NULL,
-            `utm_source` VARCHAR(100) NULL DEFAULT NULL,
-            `utm_medium` VARCHAR(100) NULL DEFAULT NULL,
-            `utm_campaign` VARCHAR(150) NULL DEFAULT NULL,
-            `utm_content` VARCHAR(150) NULL DEFAULT NULL,
-            `utm_term` VARCHAR(150) NULL DEFAULT NULL,
-            `customer_ip` VARCHAR(45) NULL DEFAULT NULL,
-            `user_agent` VARCHAR(512) NULL DEFAULT NULL,
-            `date_add` DATETIME NOT NULL,
-            `date_upd` DATETIME NOT NULL,
-            PRIMARY KEY (`id_order`),
-            INDEX `idx_customer` (`id_customer`),
-            INDEX `idx_gclid` (`gclid`),
-            INDEX `idx_fbclid` (`fbclid`)
-        ) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8;';
+        try {
+            $engine = defined('_MYSQL_ENGINE_') ? _MYSQL_ENGINE_ : 'InnoDB';
+            $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '` (
+                `id_order` INT(11) UNSIGNED NOT NULL,
+                `id_customer` INT(11) UNSIGNED NOT NULL DEFAULT 0,
+                `gclid` VARCHAR(255) NULL DEFAULT NULL,
+                `gbraid` VARCHAR(255) NULL DEFAULT NULL,
+                `wbraid` VARCHAR(255) NULL DEFAULT NULL,
+                `fbclid` VARCHAR(255) NULL DEFAULT NULL,
+                `ttclid` VARCHAR(255) NULL DEFAULT NULL,
+                `sccid` VARCHAR(255) NULL DEFAULT NULL,
+                `msclkid` VARCHAR(255) NULL DEFAULT NULL,
+                `oppref` VARCHAR(255) NULL DEFAULT NULL,
+                `epik` VARCHAR(255) NULL DEFAULT NULL,
+                `li_fat_id` VARCHAR(255) NULL DEFAULT NULL,
+                `rdt_cid` VARCHAR(255) NULL DEFAULT NULL,
+                `twclid` VARCHAR(255) NULL DEFAULT NULL,
+                `dclid` VARCHAR(255) NULL DEFAULT NULL,
+                `fbp` VARCHAR(100) NULL DEFAULT NULL,
+                `fbc` VARCHAR(150) NULL DEFAULT NULL,
+                `ttp` VARCHAR(100) NULL DEFAULT NULL,
+                `scid` VARCHAR(100) NULL DEFAULT NULL,
+                `uetvid` VARCHAR(100) NULL DEFAULT NULL,
+                `uetsid` VARCHAR(100) NULL DEFAULT NULL,
+                `ga_client_id` VARCHAR(100) NULL DEFAULT NULL,
+                `ga_session_id` VARCHAR(50) NULL DEFAULT NULL,
+                `utm_source` VARCHAR(100) NULL DEFAULT NULL,
+                `utm_medium` VARCHAR(100) NULL DEFAULT NULL,
+                `utm_campaign` VARCHAR(150) NULL DEFAULT NULL,
+                `utm_content` VARCHAR(150) NULL DEFAULT NULL,
+                `utm_term` VARCHAR(150) NULL DEFAULT NULL,
+                `customer_ip` VARCHAR(45) NULL DEFAULT NULL,
+                `user_agent` VARCHAR(512) NULL DEFAULT NULL,
+                `date_add` DATETIME NOT NULL,
+                `date_upd` DATETIME NOT NULL,
+                PRIMARY KEY (`id_order`),
+                INDEX `idx_customer` (`id_customer`),
+                INDEX `idx_gclid` (`gclid`),
+                INDEX `idx_fbclid` (`fbclid`)
+            ) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8;';
 
-        return Db::getInstance()->execute($sql);
+            return Db::getInstance()->execute($sql);
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -207,6 +211,8 @@ class AttributionDataEngine
                 return false;
             }
 
+            self::createDatabaseTable();
+
             if (!$context) {
                 $context = class_exists('Context') ? Context::getContext() : null;
             }
@@ -298,7 +304,8 @@ class AttributionDataEngine
     }
 
     /**
-     * Resolves attribution data for an order by ID.
+     * Resolves attribution data for an order by ID, falling back to PrestaShop's
+     * native connections_source traffic records if not already in ps_gtm_order_attribution.
      *
      * @param int $idOrder
      * @return array
@@ -311,10 +318,145 @@ class AttributionDataEngine
         }
 
         try {
+            self::createDatabaseTable();
+
             $sql = 'SELECT * FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` WHERE `id_order` = ' . $idOrder;
             $row = Db::getInstance()->getRow($sql);
             if (!empty($row) && is_array($row)) {
+                $payload = self::formatAttributionPayload($row);
+                if (!empty($payload['gclid']) || !empty($payload['fbclid']) || !empty($payload['ttclid']) || !empty($payload['msclkid'])) {
+                    return $payload;
+                }
+            }
+
+            // Fallback: Recover from PrestaShop native connections_source (Sources / Quellen)
+            $recovered = self::recoverFromPrestaShopConnections($idOrder);
+            if (!empty($recovered)) {
+                return $recovered;
+            }
+
+            if (!empty($row) && is_array($row)) {
                 return self::formatAttributionPayload($row);
+            }
+        } catch (\Throwable $e) {}
+
+        return [];
+    }
+
+    /**
+     * Recovers marketing attribution from PrestaShop's native ps_connections_source table
+     * using the order's cart and customer connection logs.
+     *
+     * @param int $idOrder
+     * @return array
+     */
+    public static function recoverFromPrestaShopConnections($idOrder)
+    {
+        $idOrder = (int)$idOrder;
+        if ($idOrder <= 0 || !class_exists('Db')) {
+            return [];
+        }
+
+        try {
+            // Join order -> cart -> guest -> connections -> connections_source
+            $sql = 'SELECT cs.`request_uri`, cs.`http_referer`, c.`ip_address`
+                    FROM `' . _DB_PREFIX_ . 'orders` o
+                    INNER JOIN `' . _DB_PREFIX_ . 'cart` cart ON (cart.`id_cart` = o.`id_cart`)
+                    INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_guest` = cart.`id_guest`)
+                    INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_guest` = g.`id_guest` OR c.`id_customer` = o.`id_customer`)
+                    INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cs ON (cs.`id_connections` = c.`id_connections`)
+                    WHERE o.`id_order` = ' . $idOrder . '
+                    ORDER BY cs.`date_add` DESC';
+            $rows = Db::getInstance()->executeS($sql);
+
+            if (empty($rows) || !is_array($rows)) {
+                // Secondary fallback directly by customer ID
+                $sqlCustomer = 'SELECT cs.`request_uri`, cs.`http_referer`, c.`ip_address`
+                        FROM `' . _DB_PREFIX_ . 'orders` o
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_customer` = o.`id_customer`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cs ON (cs.`id_connections` = c.`id_connections`)
+                        WHERE o.`id_order` = ' . $idOrder . '
+                        ORDER BY cs.`date_add` DESC';
+                $rows = Db::getInstance()->executeS($sqlCustomer);
+            }
+
+            if (!empty($rows) && is_array($rows)) {
+                $recovered = [];
+                $clientIp = '';
+
+                foreach ($rows as $row) {
+                    if (empty($clientIp) && !empty($row['ip_address'])) {
+                        $clientIp = long2ip((int)$row['ip_address']);
+                    }
+
+                    $urlsToCheck = [
+                        !empty($row['request_uri']) ? $row['request_uri'] : '',
+                        !empty($row['http_referer']) ? $row['http_referer'] : '',
+                    ];
+
+                    foreach ($urlsToCheck as $url) {
+                        if (empty($url)) {
+                            continue;
+                        }
+
+                        $queryStr = parse_url($url, PHP_URL_QUERY);
+                        if (empty($queryStr) && strpos($url, '?') !== false) {
+                            $parts = explode('?', $url, 2);
+                            $queryStr = isset($parts[1]) ? $parts[1] : '';
+                        }
+
+                        if (!empty($queryStr)) {
+                            $params = [];
+                            parse_str($queryStr, $params);
+
+                            foreach (self::$clickParams as $p) {
+                                if (!empty($params[$p]) && empty($recovered[$p])) {
+                                    $recovered[$p] = self::sanitizeIdentifier($params[$p]);
+                                }
+                            }
+                            foreach (self::$utmParams as $u) {
+                                if (!empty($params[$u]) && empty($recovered[$u])) {
+                                    $recovered[$u] = self::sanitizeIdentifier($params[$u]);
+                                }
+                            }
+                        }
+                    }
+
+                    if (!empty($recovered['gclid']) || !empty($recovered['fbclid'])) {
+                        break;
+                    }
+                }
+
+                if (!empty($recovered)) {
+                    if (!empty($clientIp)) {
+                        $recovered['customer_ip'] = $clientIp;
+                    }
+
+                    // Save recovered record into ps_gtm_order_attribution for fast future retrieval
+                    $order = new Order($idOrder);
+                    if (Validate::isLoadedObject($order)) {
+                        $now = date('Y-m-d H:i:s');
+                        $rowToSave = [
+                            'id_order' => (int)$order->id,
+                            'id_customer' => (int)$order->id_customer,
+                            'gclid' => !empty($recovered['gclid']) ? pSQL($recovered['gclid']) : null,
+                            'fbclid' => !empty($recovered['fbclid']) ? pSQL($recovered['fbclid']) : null,
+                            'ttclid' => !empty($recovered['ttclid']) ? pSQL($recovered['ttclid']) : null,
+                            'msclkid' => !empty($recovered['msclkid']) ? pSQL($recovered['msclkid']) : null,
+                            'sccid' => !empty($recovered['sccid']) ? pSQL($recovered['sccid']) : null,
+                            'oppref' => !empty($recovered['oppref']) ? pSQL($recovered['oppref']) : null,
+                            'utm_source' => !empty($recovered['utm_source']) ? pSQL($recovered['utm_source']) : null,
+                            'utm_medium' => !empty($recovered['utm_medium']) ? pSQL($recovered['utm_medium']) : null,
+                            'utm_campaign' => !empty($recovered['utm_campaign']) ? pSQL($recovered['utm_campaign']) : null,
+                            'customer_ip' => !empty($recovered['customer_ip']) ? pSQL($recovered['customer_ip']) : null,
+                            'date_add' => $now,
+                            'date_upd' => $now,
+                        ];
+                        Db::getInstance()->insert(self::TABLE_NAME, $rowToSave, false, true, Db::ON_DUPLICATE_KEY_UPDATE);
+                    }
+
+                    return $recovered;
+                }
             }
         } catch (\Throwable $e) {}
 
@@ -337,6 +479,7 @@ class AttributionDataEngine
             'fbp', 'fbc', 'ttp', 'scid', 'uetvid', 'uetsid',
             'ga_client_id', 'ga_session_id',
             'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+            'customer_ip', 'user_agent', 'date_add',
         ];
 
         foreach ($keys as $key) {
@@ -383,7 +526,6 @@ class AttributionDataEngine
 
         foreach ($_COOKIE as $name => $val) {
             if (strpos($name, '_ga_') === 0 && !empty($val)) {
-                // Typical format: GS1.1.1712345678.1.1.1712345678.0.0.0
                 $parts = explode('.', $val);
                 if (isset($parts[2]) && is_numeric($parts[2])) {
                     return (string)$parts[2];

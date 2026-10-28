@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.43.0';
+        $this->version = '1.43.1';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -62,14 +62,29 @@ class Ps_Gtm_DataLayer extends Module
         }
 
         // Auto-register back-office hooks seamlessly when admin visits Back Office
-        if (defined('_PS_ADMIN_DIR_') && !Configuration::get('PS_GTM_BO_HOOKS_V143')) {
+        if (defined('_PS_ADMIN_DIR_')) {
             if (!$this->isRegisteredInHook('displayBackOfficeTop')) {
                 $this->registerHook('displayBackOfficeTop');
             }
             if (!$this->isRegisteredInHook('displayBackOfficeHeader')) {
                 $this->registerHook('displayBackOfficeHeader');
             }
-            Configuration::updateValue('PS_GTM_BO_HOOKS_V143', 1);
+            if (!$this->isRegisteredInHook('displayAdminOrderSide')) {
+                $this->registerHook('displayAdminOrderSide');
+            }
+            if (!$this->isRegisteredInHook('displayAdminOrderMain')) {
+                $this->registerHook('displayAdminOrderMain');
+            }
+            if (!$this->isRegisteredInHook('displayAdminOrderTabOrder')) {
+                $this->registerHook('displayAdminOrderTabOrder');
+            }
+            if (!$this->isRegisteredInHook('displayAdminOrderContentOrder')) {
+                $this->registerHook('displayAdminOrderContentOrder');
+            }
+
+            // Ensure attribution database table exists
+            require_once __DIR__ . '/classes/AttributionDataEngine.php';
+            AttributionDataEngine::createDatabaseTable();
         }
     }
 
@@ -3839,6 +3854,9 @@ class Ps_Gtm_DataLayer extends Module
         }
     }
 
+    /** @var array<int, bool> Prevent duplicate order attribution card renders on the same page */
+    public static $renderedAttributionOrders = [];
+
     public function hookDisplayAdminOrderSide($params)
     {
         return $this->renderAdminOrderAttribution($params);
@@ -3846,7 +3864,7 @@ class Ps_Gtm_DataLayer extends Module
 
     public function hookDisplayAdminOrderMain($params)
     {
-        return '';
+        return $this->renderAdminOrderAttribution($params);
     }
 
     public function hookDisplayAdminOrderTabOrder($params)
@@ -3862,20 +3880,37 @@ class Ps_Gtm_DataLayer extends Module
     public function renderAdminOrderAttribution($params)
     {
         try {
-            $idOrder = isset($params['id_order']) ? (int)$params['id_order'] : 0;
-            if ($idOrder <= 0 && isset($this->context->controller) && method_exists($this->context->controller, 'getOrder')) {
-                $orderObj = $this->context->controller->getOrder();
-                if ($orderObj && Validate::isLoadedObject($orderObj)) {
-                    $idOrder = (int)$orderObj->id;
+            $idOrder = 0;
+            if (isset($params['id_order']) && (int)$params['id_order'] > 0) {
+                $idOrder = (int)$params['id_order'];
+            } elseif (isset($params['orderId']) && (int)$params['orderId'] > 0) {
+                $idOrder = (int)$params['orderId'];
+            } elseif (isset($params['order']) && is_object($params['order']) && isset($params['order']->id)) {
+                $idOrder = (int)$params['order']->id;
+            } elseif (class_exists('Tools')) {
+                if (Tools::getValue('id_order')) {
+                    $idOrder = (int)Tools::getValue('id_order');
+                } elseif (Tools::getValue('orderId')) {
+                    $idOrder = (int)Tools::getValue('orderId');
                 }
             }
-            if ($idOrder <= 0 && class_exists('Tools')) {
-                $idOrder = (int)Tools::getValue('id_order');
+
+            // Fallback for PrestaShop 8 Symfony routes: /sell/orders/{orderId}/view
+            if ($idOrder <= 0 && !empty($_SERVER['REQUEST_URI'])) {
+                if (preg_match('#/(?:orders|sell/orders)/([0-9]+)#i', $_SERVER['REQUEST_URI'], $m)) {
+                    $idOrder = (int)$m[1];
+                }
             }
 
             if ($idOrder <= 0) {
                 return '';
             }
+
+            // Deduplicate rendering if both displayAdminOrderSide and displayAdminOrderMain fire
+            if (isset(self::$renderedAttributionOrders[$idOrder])) {
+                return '';
+            }
+            self::$renderedAttributionOrders[$idOrder] = true;
 
             require_once __DIR__ . '/classes/AttributionDataEngine.php';
             $attribution = AttributionDataEngine::getByOrderId($idOrder);
