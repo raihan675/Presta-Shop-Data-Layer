@@ -75,6 +75,9 @@ class Ps_Gtm_DataLayer extends Module
             if (!$this->isRegisteredInHook('displayAdminOrderMain')) {
                 $this->registerHook('displayAdminOrderMain');
             }
+            if (!$this->isRegisteredInHook('displayAdminOrder')) {
+                $this->registerHook('displayAdminOrder');
+            }
             if (!$this->isRegisteredInHook('displayAdminOrderTabOrder')) {
                 $this->registerHook('displayAdminOrderTabOrder');
             }
@@ -104,6 +107,8 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('actionOrderStatusUpdate')
             && $this->registerHook('actionOrderStatusPostUpdate')
             && $this->registerHook('displayAdminOrderSide')
+            && $this->registerHook('displayAdminOrderMain')
+            && $this->registerHook('displayAdminOrder')
             && $this->registerHook('displayAdminOrderTabOrder')
             && $this->registerHook('displayAdminOrderContentOrder')
             && DeduplicationManager::createDatabaseTable()
@@ -3863,6 +3868,11 @@ class Ps_Gtm_DataLayer extends Module
     }
 
     public function hookDisplayAdminOrderMain($params)
+    {
+        return $this->renderAdminOrderAttribution($params);
+    }
+
+    public function hookDisplayAdminOrder($params)
     {
         return $this->renderAdminOrderAttribution($params);
     }

@@ -18,6 +18,7 @@ function upgrade_module_1_43_1($module)
             $hooksToRegister = [
                 'displayAdminOrderSide',
                 'displayAdminOrderMain',
+                'displayAdminOrder',
                 'displayAdminOrderTop',
                 'displayAdminOrderTabOrder',
                 'displayAdminOrderContentOrder',
