@@ -17,6 +17,40 @@
   }
   syncConfig();
 
+  // Universal Storefront Marketing Attribution & Ad Click ID Persistence
+  (function captureClientAttribution() {
+    try {
+      var s = window.location.search;
+      if (s && s.indexOf('?') !== -1) {
+        var params = new URLSearchParams(s.substring(1));
+        var keys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref', 'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+        var data = {};
+        try {
+          var m = document.cookie.match(/(?:^|;\s*)ps_gtm_attribution=([^;]+)/);
+          if (m) {
+            data = JSON.parse(decodeURIComponent(m[1])) || {};
+          } else {
+            var ls = localStorage.getItem('ps_gtm_attribution');
+            if (ls) data = JSON.parse(ls) || {};
+          }
+        } catch(e) {}
+        var updated = false;
+        for (var i = 0; i < keys.length; i++) {
+          var v = params.get(keys[i]);
+          if (v && typeof v === 'string' && v.trim() !== '') {
+            data[keys[i]] = v.trim();
+            updated = true;
+          }
+        }
+        if (updated) {
+          var str = JSON.stringify(data);
+          document.cookie = 'ps_gtm_attribution=' + encodeURIComponent(str) + '; path=/; max-age=2592000; SameSite=Lax';
+          try { localStorage.setItem('ps_gtm_attribution', str); } catch(e) {}
+        }
+      }
+    } catch(e) {}
+  })();
+
   // Cache of backend-resolved products to avoid redundant network requests
   var resolvedProductCache = {};
 

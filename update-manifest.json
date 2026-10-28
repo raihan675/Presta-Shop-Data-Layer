@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.43.1",
+    "latest_version":  "1.43.2",
     "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.1/ps_gtm_datalayer.zip",
-    "checksum":  "f08665196b9e2cda62beda936509c4ebc41999cdda20d1ddf03d4736a8b94a0c",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.2/ps_gtm_datalayer.zip",
+    "checksum":  "4b8808872d589ef22acac495396eb5a9378505cde62ffacde49a6c56777ac63c",
     "release_type":  "patch",
-    "release_notes":  "Added full Data Table layout for order attribution, enabled dual displayAdminOrderSide \u0026 displayAdminOrderMain hook support, self-healing hook registration, and ps_connections_source recovery fallback."
+    "release_notes":  "Added client-side first-party cookie persistence, ConnectionsSource historical recovery \u0026 full-length UTM capture bypassing PrestaShop 64-char limit."
 }

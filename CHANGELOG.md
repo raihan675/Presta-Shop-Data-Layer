@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.43.2] - 2026-10-28
+
+### Fixed & Enhanced
+- **Resilient First-Party Client & Server Attribution Persistence**:
+  - Added synchronous client-side URL parameter listener in `datalayer_init.tpl` and `prestashop-adapter.js` to immediately persist ad click IDs and campaign UTMs into `ps_gtm_attribution` cookie (30-day lifetime) and `localStorage`.
+  - Solved PrestaShop core 64-character truncation in `ps_connections_source` by maintaining the full, untruncated URL query string in dedicated cookies and `ps_gtm_order_attribution`.
+  - Re-engineered `AttributionDataEngine::recoverFromPrestaShopConnections()` to prioritize PrestaShop core's official `ConnectionsSource::getOrderSources()` method and standard guest-customer joins, reliably recovering parameters for past orders.
+  - Added direct cookie extraction in `AttributionDataEngine::getCapturedSessionData()` and `saveOrderAttribution()` for full-funnel reliability.
+
+---
+
 ## [1.43.1] - 2026-10-28
 
 ### Fixed & Enhanced

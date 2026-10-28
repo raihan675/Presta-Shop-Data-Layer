@@ -193,6 +193,14 @@ class AttributionDataEngine
 
             if ($hasUpdates) {
                 $context->cookie->__set(self::COOKIE_KEY, json_encode($currentData));
+                if (method_exists($context->cookie, 'write')) {
+                    $context->cookie->write();
+                }
+
+                if (!headers_sent()) {
+                    $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+                    setcookie('ps_gtm_attribution', json_encode($currentData), time() + (30 * 86400), '/', '', $isSecure, false);
+                }
             }
         } catch (\Throwable $e) {}
     }
@@ -218,6 +226,20 @@ class AttributionDataEngine
             }
 
             $data = self::getCapturedSessionData($context);
+
+            // Fresh check of direct first-party cookie
+            if (empty($data['gclid']) && empty($data['fbclid']) && empty($data['utm_source']) && !empty($_COOKIE['ps_gtm_attribution'])) {
+                $rawC = $_COOKIE['ps_gtm_attribution'];
+                $dec = json_decode(urldecode($rawC), true);
+                if (!is_array($dec)) $dec = json_decode($rawC, true);
+                if (is_array($dec)) {
+                    foreach ($dec as $k => $v) {
+                        if (!empty($v) && empty($data[$k])) {
+                            $data[$k] = self::sanitizeIdentifier($v);
+                        }
+                    }
+                }
+            }
 
             // Fresh extraction from current request in case order was placed directly from URL
             foreach (self::$clickParams as $param) {
@@ -324,15 +346,15 @@ class AttributionDataEngine
             $row = Db::getInstance()->getRow($sql);
             if (!empty($row) && is_array($row)) {
                 $payload = self::formatAttributionPayload($row);
-                if (!empty($payload['gclid']) || !empty($payload['fbclid']) || !empty($payload['ttclid']) || !empty($payload['msclkid'])) {
+                if (!empty($payload['gclid']) || !empty($payload['fbclid']) || !empty($payload['ttclid']) || !empty($payload['msclkid']) || !empty($payload['utm_source']) || !empty($payload['utm_campaign'])) {
                     return $payload;
                 }
             }
 
             // Fallback: Recover from PrestaShop native connections_source (Sources / Quellen)
             $recovered = self::recoverFromPrestaShopConnections($idOrder);
-            if (!empty($recovered)) {
-                return $recovered;
+            if (!empty($recovered) && (!empty($recovered['gclid']) || !empty($recovered['fbclid']) || !empty($recovered['utm_source']))) {
+                return self::formatAttributionPayload($recovered);
             }
 
             if (!empty($row) && is_array($row)) {
@@ -358,26 +380,48 @@ class AttributionDataEngine
         }
 
         try {
-            // Join order -> cart -> guest -> connections -> connections_source
-            $sql = 'SELECT cs.`request_uri`, cs.`http_referer`, c.`ip_address`
-                    FROM `' . _DB_PREFIX_ . 'orders` o
-                    INNER JOIN `' . _DB_PREFIX_ . 'cart` cart ON (cart.`id_cart` = o.`id_cart`)
-                    INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_guest` = cart.`id_guest`)
-                    INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_guest` = g.`id_guest` OR c.`id_customer` = o.`id_customer`)
-                    INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cs ON (cs.`id_connections` = c.`id_connections`)
-                    WHERE o.`id_order` = ' . $idOrder . '
-                    ORDER BY cs.`date_add` DESC';
-            $rows = Db::getInstance()->executeS($sql);
+            $rows = [];
 
+            // 1. Official PrestaShop Core method (used by Back Office Sources panel)
+            if (class_exists('ConnectionsSource') && method_exists('ConnectionsSource', 'getOrderSources')) {
+                $rows = ConnectionsSource::getOrderSources($idOrder);
+            }
+
+            // 2. PrestaShop Core SQL Join (orders -> guest -> connections -> connections_source)
             if (empty($rows) || !is_array($rows)) {
-                // Secondary fallback directly by customer ID
-                $sqlCustomer = 'SELECT cs.`request_uri`, cs.`http_referer`, c.`ip_address`
+                $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
                         FROM `' . _DB_PREFIX_ . 'orders` o
-                        INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_customer` = o.`id_customer`)
-                        INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cs ON (cs.`id_connections` = c.`id_connections`)
-                        WHERE o.`id_order` = ' . $idOrder . '
-                        ORDER BY cs.`date_add` DESC';
-                $rows = Db::getInstance()->executeS($sqlCustomer);
+                        INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_customer` = o.`id_customer`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_guest` = g.`id_guest`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
+                        WHERE o.`id_order` = ' . (int)$idOrder . '
+                        ORDER BY cos.`date_add` DESC';
+                $rows = Db::getInstance()->executeS($sql);
+            }
+
+            // 3. Fallback: by customer ID
+            if (empty($rows) || !is_array($rows)) {
+                $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
+                        FROM `' . _DB_PREFIX_ . 'orders` o
+                        INNER JOIN `' . _DB_PREFIX_ . 'customer` cust ON (cust.`id_customer` = o.`id_customer`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_customer` = cust.`id_customer`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_guest` = g.`id_guest`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
+                        WHERE o.`id_order` = ' . (int)$idOrder . '
+                        ORDER BY cos.`date_add` DESC';
+                $rows = Db::getInstance()->executeS($sql);
+            }
+
+            // 4. Fallback: by cart guest
+            if (empty($rows) || !is_array($rows)) {
+                $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
+                        FROM `' . _DB_PREFIX_ . 'orders` o
+                        INNER JOIN `' . _DB_PREFIX_ . 'cart` cart ON (cart.`id_cart` = o.`id_cart`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections` c ON (c.`id_guest` = cart.`id_guest`)
+                        INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
+                        WHERE o.`id_order` = ' . (int)$idOrder . '
+                        ORDER BY cos.`date_add` DESC';
+                $rows = Db::getInstance()->executeS($sql);
             }
 
             if (!empty($rows) && is_array($rows)) {
@@ -399,10 +443,13 @@ class AttributionDataEngine
                             continue;
                         }
 
-                        $queryStr = parse_url($url, PHP_URL_QUERY);
-                        if (empty($queryStr) && strpos($url, '?') !== false) {
-                            $parts = explode('?', $url, 2);
-                            $queryStr = isset($parts[1]) ? $parts[1] : '';
+                        $qPos = strpos($url, '?');
+                        $queryStr = ($qPos !== false) ? substr($url, $qPos + 1) : '';
+                        if (empty($queryStr)) {
+                            $parsedQ = parse_url($url, PHP_URL_QUERY);
+                            if (!empty($parsedQ)) {
+                                $queryStr = $parsedQ;
+                            }
                         }
 
                         if (!empty($queryStr)) {
@@ -416,7 +463,10 @@ class AttributionDataEngine
                             }
                             foreach (self::$utmParams as $u) {
                                 if (!empty($params[$u]) && empty($recovered[$u])) {
-                                    $recovered[$u] = self::sanitizeIdentifier($params[$u]);
+                                    $val = self::sanitizeIdentifier($params[$u]);
+                                    if ($val !== '') {
+                                        $recovered[$u] = $val;
+                                    }
                                 }
                             }
                         }
@@ -452,6 +502,7 @@ class AttributionDataEngine
                             'date_add' => $now,
                             'date_upd' => $now,
                         ];
+
                         Db::getInstance()->insert(self::TABLE_NAME, $rowToSave, false, true, Db::ON_DUPLICATE_KEY_UPDATE);
                     }
 
@@ -464,7 +515,7 @@ class AttributionDataEngine
     }
 
     /**
-     * Formats raw database row into clean, typed attribution payload.
+     * Formats database or recovered array into standardized attribution payload.
      *
      * @param array $raw
      * @return array
@@ -544,19 +595,42 @@ class AttributionDataEngine
      */
     protected static function getCapturedSessionData($context)
     {
-        if (!$context || !isset($context->cookie)) {
-            return [];
-        }
+        $currentData = [];
 
-        $raw = $context->cookie->__get(self::COOKIE_KEY);
-        if (!empty($raw)) {
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded)) {
-                return $decoded;
+        // 1. Direct standard cookie (resilient to header timing and encryption limits)
+        if (!empty($_COOKIE['ps_gtm_attribution'])) {
+            $rawCookie = $_COOKIE['ps_gtm_attribution'];
+            if (is_string($rawCookie)) {
+                $decoded = json_decode(urldecode($rawCookie), true);
+                if (!is_array($decoded)) {
+                    $decoded = json_decode($rawCookie, true);
+                }
+                if (is_array($decoded)) {
+                    foreach ($decoded as $k => $v) {
+                        if (!empty($v)) {
+                            $currentData[$k] = self::sanitizeIdentifier($v);
+                        }
+                    }
+                }
             }
         }
 
-        return [];
+        // 2. PrestaShop core cookie object
+        if ($context && isset($context->cookie)) {
+            $raw = $context->cookie->__get(self::COOKIE_KEY);
+            if (!empty($raw)) {
+                $decoded = json_decode($raw, true);
+                if (is_array($decoded)) {
+                    foreach ($decoded as $k => $v) {
+                        if (!empty($v) && empty($currentData[$k])) {
+                            $currentData[$k] = self::sanitizeIdentifier($v);
+                        }
+                    }
+                }
+            }
+        }
+
+        return $currentData;
     }
 
     /**

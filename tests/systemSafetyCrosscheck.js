@@ -236,7 +236,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.43.1', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.43.2', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
 const allTplFiles = [];
@@ -1022,14 +1022,14 @@ if (fs.existsSync(upgrade1430Path)) {
   report('Upgrade script upgrade-1.43.0.php exists', false, 'Missing upgrade-1.43.0.php');
 }
 
-const upgrade1431Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.43.1.php');
+const upgrade1431Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.43.2.php');
 if (fs.existsSync(upgrade1431Path)) {
   const upCode431 = fs.readFileSync(upgrade1431Path, 'utf8');
-  const hasUpgradeFunction431 = upCode431.includes('function upgrade_module_1_43_1($module)');
+  const hasUpgradeFunction431 = upCode431.includes('function upgrade_module_1_43_2($module)');
   const returnsTrue431 = upCode431.includes('return true;');
-  report('Upgrade function upgrade_module_1_43_1 properly declared', hasUpgradeFunction431 && returnsTrue431, 'Missing or invalid function signature in upgrade-1.43.1.php');
+  report('Upgrade function upgrade_module_1_43_2 properly declared', hasUpgradeFunction431 && returnsTrue431, 'Missing or invalid function signature in upgrade-1.43.2.php');
 } else {
-  report('Upgrade script upgrade-1.43.1.php exists', false, 'Missing upgrade-1.43.1.php');
+  report('Upgrade script upgrade-1.43.2.php exists', false, 'Missing upgrade-1.43.2.php');
 }
 
 // -------------------------------------------------------------
