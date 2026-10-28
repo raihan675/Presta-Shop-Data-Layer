@@ -566,4 +566,67 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(duplicateResult, null);
   });
 
+  it('22. Should include recovered advertising attribution and status_change_context in order_status_update payload', () => {
+    function buildEnrichedStatusUpdatePayload(orderId, attribution, statusContext) {
+      const params = {
+        transaction_id: String(orderId),
+        order_reference: 'TEST-REF',
+        status_transition_type: 'payment_confirmed',
+        conversion_action: 'record',
+        new_status_id: 2,
+        new_status_name: 'Payment accepted',
+        currency: 'EUR',
+        value: 99.00
+      };
+
+      if (attribution && Object.keys(attribution).length > 0) {
+        params.attribution = attribution;
+      }
+      if (statusContext && Object.keys(statusContext).length > 0) {
+        params.status_change_context = statusContext;
+      }
+
+      return {
+        event_name: 'order_status_update',
+        client_id: `${orderId}.${Date.now()}`,
+        timestamp: Math.floor(Date.now() / 1000),
+        events: [
+          {
+            name: 'order_status_update',
+            params: params
+          }
+        ],
+        ...params
+      };
+    }
+
+    const testAttribution = {
+      gclid: 'CjwKCAjw1b7OBhBTEiwA28',
+      fbclid: 'IwAR2Y_x9lQ30x',
+      fbp: 'fb.1.1793092415.987654321',
+      ga_client_id: '1083920194.1793092415'
+    };
+
+    const testStatusContext = {
+      actor_type: 'administrator',
+      actor_id: 'id_employee: 1',
+      actor_name: 'Admin User',
+      order_age_seconds: 7200,
+      is_within_google_ads_window: true,
+      tracking_number: 'DHL123456789'
+    };
+
+    const payload = buildEnrichedStatusUpdatePayload(153, testAttribution, testStatusContext);
+
+    assert.strictEqual(payload.event_name, 'order_status_update');
+    assert.strictEqual(payload.transaction_id, '153');
+    assert.ok(payload.attribution);
+    assert.strictEqual(payload.attribution.gclid, 'CjwKCAjw1b7OBhBTEiwA28');
+    assert.strictEqual(payload.attribution.fbclid, 'IwAR2Y_x9lQ30x');
+    assert.ok(payload.status_change_context);
+    assert.strictEqual(payload.status_change_context.actor_type, 'administrator');
+    assert.strictEqual(payload.status_change_context.tracking_number, 'DHL123456789');
+    assert.strictEqual(payload.events[0].params.attribution.gclid, 'CjwKCAjw1b7OBhBTEiwA28');
+  });
+
 });

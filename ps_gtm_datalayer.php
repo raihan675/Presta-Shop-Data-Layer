@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.7';
+        $this->version = '1.43.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -88,7 +88,11 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('actionValidateOrder')
             && $this->registerHook('actionOrderStatusUpdate')
             && $this->registerHook('actionOrderStatusPostUpdate')
+            && $this->registerHook('displayAdminOrderSide')
+            && $this->registerHook('displayAdminOrderTabOrder')
+            && $this->registerHook('displayAdminOrderContentOrder')
             && DeduplicationManager::createDatabaseTable()
+            && AttributionDataEngine::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', '/ps-webhook')
@@ -123,6 +127,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         return parent::uninstall()
             && DeduplicationManager::dropDatabaseTable()
+            && AttributionDataEngine::dropDatabaseTable()
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_SGTM_WEBHOOK_ENDPOINT_PATH')
@@ -3281,6 +3286,9 @@ class Ps_Gtm_DataLayer extends Module
     public function hookDisplayHeader($params)
     {
         try {
+            require_once __DIR__ . '/classes/AttributionDataEngine.php';
+            AttributionDataEngine::captureStorefrontAttribution($this->context);
+
             // Self-heal corrupted or empty PS_GTM_ACTIVE_EVENTS
             $rawActive = Configuration::get('PS_GTM_ACTIVE_EVENTS');
             if ($rawActive === '[]' || (is_string($rawActive) && empty(json_decode($rawActive, true)))) {
@@ -3730,6 +3738,12 @@ class Ps_Gtm_DataLayer extends Module
     public function hookActionValidateOrder($params)
     {
         try {
+            $order = isset($params['order']) ? $params['order'] : null;
+            if ($order && Validate::isLoadedObject($order)) {
+                require_once __DIR__ . '/classes/AttributionDataEngine.php';
+                AttributionDataEngine::saveOrderAttribution($order, $this->context);
+            }
+
             if (Configuration::get('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED') === '0') {
                 return;
             }
@@ -3739,7 +3753,6 @@ class Ps_Gtm_DataLayer extends Module
                 return;
             }
 
-            $order = isset($params['order']) ? $params['order'] : null;
             if (!$order || !Validate::isLoadedObject($order)) {
                 return;
             }
@@ -3823,6 +3836,58 @@ class Ps_Gtm_DataLayer extends Module
             if (class_exists('PrestaShopLogger')) {
                 PrestaShopLogger::addLog('ps_gtm_datalayer hookActionOrderStatusPostUpdate error: ' . $e->getMessage(), 2);
             }
+        }
+    }
+
+    public function hookDisplayAdminOrderSide($params)
+    {
+        return $this->renderAdminOrderAttribution($params);
+    }
+
+    public function hookDisplayAdminOrderMain($params)
+    {
+        return '';
+    }
+
+    public function hookDisplayAdminOrderTabOrder($params)
+    {
+        return '<li><a href="#ps_gtm_attribution"><i class="icon-track_changes"></i> ' . $this->l('Marketing Attribution') . '</a></li>';
+    }
+
+    public function hookDisplayAdminOrderContentOrder($params)
+    {
+        return '<div class="tab-pane" id="ps_gtm_attribution">' . $this->renderAdminOrderAttribution($params) . '</div>';
+    }
+
+    public function renderAdminOrderAttribution($params)
+    {
+        try {
+            $idOrder = isset($params['id_order']) ? (int)$params['id_order'] : 0;
+            if ($idOrder <= 0 && isset($this->context->controller) && method_exists($this->context->controller, 'getOrder')) {
+                $orderObj = $this->context->controller->getOrder();
+                if ($orderObj && Validate::isLoadedObject($orderObj)) {
+                    $idOrder = (int)$orderObj->id;
+                }
+            }
+            if ($idOrder <= 0 && class_exists('Tools')) {
+                $idOrder = (int)Tools::getValue('id_order');
+            }
+
+            if ($idOrder <= 0) {
+                return '';
+            }
+
+            require_once __DIR__ . '/classes/AttributionDataEngine.php';
+            $attribution = AttributionDataEngine::getByOrderId($idOrder);
+
+            $this->context->smarty->assign([
+                'attribution' => $attribution,
+                'id_order' => $idOrder,
+            ]);
+
+            return $this->display(__FILE__, 'views/templates/admin/order_attribution.tpl');
+        } catch (\Throwable $e) {
+            return '';
         }
     }
 }

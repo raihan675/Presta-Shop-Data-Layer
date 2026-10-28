@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.43.0] - 2026-10-28
+
+### Added & Enhanced
+- **Advertising Attribution Persistence Engine (`AttributionDataEngine`)**:
+  - Implemented the `ps_gtm_order_attribution` database model to permanently link each PrestaShop order to its original advertising click identifiers (`gclid`, `gbraid`, `wbraid`, `fbclid`, `ttclid`, `sccid`, `msclkid`, `oppref`, `epik`, `li_fat_id`, `rdt_cid`, `twclid`, `dclid`), browser cookies (`_fbp`, `_fbc`, `_ttp`, `_scid`, `_uetvid`, `_uetsid`), GA4 `client_id` & `session_id`, and campaign UTMs (`utm_source`, `utm_medium`, `utm_campaign`).
+  - Added storefront attribution capture on landing and browsing (`hookDisplayHeader`) and persisted into database upon order placement (`hookActionValidateOrder`).
+- **Enriched Server-Side Order Status Change & Refund Webhooks**:
+  - Automatically rehydrates the original `attribution` data object into all server-to-server webhook dispatches (`order_status_update`, `refund`, and offline `purchase`).
+  - Enables Google Ads Conversion Adjustments (Retractions & Restatements), Meta CAPI Refunds, and TikTok Conversions API matching directly from Back Office actions.
+- **Forensic Status Change Context (`status_change_context`)**:
+  - Injects comprehensive operational context into `order_status_update` payloads: actor type (`administrator`, `payment_gateway_webhook`, `system_cron`), employee/gateway ID, actor IP, order age in seconds, time spent in previous state, attribution eligibility flags (`is_within_google_ads_window`, `is_within_meta_window`), carrier tracking number, and payment transaction IDs.
+- **Back Office Order View Attribution Card**:
+  - Integrated `displayAdminOrderSide`, `displayAdminOrderTabOrder`, and `displayAdminOrderContentOrder` hooks with a dedicated **Marketing Attribution & Ad Click IDs** card in PrestaShop Back Office order view.
+
+---
+
 ## [1.42.7] - 2026-10-28
 
 ### Changed & Cleaned

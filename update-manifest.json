@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.7",
+    "latest_version":  "1.43.0",
     "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.7/ps_gtm_datalayer.zip",
-    "checksum":  "e93225001c276b566bcd7a5a85d9abdaee7c95488a7ff41d0ad642b8a6d174af",
-    "release_type":  "patch",
-    "release_notes":  "Removed example placeholder from sGTM Preview Header input in Back Office configuration."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.0/ps_gtm_datalayer.zip",
+    "checksum":  "32a8008c26ec9e62f89a743231ad44a7e0e6c4b0482f1381b8f5b84f30068347",
+    "release_type":  "minor",
+    "release_notes":  "Implemented Advertising Attribution Persistence Engine (ps_gtm_order_attribution), full click ID rehydration in sGTM webhooks, forensic status change context, and Back Office Order Attribution Card."
 }

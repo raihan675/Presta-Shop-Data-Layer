@@ -35,7 +35,7 @@ The module supports all core ecommerce actions across the full customer funnel w
 | **10** | **`add_payment_info`** | Selecting a payment gateway during checkout step 4. | `ecommerce` (`payment_type`), `meta`, `pinterest` (`AddPaymentInfo`, `property`), `tiktok`, `google_ads` (`cart` pagetype), `microsoft_ads` (`add_payment_info`, `checkout_step: 4`), `openai_ads` (`custom`, `custom_event_name: 'add_payment_info'`), `snapchat` (`ADD_BILLING`, `pixel: {price}`, `dynamic_ads: {value, contents}`) |
 | **11** | **`purchase`** | Order completion on the **Order Confirmation page**. | `ecommerce`, `meta` (`num_items`), `pinterest` (`Checkout`, `order_id`, `line_items`, `user_data`), `tiktok`, `google_ads` (`purchase` pagetype, `cart_data`), `microsoft_ads` (`purchase`, `transaction_id`, `revenue_value`, `tax`, `shipping`, `pid`), `openai_ads` (`order_created`, `amount: minor_units`, `contents`, `user: {email_sha256, ...}`), `snapchat` (`PURCHASE`, `pixel: {item_ids, price, transaction_id}`, `dynamic_ads: {content_ids, contents, value, order_id}`, `user_data: {em, ph, fn, ln, ct, st, zp, country}`), `new_customer`, `customer_lifetime_value`, `order_totals`, `user_data` |
 | **12** | **`refund`** *(Server-to-Server)* | Administrator generates a partial or full Credit Slip in PrestaShop Back Office (`actionOrderSlipAdd`). | Server-to-server HTTP POST to sGTM (`/g/collect?v=2`) with refunded items, catalog IDs, quantities, values, and SHA-256 customer data. Deduplicated via `ps_gtm_refund_log`. |
-| **13** | **`order_status_update`** *(Server-to-Server)* | Order/payment status changes in Back Office (`actionOrderStatusPostUpdate`), e.g. Bank Wire `#10` to Payment Accepted `#2`, Mirakl `#11`. | Dispatches new status ID, localized name, native `is_paid` and `is_shipped` flags, items, and SHA-256 customer data. Features self-healing `payment_revoked` classification and `conversion_action: "retract"`. |
+| **13** | **`order_status_update`** *(Server-to-Server)* | Order/payment status changes in Back Office (`actionOrderStatusPostUpdate`), e.g. Bank Wire `#10` to Payment Accepted `#2`, Mirakl `#11`. | Dispatches new status ID, localized name, native `is_paid` and `is_shipped` flags, items, SHA-256 customer data, recovered advertising click IDs (`attribution`), and forensic initiator metadata (`status_change_context`). |
 
 ---
 
@@ -447,7 +447,14 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
     * **`payment_revoked`** (`conversion_action: "retract"`): Paid &rarr; Unpaid/Canceled. Enables Google Ads **Conversion Retractions** and GA4 **Refunds** to automatically deduct mistakenly attributed revenue.
     * **`status_changed_while_paid`** (`conversion_action: "maintain"`): Paid &rarr; Paid. Preserves attribution without duplicate firing.
     * **`status_changed_unpaid`** (`conversion_action: "none"`): Informational status updates.
-* **Fail-Safe Performance**: Dispatched via asynchronous cURL with a strict **1500ms execution timeout**, ensuring Back Office administration is never slowed down.
+* **Fail-Safe Performance**: Dispatched via asynchronous cURL with a strict **3500ms execution timeout**, ensuring Back Office administration is never slowed down.
+* **Persistent Advertising Attribution Rehydration (`attribution`)**:
+  * Automatically recovers captured ad click identifiers (`gclid`, `gbraid`, `wbraid`, `fbclid`, `ttclid`, `sccid`, `msclkid`, `oppref`), browser cookies (`_fbp`, `_fbc`, `_ttp`, `_scid`, `_uetvid`), and GA4 `client_id` from the `ps_gtm_order_attribution` database table.
+  * Injects the complete `attribution` object into the webhook payload, enabling Google Ads Conversion Retractions, Meta CAPI Refunds, and TikTok Conversions API matching.
+* **Forensic Status Change Context (`status_change_context`)**:
+  * Injects operational context into the payload: `actor_type` (`administrator`, `payment_gateway_webhook`, `system_cron`), employee or gateway ID, actor IP, order age in seconds, time in previous status, attribution eligibility flags (`is_within_google_ads_window`, `is_within_meta_window`), carrier tracking number, and payment gateway charge IDs.
+* **Back Office Order Attribution Card**:
+  * Displays a dedicated **Marketing Attribution & Ad Click IDs** card directly in the PrestaShop Back Office order view (`displayAdminOrderSide`), allowing store staff to inspect attribution identifiers and campaign UTMs for any order.
 
 ### 4. Dedicated PrestaShop Webhook Client Template for sGTM
 To bypass path collisions on `/g/collect` and ensure 100% deterministic parameter parsing without reliance on third-party clients, the module includes a purpose-built **Server GTM Client Template** (`prestashop-client-template.tpl`):

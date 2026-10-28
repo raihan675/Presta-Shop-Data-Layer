@@ -8,6 +8,8 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+require_once __DIR__ . '/AttributionDataEngine.php';
+
 class ServerSideWebhookDispatcher
 {
     /**
@@ -47,6 +49,11 @@ class ServerSideWebhookDispatcher
 
         if (!empty($refundData['user_data']) && is_array($refundData['user_data'])) {
             $params['user_data'] = $refundData['user_data'];
+        }
+
+        $attribution = AttributionDataEngine::getByOrderId((int)$refundData['transaction_id']);
+        if (!empty($attribution)) {
+            $params['attribution'] = $attribution;
         }
 
         $envelope = [
@@ -110,6 +117,11 @@ class ServerSideWebhookDispatcher
 
         if (!empty($userData)) {
             $params['user_data'] = $userData;
+        }
+
+        $attribution = AttributionDataEngine::getByOrderId((int)$order->id);
+        if (!empty($attribution)) {
+            $params['attribution'] = $attribution;
         }
 
         $envelope = [
@@ -289,6 +301,16 @@ class ServerSideWebhookDispatcher
             $params['user_data'] = $userData;
         }
 
+        $attribution = AttributionDataEngine::getByOrderId((int)$order->id);
+        if (!empty($attribution)) {
+            $params['attribution'] = $attribution;
+        }
+
+        $statusContext = self::resolveStatusChangeContext($order, $newOrderStatus, (int)$previousStatusId);
+        if (!empty($statusContext)) {
+            $params['status_change_context'] = $statusContext;
+        }
+
         $envelope = [
             'client_id' => $clientId,
             'events' => [
@@ -416,6 +438,131 @@ class ServerSideWebhookDispatcher
             }
             return false;
         }
+    }
+
+    /**
+     * Resolves comprehensive forensic and operational context for an order status change event.
+     *
+     * @param Order $order
+     * @param OrderState $newOrderStatus
+     * @param int $previousStatusId
+     * @return array
+     */
+    public static function resolveStatusChangeContext(Order $order, OrderState $newOrderStatus, $previousStatusId = 0)
+    {
+        $contextData = [];
+        try {
+            if (!Validate::isLoadedObject($order) || !Validate::isLoadedObject($newOrderStatus)) {
+                return [];
+            }
+
+            $orderAddTimestamp = !empty($order->date_add) ? strtotime($order->date_add) : time();
+            $orderAgeSeconds = max(0, time() - $orderAddTimestamp);
+
+            // 1. Order history ID and time in previous status
+            $idOrderHistory = 0;
+            $timeInPreviousStatus = 0;
+            if (class_exists('Db') && !empty($order->id)) {
+                $histSql = 'SELECT `id_order_history`, `date_add` FROM `' . _DB_PREFIX_ . 'order_history` ' .
+                    'WHERE `id_order` = ' . (int)$order->id . ' ORDER BY `date_add` DESC, `id_order_history` DESC';
+                $histRows = Db::getInstance()->executeS($histSql);
+                if (!empty($histRows) && is_array($histRows)) {
+                    if (isset($histRows[0]['id_order_history'])) {
+                        $idOrderHistory = (int)$histRows[0]['id_order_history'];
+                    }
+                    if (isset($histRows[1]['date_add'])) {
+                        $prevDate = strtotime($histRows[1]['date_add']);
+                        if ($prevDate > 0) {
+                            $timeInPreviousStatus = max(0, time() - $prevDate);
+                        }
+                    }
+                }
+            }
+
+            // 2. Actor / Initiator Information
+            $actorType = 'system';
+            $actorId = 'system';
+            $actorName = 'System';
+            $psContext = class_exists('Context') ? Context::getContext() : null;
+
+            if ($psContext && isset($psContext->employee) && Validate::isLoadedObject($psContext->employee)) {
+                $actorType = 'administrator';
+                $actorId = 'id_employee: ' . (int)$psContext->employee->id;
+                $actorName = trim($psContext->employee->firstname . ' ' . $psContext->employee->lastname);
+            } elseif (!empty($_SERVER['REQUEST_URI']) && (
+                stripos($_SERVER['REQUEST_URI'], 'webhook') !== false
+                || stripos($_SERVER['REQUEST_URI'], 'ipn') !== false
+                || stripos($_SERVER['REQUEST_URI'], 'callback') !== false
+                || stripos($_SERVER['REQUEST_URI'], 'notify') !== false
+            )) {
+                $actorType = 'payment_gateway_webhook';
+                $actorId = !empty($order->module) ? (string)$order->module : 'payment_webhook';
+                $actorName = !empty($order->payment) ? (string)$order->payment : 'Payment Gateway';
+            } elseif (php_sapi_name() === 'cli') {
+                $actorType = 'system_cron';
+                $actorId = 'cli_cron';
+                $actorName = 'Cron Worker';
+            } elseif (!empty($order->module)) {
+                $actorId = (string)$order->module;
+                $actorName = (string)$order->payment;
+            }
+
+            $actorIp = class_exists('Tools') && method_exists('Tools', 'getRemoteAddr')
+                ? (string)Tools::getRemoteAddr()
+                : (isset($_SERVER['REMOTE_ADDR']) ? (string)$_SERVER['REMOTE_ADDR'] : '');
+
+            // 3. Carrier & Tracking Information
+            $carrierName = '';
+            if (!empty($order->id_carrier)) {
+                $carrierObj = new Carrier((int)$order->id_carrier);
+                if (Validate::isLoadedObject($carrierObj) && !empty($carrierObj->name)) {
+                    $carrierName = (string)$carrierObj->name;
+                }
+            }
+
+            $trackingNumber = '';
+            if (!empty($order->shipping_number)) {
+                $trackingNumber = (string)$order->shipping_number;
+            } elseif (class_exists('Db')) {
+                $trackSql = 'SELECT `tracking_number` FROM `' . _DB_PREFIX_ . 'order_carrier` WHERE `id_order` = ' . (int)$order->id;
+                $dbTrack = (string)Db::getInstance()->getValue($trackSql);
+                if (!empty($dbTrack)) {
+                    $trackingNumber = $dbTrack;
+                }
+            }
+
+            // 4. Payment Gateway Transaction ID
+            $gatewayTxId = '';
+            if (class_exists('Db') && !empty($order->reference)) {
+                $cleanRef = function_exists('pSQL') ? pSQL($order->reference) : addslashes($order->reference);
+                $paySql = 'SELECT `transaction_id` FROM `' . _DB_PREFIX_ . 'order_payment` ' .
+                    "WHERE `order_reference` = '" . $cleanRef . "' AND `transaction_id` != '' " .
+                    'ORDER BY `date_add` DESC';
+                $gatewayTxId = (string)Db::getInstance()->getValue($paySql);
+            }
+
+            $contextData = [
+                'id_order_history' => $idOrderHistory,
+                'status_change_timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+                'actor_type' => $actorType,
+                'actor_id' => $actorId,
+                'actor_name' => $actorName,
+                'actor_ip' => $actorIp,
+                'order_age_seconds' => $orderAgeSeconds,
+                'time_in_previous_status_seconds' => $timeInPreviousStatus,
+                'is_within_google_ads_window' => ($orderAgeSeconds <= (55 * 86400)),
+                'is_within_meta_window' => ($orderAgeSeconds <= (90 * 86400)),
+                'is_invoice_generated' => isset($newOrderStatus->invoice) ? (bool)$newOrderStatus->invoice : false,
+                'is_delivery_slip_generated' => isset($newOrderStatus->delivery) ? (bool)$newOrderStatus->delivery : false,
+                'customer_email_sent' => isset($newOrderStatus->send_email) ? (bool)$newOrderStatus->send_email : false,
+                'order_state_color' => isset($newOrderStatus->color) ? (string)$newOrderStatus->color : '',
+                'tracking_number' => $trackingNumber,
+                'carrier_name' => $carrierName,
+                'gateway_transaction_id' => $gatewayTxId,
+            ];
+        } catch (\Throwable $e) {}
+
+        return $contextData;
     }
 
     /**
