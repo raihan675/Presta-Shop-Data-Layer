@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.7] - 2026-10-28
+
+### Changed & Cleaned
+- **Clean sGTM Preview / Debug Header Field (`PS_SGTM_PREVIEW_HEADER`)**:
+  - Removed example preview header string placeholder (`placeholder="..."`) from the Back Office configuration template (`views/templates/admin/configuration.tpl`).
+  - Removed example token string argument from the setting helper description in `ps_gtm_datalayer.php`.
+  - Ensures the input field is completely clean and empty by default, preventing any visual confusion between sample tokens and user-provided preview headers while preserving full guidance in the helper text.
+
+---
+
 ## [1.42.6] - 2026-10-28
 
 ### Added & Fixed

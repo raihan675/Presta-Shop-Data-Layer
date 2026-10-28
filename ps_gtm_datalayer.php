@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.6';
+        $this->version = '1.42.7';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -1778,7 +1778,7 @@ class Ps_Gtm_DataLayer extends Module
                             $this->l('To find your token: In Server GTM, click Preview > click the three vertical dots (⋮) > select "Send requests manually" > copy the header value.'),
                             $this->l('When pasted here, all Back Office refunds, offline orders, and status changes instantly appear in your GTM Server Preview window.'),
                             $this->l('Remove or leave blank when done debugging in production.'),
-                            'ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg='
+                            null
                         ),
                         'size' => 60,
                     ],

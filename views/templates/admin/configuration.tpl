@@ -1659,7 +1659,7 @@
                   <label class="ps-gtm-form-label" for="PS_SGTM_PREVIEW_HEADER">
                     {l s='sGTM Preview / Debug Header (Optional)' mod='ps_gtm_datalayer'}
                   </label>
-                  <input type="text" name="PS_SGTM_PREVIEW_HEADER" id="PS_SGTM_PREVIEW_HEADER" class="ps-gtm-form-input" value="{$config_values.PS_SGTM_PREVIEW_HEADER|escape:'html':'UTF-8'}" placeholder="ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg=">
+                  <input type="text" name="PS_SGTM_PREVIEW_HEADER" id="PS_SGTM_PREVIEW_HEADER" class="ps-gtm-form-input" value="{$config_values.PS_SGTM_PREVIEW_HEADER|escape:'html':'UTF-8'}">
                   <div class="ps-gtm-help-text">
                     <i class="icon-info-circle"></i> {l s='Paste your X-Gtm-Server-Preview header token to view server webhooks inside GTM Server Preview mode. Leave empty in production.' mod='ps_gtm_datalayer'}
                   </div>

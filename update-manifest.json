@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.6",
+    "latest_version":  "1.42.7",
     "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.6/ps_gtm_datalayer.zip",
-    "checksum":  "eaa2ce8aee78e3b18aca1b6af31cb09e94e25868fb963265c30e780f271ba16f",
-    "release_type":  "minor",
-    "release_notes":  "Re-introduced sGTM Debug / Preview Header (X-Gtm-Server-Preview) support, added actionOrderStatusUpdate hook for exact pre-update state capture, and added live Back Office Test Order Status Webhook dispatch capability."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.7/ps_gtm_datalayer.zip",
+    "checksum":  "e93225001c276b566bcd7a5a85d9abdaee7c95488a7ff41d0ad642b8a6d174af",
+    "release_type":  "patch",
+    "release_notes":  "Removed example placeholder from sGTM Preview Header input in Back Office configuration."
 }
