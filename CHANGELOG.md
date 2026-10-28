@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.42.6] - 2026-10-28
+
+### Added & Fixed
+- **Server GTM Debug / Preview Header Support (`PS_SGTM_PREVIEW_HEADER`)**:
+  - Re-introduced the `PS_SGTM_PREVIEW_HEADER` configuration setting in the Back Office and HelperForm, allowing merchants to paste their `X-Gtm-Server-Preview` header token directly from GTM Server Container Preview mode (*Send requests manually*).
+  - Automatically attaches `X-Gtm-Server-Preview` to all outgoing server-to-server HTTP webhook dispatches (`order_status_update`, `refund`, `purchase`, `test_ping`), ensuring server-side requests are claimed and rendered in real time within the Google Tag Manager Server Preview console.
+- **Pre-Update State Capture Hook (`actionOrderStatusUpdate`)**:
+  - Registered and hooked `actionOrderStatusUpdate` to capture authoritative `$order->current_state` in static memory right before status mutations are persisted to the database.
+  - Guarantees `hookActionOrderStatusPostUpdate` reliably captures exact previous status IDs and status transition types (`payment_confirmed`, `refund_issued`, `order_canceled`, `status_changed_while_paid`), even when database transaction flushes or custom status history overrides are present.
+- **Decoupled Server Webhook Gating**:
+  - Decoupled `isEventEnabled('order_status_update')` and `isEventEnabled('refund')` from browser active event lists (`PS_GTM_ACTIVE_EVENTS`), ensuring that server-to-server webhooks are governed authoritatively by their dedicated configuration switches (`PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED`, `PS_GTM_WEBHOOK_REFUND_ENABLED`).
+- **Live Test Order Status Webhook Dispatcher**:
+  - Added an interactive "Test Order Status Webhook" button directly in the Back Office Server-Side Tracking section.
+  - Sends a realistic test `order_status_update` payload with items, transaction ID, and active preview header, returning immediate visual verification of HTTP response code, latency, and endpoint delivery.
+- **cURL Network Resilience**:
+  - Extended cURL connect timeout (2000ms) and execution timeout (3500ms) to accommodate cloud server cold starts (Cloud Run, AWS ECS), with automatic fallback retry on SSL CA certificate bundle issues.
+
+---
+
 ## [1.42.5] - 2026-10-27
 
 ### Added & Enhanced

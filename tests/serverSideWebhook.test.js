@@ -456,4 +456,114 @@ describe('Server-to-Server Refund & Offline Order Webhooks Test Suite', () => {
     assert.strictEqual(shouldDispatchStatusUpdate(2, 7), true);
   });
 
+  it('19. Should inject X-Gtm-Server-Preview header when preview token is configured and omit when empty', () => {
+    function buildHttpHeaders(eventName, previewHeader = null) {
+      const headers = [
+        'Content-Type: application/json',
+        'X-PrestaShop-Source: ps_gtm_datalayer',
+        'X-Event-Type: ' + eventName,
+      ];
+      if (previewHeader && String(previewHeader).trim() !== '') {
+        headers.push('X-Gtm-Server-Preview: ' + String(previewHeader).trim());
+      }
+      return headers;
+    }
+
+    const previewToken = 'ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg=';
+
+    // With preview header (Debugging in GTM Server Preview)
+    const headersWithPreview = buildHttpHeaders('order_status_update', previewToken);
+    assert.ok(headersWithPreview.includes('X-Gtm-Server-Preview: ' + previewToken));
+    assert.strictEqual(headersWithPreview.length, 4);
+
+    // Without preview header (Production mode)
+    const headersWithoutPreview = buildHttpHeaders('order_status_update', '');
+    assert.ok(!headersWithoutPreview.some(h => h.startsWith('X-Gtm-Server-Preview:')));
+    assert.strictEqual(headersWithoutPreview.length, 3);
+  });
+
+  it('20. Should build canonical diagnostic test payload for order_status_update with preview header', () => {
+    function buildDiagnosticPayload(transactionId, statusTransition, previewHeader) {
+      const payload = {
+        event_name: 'order_status_update',
+        client_id: 'test_order.' + 1793167600,
+        timestamp: 1793167600,
+        transaction_id: transactionId,
+        order_reference: 'DIAGNOSTIC-TEST',
+        status_transition_type: statusTransition,
+        conversion_action: 'record',
+        new_status_id: 2,
+        new_status_name: 'Payment accepted',
+        previous_status_id: 10,
+        previous_status_name: 'Awaiting bank wire payment',
+        is_paid: true,
+        previous_is_paid: false,
+        currency: 'EUR',
+        value: 49.99,
+        items: [
+          {
+            item_id: 'TEST_ITEM_1',
+            item_name: 'Test Product - sGTM Webhook Diagnostics',
+            price: 49.99,
+            quantity: 1
+          }
+        ]
+      };
+
+      const headers = [
+        'Content-Type: application/json',
+        'X-PrestaShop-Source: ps_gtm_datalayer',
+        'X-Event-Type: order_status_update',
+        'X-Diagnostic-Test: 1'
+      ];
+      if (previewHeader) {
+        headers.push('X-Gtm-Server-Preview: ' + previewHeader);
+      }
+
+      return { payload, headers };
+    }
+
+    const previewToken = 'ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg=';
+    const diag = buildDiagnosticPayload('TEST-1001', 'payment_confirmed', previewToken);
+
+    assert.strictEqual(diag.payload.event_name, 'order_status_update');
+    assert.strictEqual(diag.payload.transaction_id, 'TEST-1001');
+    assert.strictEqual(diag.payload.status_transition_type, 'payment_confirmed');
+    assert.strictEqual(diag.payload.is_paid, true);
+    assert.ok(diag.headers.includes('X-Gtm-Server-Preview: ' + previewToken));
+    assert.ok(diag.headers.includes('X-Diagnostic-Test: 1'));
+  });
+
+  it('21. Should track prior order state via actionOrderStatusUpdate map across status transitions', () => {
+    const previousOrderStatusMap = {};
+
+    function onActionOrderStatusUpdate(idOrder, currentDbState) {
+      previousOrderStatusMap[idOrder] = currentDbState;
+    }
+
+    function onActionOrderStatusPostUpdate(idOrder, newOrderStatusId) {
+      const previousStatusId = previousOrderStatusMap[idOrder] || 0;
+      if (previousStatusId <= 0 || previousStatusId === newOrderStatusId) {
+        return null; // Ignore duplicate or unrecorded
+      }
+      return { idOrder, previousStatusId, newOrderStatusId, dispatched: true };
+    }
+
+    // Step 1: Pre-hook fires before order state updates from Bank wire (10) to Payment accepted (2)
+    onActionOrderStatusUpdate(1048, 10);
+    assert.strictEqual(previousOrderStatusMap[1048], 10);
+
+    // Step 2: Post-hook executes and consumes previousStatusId
+    const dispatchResult = onActionOrderStatusPostUpdate(1048, 2);
+    assert.ok(dispatchResult);
+    assert.strictEqual(dispatchResult.previousStatusId, 10);
+    assert.strictEqual(dispatchResult.newOrderStatusId, 2);
+    assert.strictEqual(dispatchResult.dispatched, true);
+
+    // Step 3: Re-saving the same status (2 -> 2) must be ignored
+    onActionOrderStatusUpdate(1048, 2);
+    const duplicateResult = onActionOrderStatusPostUpdate(1048, 2);
+    assert.strictEqual(duplicateResult, null);
+  });
+
 });

@@ -162,6 +162,11 @@ class ServerSideWebhookDispatcher
             } catch (\Throwable $e) {}
         }
 
+        // Fallback for Back Office updates where previous order state was not yet committed or history row was absent
+        if ($previousStatusId <= 0 && !empty($order->current_state) && (int)$order->current_state !== (int)$newOrderStatus->id) {
+            $previousStatusId = (int)$order->current_state;
+        }
+
         // Strict guard: An order status update requires an actual change between two distinct statuses.
         // If there is no previous status (initial order placement at checkout) or if the status did not change, ignore.
         if ($previousStatusId <= 0 || $previousStatusId === (int)$newOrderStatus->id) {
@@ -307,7 +312,7 @@ class ServerSideWebhookDispatcher
      * @param array $payload
      * @return bool
      */
-    public static function sendHttpRequest($sgtmUrl, $eventName, array $payload)
+    public static function sendHttpRequest($sgtmUrl, $eventName, array $payload, $previewHeader = null)
     {
         try {
             if (!function_exists('curl_init') || empty($sgtmUrl)) {
@@ -351,13 +356,20 @@ class ServerSideWebhookDispatcher
                 'X-Event-Type: ' . $eventName,
             ];
 
+            if (empty($previewHeader)) {
+                $previewHeader = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_PREVIEW_HEADER')) : '';
+            }
+            if (!empty($previewHeader)) {
+                $headers[] = 'X-Gtm-Server-Preview: ' . $previewHeader;
+            }
+
             $ch = curl_init($endpoint);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
             curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-            curl_setopt($ch, CURLOPT_TIMEOUT_MS, 1500);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 1000);
+            curl_setopt($ch, CURLOPT_TIMEOUT_MS, 3500);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 2000);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 
             $response = curl_exec($ch);
@@ -365,10 +377,29 @@ class ServerSideWebhookDispatcher
             $curlError = curl_error($ch);
             curl_close($ch);
 
+            if ($response === false && !empty($curlError) && (stripos($curlError, 'SSL') !== false || stripos($curlError, 'certificate') !== false)) {
+                $chRetry = curl_init($endpoint);
+                curl_setopt($chRetry, CURLOPT_CUSTOMREQUEST, 'POST');
+                curl_setopt($chRetry, CURLOPT_POSTFIELDS, $body);
+                curl_setopt($chRetry, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($chRetry, CURLOPT_HTTPHEADER, $headers);
+                curl_setopt($chRetry, CURLOPT_TIMEOUT_MS, 3500);
+                curl_setopt($chRetry, CURLOPT_CONNECTTIMEOUT_MS, 2000);
+                curl_setopt($chRetry, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($chRetry, CURLOPT_SSL_VERIFYHOST, 0);
+                $response = curl_exec($chRetry);
+                $httpCode = curl_getinfo($chRetry, CURLINFO_HTTP_CODE);
+                $curlError = curl_error($chRetry);
+                curl_close($chRetry);
+            }
+
             if (class_exists('PrestaShopLogger')) {
                 PrestaShopLogger::addLog(
                     sprintf(
-                        'ps_gtm_datalayer webhook [%s] dispatched to %s | HTTP Code: %d%s',
+                        'ps_gtm_datalayer webhook [%s] dispatched to %s%s | HTTP Code: %d%s',
+                        $eventName,
+                        $endpoint,
+                        !empty($previewHeader) ? ' [Preview Mode]' : '',
                         $eventName,
                         $endpoint,
                         $httpCode,
@@ -393,7 +424,7 @@ class ServerSideWebhookDispatcher
      * @param string|null $sgtmUrl Optional override URL
      * @return array Result array with success, http_code, latency_ms, endpoint, and error
      */
-    public static function testPing($sgtmUrl = null)
+    public static function testPing($sgtmUrl = null, $previewHeader = null, $endpointPath = null)
     {
         if (empty($sgtmUrl)) {
             $sgtmUrl = class_exists('Configuration') ? (string)Configuration::get('PS_SGTM_TRANSPORT_URL') : '';
@@ -422,9 +453,15 @@ class ServerSideWebhookDispatcher
             ];
         }
 
-        $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
         if (empty($endpointPath)) {
-            $endpointPath = '/ps-webhook';
+            $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
+            if (empty($endpointPath)) {
+                $endpointPath = '/ps-webhook';
+            }
+        }
+
+        if (empty($previewHeader)) {
+            $previewHeader = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_PREVIEW_HEADER')) : '';
         }
 
         $parsedUrl = parse_url($sgtmUrl);
@@ -468,6 +505,9 @@ class ServerSideWebhookDispatcher
             'X-Event-Type: test_ping',
             'X-Diagnostic-Ping: 1',
         ];
+        if (!empty($previewHeader)) {
+            $headers[] = 'X-Gtm-Server-Preview: ' . $previewHeader;
+        }
 
         $startTime = microtime(true);
         $ch = curl_init($endpoint);
@@ -496,6 +536,182 @@ class ServerSideWebhookDispatcher
             'http_code' => $httpCode,
             'latency_ms' => $latencyMs,
             'endpoint' => $endpoint,
+            'preview_header_sent' => !empty($previewHeader),
+            'error' => $curlError,
+            'message' => $message,
+            'raw_response' => substr((string)$response, 0, 300),
+        ];
+    }
+
+    /**
+     * Dispatches a live test order_status_update payload to Server-Side GTM.
+     * Includes X-Gtm-Server-Preview header so the request immediately renders in GTM Server Preview debugger.
+     *
+     * @param string|null $sgtmUrl Optional override URL
+     * @param string|null $previewHeader Optional preview header override
+     * @param string|null $endpointPath Optional endpoint path override
+     * @return array
+     */
+    public static function testOrderStatusWebhook($sgtmUrl = null, $previewHeader = null, $endpointPath = null)
+    {
+        if (empty($sgtmUrl)) {
+            $sgtmUrl = class_exists('Configuration') ? (string)Configuration::get('PS_SGTM_TRANSPORT_URL') : '';
+        }
+        $sgtmUrl = trim((string)$sgtmUrl);
+        if (empty($sgtmUrl)) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => '',
+                'error' => 'No Server-Side GTM Transport URL configured.',
+                'message' => 'Please enter a valid Transport URL in Configuration.',
+            ];
+        }
+
+        if (!filter_var($sgtmUrl, FILTER_VALIDATE_URL) || !preg_match('#^https?://#i', $sgtmUrl)) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => $sgtmUrl,
+                'error' => 'Invalid URL format.',
+                'message' => 'The Transport URL must be a valid HTTP or HTTPS URL (e.g. https://gtm.yourdomain.com).',
+            ];
+        }
+
+        if (empty($endpointPath)) {
+            $endpointPath = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH')) : '';
+            if (empty($endpointPath)) {
+                $endpointPath = '/ps-webhook';
+            }
+        }
+
+        if (empty($previewHeader)) {
+            $previewHeader = class_exists('Configuration') ? trim((string)Configuration::get('PS_SGTM_PREVIEW_HEADER')) : '';
+        }
+
+        $parsedUrl = parse_url($sgtmUrl);
+        if (!empty($parsedUrl['path']) && $parsedUrl['path'] !== '/') {
+            $endpoint = $sgtmUrl;
+        } else {
+            $endpoint = rtrim($sgtmUrl, '/') . '/' . ltrim($endpointPath, '/');
+        }
+
+        if (!function_exists('curl_init')) {
+            return [
+                'success' => false,
+                'http_code' => 0,
+                'latency_ms' => 0,
+                'endpoint' => $endpoint,
+                'error' => 'cURL PHP extension is not installed or enabled.',
+                'message' => 'PHP cURL extension required for server-side dispatching.',
+            ];
+        }
+
+        $samplePayload = [
+            'event_name' => 'order_status_update',
+            'client_id' => 'test_order.' . time(),
+            'timestamp' => time(),
+            'transaction_id' => 'TEST-1001',
+            'order_reference' => 'DIAGNOSTIC-TEST',
+            'status_transition_type' => 'payment_confirmed',
+            'conversion_action' => 'record',
+            'new_status_id' => 2,
+            'new_status_name' => 'Payment accepted',
+            'previous_status_id' => 10,
+            'previous_status_name' => 'Awaiting bank wire payment',
+            'is_paid' => true,
+            'previous_is_paid' => false,
+            'is_shipped' => false,
+            'is_canceled' => false,
+            'is_refunded' => false,
+            'currency' => 'EUR',
+            'value' => 49.99,
+            'payment_method' => 'Bank Wire',
+            'items' => [
+                [
+                    'item_id' => 'TEST_ITEM_1',
+                    'item_name' => 'Test Product - sGTM Webhook Diagnostics',
+                    'price' => 49.99,
+                    'quantity' => 1
+                ]
+            ],
+            'user_data' => [
+                'email_address' => hash('sha256', 'test@example.com'),
+                'phone_number' => hash('sha256', '1234567890')
+            ],
+            'events' => [
+                [
+                    'name' => 'order_status_update',
+                    'params' => [
+                        'transaction_id' => 'TEST-1001',
+                        'order_reference' => 'DIAGNOSTIC-TEST',
+                        'status_transition_type' => 'payment_confirmed',
+                        'conversion_action' => 'record',
+                        'new_status_name' => 'Payment accepted',
+                        'is_paid' => true,
+                        'currency' => 'EUR',
+                        'value' => 49.99
+                    ]
+                ]
+            ]
+        ];
+
+        $body = json_encode($samplePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $headers = [
+            'Content-Type: application/json',
+            'X-PrestaShop-Source: ps_gtm_datalayer',
+            'X-Event-Type: order_status_update',
+            'X-Diagnostic-Test: 1'
+        ];
+        if (!empty($previewHeader)) {
+            $headers[] = 'X-Gtm-Server-Preview: ' . $previewHeader;
+        }
+
+        $startTime = microtime(true);
+        $ch = curl_init($endpoint);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 4000);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 2500);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+
+        $response = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false && !empty($curlError) && (stripos($curlError, 'SSL') !== false || stripos($curlError, 'certificate') !== false)) {
+            $chRetry = curl_init($endpoint);
+            curl_setopt($chRetry, CURLOPT_CUSTOMREQUEST, 'POST');
+            curl_setopt($chRetry, CURLOPT_POSTFIELDS, $body);
+            curl_setopt($chRetry, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($chRetry, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($chRetry, CURLOPT_TIMEOUT_MS, 4000);
+            curl_setopt($chRetry, CURLOPT_CONNECTTIMEOUT_MS, 2500);
+            curl_setopt($chRetry, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($chRetry, CURLOPT_SSL_VERIFYHOST, 0);
+            $response = curl_exec($chRetry);
+            $httpCode = (int)curl_getinfo($chRetry, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($chRetry);
+            curl_close($chRetry);
+        }
+
+        $latencyMs = round((microtime(true) - $startTime) * 1000, 2);
+        $isSuccess = ($httpCode >= 200 && $httpCode < 400);
+        $message = $isSuccess
+            ? 'Order status webhook dispatched successfully (' . $latencyMs . ' ms, HTTP ' . $httpCode . ')' . (!empty($previewHeader) ? ' - Check your Server GTM Preview debugger window!' : ' (Note: Add Preview Header to see in GTM Preview mode)')
+            : (!empty($curlError) ? 'Connection failed: ' . $curlError : 'HTTP ' . $httpCode . ' response from endpoint');
+
+        return [
+            'success' => $isSuccess,
+            'http_code' => $httpCode,
+            'latency_ms' => $latencyMs,
+            'endpoint' => $endpoint,
+            'preview_header_sent' => !empty($previewHeader),
             'error' => $curlError,
             'message' => $message,
             'raw_response' => substr((string)$response, 0, 300),

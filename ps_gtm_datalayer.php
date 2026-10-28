@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.42.5';
+        $this->version = '1.42.6';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -47,6 +47,9 @@ class Ps_Gtm_DataLayer extends Module
         // Auto-register core and server-to-server webhook hooks seamlessly without requiring module reinstall
         if (!$this->isRegisteredInHook('actionCarrierProcess')) {
             $this->registerHook('actionCarrierProcess');
+        }
+        if (!$this->isRegisteredInHook('actionOrderStatusUpdate')) {
+            $this->registerHook('actionOrderStatusUpdate');
         }
         if (!$this->isRegisteredInHook('actionOrderStatusPostUpdate')) {
             $this->registerHook('actionOrderStatusPostUpdate');
@@ -83,11 +86,13 @@ class Ps_Gtm_DataLayer extends Module
             && $this->registerHook('displayBackOfficeHeader')
             && $this->registerHook('actionOrderSlipAdd')
             && $this->registerHook('actionValidateOrder')
+            && $this->registerHook('actionOrderStatusUpdate')
             && $this->registerHook('actionOrderStatusPostUpdate')
             && DeduplicationManager::createDatabaseTable()
             && Configuration::updateValue('PS_GTM_CONTAINER_ID', '')
             && Configuration::updateValue('PS_SGTM_TRANSPORT_URL', '')
             && Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', '/ps-webhook')
+            && Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', '')
             && Configuration::updateValue('PS_GTM_WEBHOOK_REFUND_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED', '1')
             && Configuration::updateValue('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED', '1')
@@ -121,6 +126,7 @@ class Ps_Gtm_DataLayer extends Module
             && Configuration::deleteByName('PS_GTM_CONTAINER_ID')
             && Configuration::deleteByName('PS_SGTM_TRANSPORT_URL')
             && Configuration::deleteByName('PS_SGTM_WEBHOOK_ENDPOINT_PATH')
+            && Configuration::deleteByName('PS_SGTM_PREVIEW_HEADER')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_REFUND_ENABLED')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_OFFLINE_ORDER_ENABLED')
             && Configuration::deleteByName('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED')
@@ -218,12 +224,23 @@ class Ps_Gtm_DataLayer extends Module
             }
         }
 
-        // Handle AJAX Diagnostic Ping
+        // Handle AJAX Diagnostic Ping & Test Status Webhook
         if (Tools::getValue('ajax') && Tools::getValue('action') === 'testSgtmPing') {
             header('Content-Type: application/json; charset=utf-8');
             $testUrl = Tools::getValue('PS_SGTM_TRANSPORT_URL');
-            $pingResult = ServerSideWebhookDispatcher::testPing($testUrl);
+            $previewHeader = Tools::getValue('PS_SGTM_PREVIEW_HEADER');
+            $customPath = Tools::getValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH');
+            $pingResult = ServerSideWebhookDispatcher::testPing($testUrl, $previewHeader, $customPath);
             die(json_encode($pingResult, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        }
+
+        if (Tools::getValue('ajax') && Tools::getValue('action') === 'testOrderStatusWebhook') {
+            header('Content-Type: application/json; charset=utf-8');
+            $testUrl = Tools::getValue('PS_SGTM_TRANSPORT_URL');
+            $previewHeader = Tools::getValue('PS_SGTM_PREVIEW_HEADER');
+            $customPath = Tools::getValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH');
+            $statusResult = ServerSideWebhookDispatcher::testOrderStatusWebhook($testUrl, $previewHeader, $customPath);
+            die(json_encode($statusResult, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
         }
 
         // Self-heal corrupted or empty PS_GTM_ACTIVE_EVENTS
@@ -269,6 +286,7 @@ class Ps_Gtm_DataLayer extends Module
                     Configuration::updateValue('PS_GTM_CONTAINER_ID', $gtmId);
                     Configuration::updateValue('PS_SGTM_TRANSPORT_URL', $sgtmUrl);
                     Configuration::updateValue('PS_SGTM_WEBHOOK_ENDPOINT_PATH', $sgtmEndpointPath ?: '/ps-webhook');
+                    Configuration::updateValue('PS_SGTM_PREVIEW_HEADER', trim((string)Tools::getValue('PS_SGTM_PREVIEW_HEADER', '')));
                     $rawHeadCode = Tools::getValue('PS_GTM_RAW_HEAD_CODE', false);
                     if ($rawHeadCode !== false) {
                         Configuration::updateValue('PS_GTM_RAW_HEAD_CODE', $rawHeadCode, true);
@@ -938,6 +956,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_CATALOG_ID_STRATEGY' => $catalogStrategy,
                 'PS_SGTM_TRANSPORT_URL' => $sgtmUrl,
                 'PS_SGTM_WEBHOOK_ENDPOINT_PATH' => $endpointPath,
+                'PS_SGTM_PREVIEW_HEADER' => Configuration::get('PS_SGTM_PREVIEW_HEADER'),
                 'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
                 'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
                 'PS_GTM_WEBHOOK_REFUND_ENABLED' => Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') !== '0',
@@ -1011,6 +1030,12 @@ class Ps_Gtm_DataLayer extends Module
 
     public static function isEventEnabled($eventName)
     {
+        if ($eventName === 'order_status_update') {
+            return Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') !== '0';
+        }
+        if ($eventName === 'refund') {
+            return Configuration::get('PS_GTM_WEBHOOK_REFUND_ENABLED') !== '0';
+        }
         $raw = Configuration::get('PS_GTM_ACTIVE_EVENTS');
         if ($raw === false || $raw === null || $raw === '' || $raw === '[]') {
             return true;
@@ -1617,6 +1642,7 @@ class Ps_Gtm_DataLayer extends Module
                 'PS_GTM_CONTAINER_ID' => Configuration::get('PS_GTM_CONTAINER_ID'),
                 'PS_SGTM_TRANSPORT_URL' => Configuration::get('PS_SGTM_TRANSPORT_URL'),
                 'PS_SGTM_WEBHOOK_ENDPOINT_PATH' => Configuration::get('PS_SGTM_WEBHOOK_ENDPOINT_PATH') ?: '/ps-webhook',
+                'PS_SGTM_PREVIEW_HEADER' => Configuration::get('PS_SGTM_PREVIEW_HEADER'),
                 'PS_GTM_RAW_HEAD_CODE' => Configuration::get('PS_GTM_RAW_HEAD_CODE'),
                 'PS_GTM_RAW_BODY_CODE' => Configuration::get('PS_GTM_RAW_BODY_CODE'),
                 'PS_GTM_EVENT_PREFIX' => Configuration::get('PS_GTM_EVENT_PREFIX'),
@@ -1739,6 +1765,22 @@ class Ps_Gtm_DataLayer extends Module
                             '/ps-webhook'
                         ),
                         'size' => 30,
+                    ],
+                    [
+                        'type' => 'text',
+                        'name' => 'PS_SGTM_PREVIEW_HEADER',
+                        'label' => $this->l('sGTM Preview / Debug Header (Optional)'),
+                        'hint' => $this->l('Paste your X-Gtm-Server-Preview header token to view server webhooks inside GTM Server Preview mode.'),
+                        'desc' => $this->renderSettingHelp(
+                            'sgtm_preview_header',
+                            $this->l('Enables real-time debugging in Google Tag Manager Server Container Preview.'),
+                            $this->l('Server GTM ignores external backend HTTP requests in Preview mode unless the X-Gtm-Server-Preview header is present.'),
+                            $this->l('To find your token: In Server GTM, click Preview > click the three vertical dots (⋮) > select "Send requests manually" > copy the header value.'),
+                            $this->l('When pasted here, all Back Office refunds, offline orders, and status changes instantly appear in your GTM Server Preview window.'),
+                            $this->l('Remove or leave blank when done debugging in production.'),
+                            'ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg='
+                        ),
+                        'size' => 60,
                     ],
                     [
                         'type' => 'switch',
@@ -3722,10 +3764,26 @@ class Ps_Gtm_DataLayer extends Module
         }
     }
 
+    /** @var array<int, int> Map of order ID to previous order state ID */
+    public static $previousOrderStatusMap = [];
+
+    public function hookActionOrderStatusUpdate($params)
+    {
+        try {
+            $idOrder = isset($params['id_order']) ? (int)$params['id_order'] : 0;
+            if ($idOrder > 0) {
+                $order = new Order($idOrder);
+                if (Validate::isLoadedObject($order)) {
+                    self::$previousOrderStatusMap[$idOrder] = (int)$order->current_state;
+                }
+            }
+        } catch (\Throwable $e) {}
+    }
+
     public function hookActionOrderStatusPostUpdate($params)
     {
         try {
-            if (!self::isEventEnabled('order_status_update') || Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') === '0') {
+            if (Configuration::get('PS_GTM_WEBHOOK_STATUS_UPDATE_ENABLED') === '0') {
                 return;
             }
 
@@ -3747,7 +3805,9 @@ class Ps_Gtm_DataLayer extends Module
             }
 
             $previousStatusId = 0;
-            if (isset($params['oldOrderStatus']) && Validate::isLoadedObject($params['oldOrderStatus'])) {
+            if (isset(self::$previousOrderStatusMap[$idOrder])) {
+                $previousStatusId = (int)self::$previousOrderStatusMap[$idOrder];
+            } elseif (isset($params['oldOrderStatus']) && Validate::isLoadedObject($params['oldOrderStatus'])) {
                 $previousStatusId = (int)$params['oldOrderStatus']->id;
             } elseif (isset($params['id_order_state'])) {
                 $previousStatusId = (int)$params['id_order_state'];

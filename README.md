@@ -437,7 +437,7 @@ For ecommerce events that occur outside of active customer browser sessions, `ps
 * **Deduplication**: Verified against `gtm_purchase_log` to prevent double-counting of storefront orders.
 
 ### 3. Universal Order & Payment Status Changes (`order_status_update`)
-* **Hook**: `actionOrderStatusPostUpdate`
+* **Hooks**: `actionOrderStatusUpdate` (pre-update state capture) & `actionOrderStatusPostUpdate` (post-update dispatch)
 * **Trigger**: Any status change in the Back Office (e.g. Bank Wire `#10` &rarr; Payment Accepted `#2`, Mirakl marketplace confirmation `#11`, Shipped `#4`, Delivered `#5`).
 * **Universal Portability**: Reads PrestaShop's core `$orderState->paid` and `$orderState->shipped` flags with 0 hardcoded status IDs or languages.
 * **Self-Healing Mistake Reversal Detection**:

@@ -1655,10 +1655,23 @@
                   </div>
                 </div>
 
+                                <div class="form-group" style="margin-bottom: 16px;">
+                  <label class="ps-gtm-form-label" for="PS_SGTM_PREVIEW_HEADER">
+                    {l s='sGTM Preview / Debug Header (Optional)' mod='ps_gtm_datalayer'}
+                  </label>
+                  <input type="text" name="PS_SGTM_PREVIEW_HEADER" id="PS_SGTM_PREVIEW_HEADER" class="ps-gtm-form-input" value="{$config_values.PS_SGTM_PREVIEW_HEADER|escape:'html':'UTF-8'}" placeholder="ZW52LTZ8dnFTZ0FrZ0R2aUZxbTVzbUZyTTNXUXwxYTE4MTBkZjYwYTE3NGYzYzJhNDg=">
+                  <div class="ps-gtm-help-text">
+                    <i class="icon-info-circle"></i> {l s='Paste your X-Gtm-Server-Preview header token to view server webhooks inside GTM Server Preview mode. Leave empty in production.' mod='ps_gtm_datalayer'}
+                  </div>
+                </div>
+
                 <!-- Test Connection Button -->
                 <div style="padding-top: 14px; border-top: 1px solid #edf2f7; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                   <button type="button" id="ps-gtm-ping-btn" class="btn btn-default" style="font-size: 14px; font-weight: 600; padding: 8px 16px;">
                     <i class="icon-bolt text-warning"></i> {l s='Test Server Connection (Ping)' mod='ps_gtm_datalayer'}
+                  </button>
+                  <button type="button" id="ps-gtm-test-status-btn" class="btn btn-primary" style="font-size: 14px; font-weight: 600; padding: 8px 16px;">
+                    <i class="icon-refresh"></i> {l s='Test Order Status Webhook' mod='ps_gtm_datalayer'}
                   </button>
                   <span style="font-size: 13.5px; color: #64748b;">
                     {l s='Sends a test request directly to your sGTM transport URL to verify network connectivity.' mod='ps_gtm_datalayer'}

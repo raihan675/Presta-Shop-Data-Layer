@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.42.5",
-    "release_date":  "2026-10-27",
+    "latest_version":  "1.42.6",
+    "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.5/ps_gtm_datalayer.zip",
-    "checksum":  "9958a9c6dfc44bb56ac4215ef6adfece45a63455b5e512baea67ef00377cacee",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.42.6/ps_gtm_datalayer.zip",
+    "checksum":  "eaa2ce8aee78e3b18aca1b6af31cb09e94e25868fb963265c30e780f271ba16f",
     "release_type":  "minor",
-    "release_notes":  "Integrated 10 custom section icons across Back Office configuration panels and added an interactive animated Save Settings button with AJAX state transitions."
+    "release_notes":  "Re-introduced sGTM Debug / Preview Header (X-Gtm-Server-Preview) support, added actionOrderStatusUpdate hook for exact pre-update state capture, and added live Back Office Test Order Status Webhook dispatch capability."
 }

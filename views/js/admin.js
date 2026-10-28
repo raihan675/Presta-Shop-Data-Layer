@@ -696,11 +696,15 @@
 
       var ajaxUrl = window.psGtmAjaxAdminUrl || '';
       var transportUrl = document.getElementById('PS_SGTM_TRANSPORT_URL') ? document.getElementById('PS_SGTM_TRANSPORT_URL').value : '';
+      var previewHeader = document.getElementById('PS_SGTM_PREVIEW_HEADER') ? document.getElementById('PS_SGTM_PREVIEW_HEADER').value : '';
+      var endpointPath = document.getElementById('PS_SGTM_WEBHOOK_ENDPOINT_PATH') ? document.getElementById('PS_SGTM_WEBHOOK_ENDPOINT_PATH').value : '';
 
       var formData = new FormData();
       formData.append('ajax', '1');
       formData.append('action', 'testSgtmPing');
       formData.append('PS_SGTM_TRANSPORT_URL', transportUrl);
+      formData.append('PS_SGTM_PREVIEW_HEADER', previewHeader);
+      formData.append('PS_SGTM_WEBHOOK_ENDPOINT_PATH', endpointPath);
 
       fetch(ajaxUrl, {
         method: 'POST',
@@ -716,7 +720,7 @@
           resultBox.innerHTML = '<strong><i class="icon-check-circle"></i> Connection Verified!</strong><br>' +
             'Endpoint: <code>' + (data.endpoint || '') + '</code><br>' +
             'HTTP Status: <strong>' + data.http_code + '</strong> | Latency: <strong>' + data.latency_ms + ' ms</strong><br>' +
-            '<span style="font-size: 13px; color: #2e7d32;">Container responded successfully. Server-to-server conversions ready.</span>';
+            '<span style="font-size: 13px; color: #2e7d32;">Container responded successfully.' + (data.preview_header_sent ? ' [Preview Header Active]' : '') + '</span>';
         } else {
           resultBox.className = 'alert alert-danger';
           resultBox.innerHTML = '<strong><i class="icon-warning-sign"></i> Connection Failed!</strong><br>' +
@@ -732,11 +736,61 @@
         resultBox.innerHTML = '<strong><i class="icon-times-circle"></i> Ping Error:</strong> ' + err.message;
       });
     });
+
+    var statusBtn = document.getElementById('ps-gtm-test-status-btn');
+    if (statusBtn) {
+      statusBtn.addEventListener('click', function () {
+        statusBtn.disabled = true;
+        statusBtn.innerHTML = '<i class="icon-spinner icon-spin"></i> Dispatching Webhook...';
+        resultBox.style.display = 'block';
+        resultBox.className = 'alert alert-info';
+        resultBox.innerHTML = '<i class="icon-refresh icon-spin"></i> Dispatched test order_status_update payload to Server GTM...';
+
+        var ajaxUrl = window.psGtmAjaxAdminUrl || '';
+        var transportUrl = document.getElementById('PS_SGTM_TRANSPORT_URL') ? document.getElementById('PS_SGTM_TRANSPORT_URL').value : '';
+        var previewHeader = document.getElementById('PS_SGTM_PREVIEW_HEADER') ? document.getElementById('PS_SGTM_PREVIEW_HEADER').value : '';
+        var endpointPath = document.getElementById('PS_SGTM_WEBHOOK_ENDPOINT_PATH') ? document.getElementById('PS_SGTM_WEBHOOK_ENDPOINT_PATH').value : '';
+
+        var formData = new FormData();
+        formData.append('ajax', '1');
+        formData.append('action', 'testOrderStatusWebhook');
+        formData.append('PS_SGTM_TRANSPORT_URL', transportUrl);
+        formData.append('PS_SGTM_PREVIEW_HEADER', previewHeader);
+        formData.append('PS_SGTM_WEBHOOK_ENDPOINT_PATH', endpointPath);
+
+        fetch(ajaxUrl, {
+          method: 'POST',
+          body: formData
+        })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          statusBtn.disabled = false;
+          statusBtn.innerHTML = '<i class="icon-refresh"></i> Test Order Status Webhook';
+
+          if (data.success) {
+            resultBox.className = 'alert alert-success';
+            resultBox.innerHTML = '<strong><i class="icon-check-circle"></i> Order Status Webhook Dispatched!</strong><br>' +
+              'Endpoint: <code>' + (data.endpoint || '') + '</code><br>' +
+              'HTTP Status: <strong>' + data.http_code + '</strong> | Latency: <strong>' + data.latency_ms + ' ms</strong><br>' +
+              '<span style="font-size: 13px; color: #2e7d32;">' + (data.message || 'Payload claimed by Server GTM Client successfully.') + '</span>';
+          } else {
+            resultBox.className = 'alert alert-danger';
+            resultBox.innerHTML = '<strong><i class="icon-warning-sign"></i> Webhook Dispatch Failed!</strong><br>' +
+              'Endpoint: <code>' + (data.endpoint || 'N/A') + '</code><br>' +
+              'Message: ' + (data.message || data.error || 'Server unreachable') + '<br>' +
+              (data.http_code ? 'HTTP Status: ' + data.http_code : '');
+          }
+        })
+        .catch(function (err) {
+          statusBtn.disabled = false;
+          statusBtn.innerHTML = '<i class="icon-refresh"></i> Test Order Status Webhook';
+          resultBox.className = 'alert alert-danger';
+          resultBox.innerHTML = '<strong><i class="icon-times-circle"></i> Dispatch Error:</strong> ' + err.message;
+        });
+      });
+    }
   }
 
-  /**
-   * Learn More / Setting Explainers
-   */
   function initSettingExplainers() {
     document.addEventListener('click', function (e) {
       var btn = e.target.closest('.ps-gtm-learn-more-btn');

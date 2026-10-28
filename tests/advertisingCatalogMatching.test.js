@@ -1354,8 +1354,8 @@ describe('Universal Advertising Platform Catalog-Matching Specification Test Sui
     assert.strictEqual(listPayload.google_ads.dynamic_remarketing.ecomm_pagetype, 'category');
 
     // Scenario 3: Verify backend source architecture
-    const payloadBuilderCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'PayloadBuilder.php'), 'utf8');
-    const moduleMainCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8');
+    const payloadBuilderCode = fs.readFileSync(path.join(__dirname, '..', 'classes', 'PayloadBuilder.php'), 'utf8').replace(/\r\n/g, '\n');
+    const moduleMainCode = fs.readFileSync(path.join(__dirname, '..', 'ps_gtm_datalayer.php'), 'utf8').replace(/\r\n/g, '\n');
 
     // PayloadBuilder must route search directly to buildViewSearchResultsPayload and not buildViewItemListPayload
     assert.ok(payloadBuilderCode.includes("if (self::isSearchController($controller, $this->context)) {\n            $query = self::getSearchQuery();\n            return $this->buildViewSearchResultsPayload($query, null, [], true);\n        }"), 'buildPagePayload must directly return buildViewSearchResultsPayload on search controllers');
