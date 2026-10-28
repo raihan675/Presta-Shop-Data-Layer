@@ -236,7 +236,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.43.3', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.43.4', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
 const allTplFiles = [];
@@ -254,6 +254,31 @@ allTplFiles.forEach(tpl => {
   const rel = path.relative(MODULE_ROOT, tpl);
   report(`No illegal |implode Smarty modifier in ${rel}`, !tplContent.includes('|implode'), `Found illegal |implode modifier in ${rel}`);
 });
+
+// Inline JavaScript syntax validation in all .tpl files
+allTplFiles.forEach(tpl => {
+  const tplContent = fs.readFileSync(tpl, 'utf8');
+  const rel = path.relative(MODULE_ROOT, tpl);
+  const scriptRegex = /<script[\s\S]*?>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = scriptRegex.exec(tplContent)) !== null) {
+    let scriptBody = match[1];
+    scriptBody = scriptBody.replace(/\{\*[\s\S]*?\*\}/g, '');
+    scriptBody = scriptBody.replace(/'\{.*?\}'/g, '""');
+    scriptBody = scriptBody.replace(/\{if[\s\S]*?\}/g, '');
+    scriptBody = scriptBody.replace(/\{\/if\}/g, '');
+    scriptBody = scriptBody.replace(/\{else\}/g, '');
+    scriptBody = scriptBody.replace(/\{.*?nofilter.*?\}/g, '{}');
+    scriptBody = scriptBody.replace(/\{.*?\}/g, '0');
+    try {
+      new Function(scriptBody);
+      report(`Valid inline JavaScript in ${rel}`, true);
+    } catch (err) {
+      report(`Valid inline JavaScript in ${rel}`, false, `Inline <script> syntax error: ${err.message}`);
+    }
+  }
+});
+
 
 // Zero DOM Scraping Verification
 const adapterCode = fs.readFileSync(path.join(MODULE_ROOT, 'views', 'js', 'prestashop-adapter.js'), 'utf8');
@@ -1042,6 +1067,17 @@ if (fs.existsSync(upgrade1433Path)) {
   report('Upgrade function upgrade_module_1_43_3 properly declared', hasUpgradeFunction433 && returnsTrue433, 'Missing or invalid function signature in upgrade-1.43.3.php');
 } else {
   report('Upgrade script upgrade-1.43.3.php exists', false, 'Missing upgrade-1.43.3.php');
+}
+
+
+const upgrade1434Path = path.join(MODULE_ROOT, 'upgrade', 'upgrade-1.43.4.php');
+if (fs.existsSync(upgrade1434Path)) {
+  const upCode434 = fs.readFileSync(upgrade1434Path, 'utf8');
+  const hasUpgradeFunction434 = upCode434.includes('function upgrade_module_1_43_4($module)');
+  const returnsTrue434 = upCode434.includes('return true;');
+  report('Upgrade function upgrade_module_1_43_4 properly declared', hasUpgradeFunction434 && returnsTrue434, 'Missing or invalid function signature in upgrade-1.43.4.php');
+} else {
+  report('Upgrade script upgrade-1.43.4.php exists', false, 'Missing upgrade-1.43.4.php');
 }
 
 // SUMMARY

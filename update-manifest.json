@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.43.3",
+    "latest_version":  "1.43.4",
     "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.3/ps_gtm_datalayer.zip",
-    "checksum":  "e3e23b709a770739dcdbd43922acc05b80e1989c8edb71dbb6df81fda9f477e6",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.4/ps_gtm_datalayer.zip",
+    "checksum":  "d677e9b5f3c5da2130a8779fdf2341e4154514f264d5e5a1b0ab23bb5c65b426",
     "release_type":  "patch",
-    "release_notes":  "Bulletproof cross-database attribution upsert, active frontend AJAX sync on checkout \u0026 order confirmation, forensic IP time-window recovery, and top-level sGTM parameter promotion."
+    "release_notes":  "Restored clean datalayer_init.tpl inline script execution, ensuring 100% of storefront dataLayer events (view_item, view_item_list, purchase) push to GTM flawlessly."
 }

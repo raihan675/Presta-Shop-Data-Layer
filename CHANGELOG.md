@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.43.4] - 2026-10-28
+
+### Fixed & Enhanced
+- **Restored Clean Storefront DataLayer Push & Script Execution**:
+  - Eliminated syntax-breaking inline script duplicate in `views/templates/hook/datalayer_init.tpl`, allowing `window.dataLayer.push()` and all server-hydrated ecommerce payloads (`view_item`, `view_item_list`, `view_search_results`, `purchase`) to execute immediately.
+  - Added automated inline template JavaScript syntax validation in `tests/systemSafetyCrosscheck.js` to guarantee that any `<script>` tags inside Smarty templates compile with 0 syntax errors before release.
+  - Ensured client-side marketing attribution capture runs exclusively from the external `views/js/prestashop-adapter.js` asset, preventing any parser collisions with Smarty delimiters.
+
+---
+
 ## [1.43.3] - 2026-10-28
 
 ### Fixed & Enhanced
