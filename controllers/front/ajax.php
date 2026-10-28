@@ -1,6 +1,7 @@
 <?php
 /**
- * AJAX Front Controller: Authoritative backend resolution of product & combination data.
+ * AJAX Front Controller: Authoritative backend resolution of product & combination data
+ * and resilient client-side marketing attribution synchronization.
  * Completely eliminates any client-side DOM dependency.
  */
 
@@ -10,6 +11,7 @@ if (!defined('_PS_VERSION_')) {
 
 require_once dirname(__FILE__, 3) . '/classes/ProductIdentityResolver.php';
 require_once dirname(__FILE__, 3) . '/classes/PayloadBuilder.php';
+require_once dirname(__FILE__, 3) . '/classes/AttributionDataEngine.php';
 
 class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
 {
@@ -24,6 +26,8 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
         $action = Tools::getValue('action');
         if ($action === 'resolveProduct' || $action === 'resolveWishlistProduct' || $action === 'resolveCartDelta') {
             $this->ajaxProcessResolveProduct();
+        } elseif ($action === 'syncAttribution') {
+            $this->ajaxProcessSyncAttribution();
         } else {
             die(json_encode(['error' => 'Invalid action']));
         }
@@ -72,5 +76,115 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
             'default_category_id' => $idCategoryDefault,
             'default_category_name' => $categoryName,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    public function ajaxProcessSyncAttribution()
+    {
+        try {
+            $rawAttribution = Tools::getValue('attribution');
+            $idOrder = (int)Tools::getValue('id_order');
+
+            $data = [];
+            if (!empty($rawAttribution)) {
+                if (is_string($rawAttribution)) {
+                    $decoded = json_decode(urldecode($rawAttribution), true);
+                    if (!is_array($decoded)) {
+                        $decoded = json_decode($rawAttribution, true);
+                    }
+                    if (is_array($decoded)) {
+                        $data = $decoded;
+                    }
+                } elseif (is_array($rawAttribution)) {
+                    $data = $rawAttribution;
+                }
+            }
+
+            // Fresh check of direct query parameters
+            foreach (AttributionDataEngine::$clickParams as $p) {
+                $val = Tools::getValue($p);
+                if (!empty($val) && empty($data[$p])) {
+                    $data[$p] = $val;
+                }
+            }
+            foreach (AttributionDataEngine::$utmParams as $u) {
+                $val = Tools::getValue($u);
+                if (!empty($val) && empty($data[$u])) {
+                    $data[$u] = $val;
+                }
+            }
+
+            // Clean & sanitize data
+            $cleanData = [];
+            foreach ($data as $k => $v) {
+                if (!empty($v) && is_string($v)) {
+                    $cleanData[$k] = AttributionDataEngine::sanitizeIdentifier($v);
+                }
+            }
+
+            // Store into customer session cookie
+            if (!empty($cleanData) && $this->context && isset($this->context->cookie)) {
+                $existing = [];
+                $rawCookie = $this->context->cookie->__get(AttributionDataEngine::COOKIE_KEY);
+                if (!empty($rawCookie)) {
+                    $dec = json_decode($rawCookie, true);
+                    if (is_array($dec)) {
+                        $existing = $dec;
+                    }
+                }
+                $merged = array_merge($existing, $cleanData);
+                $this->context->cookie->__set(AttributionDataEngine::COOKIE_KEY, json_encode($merged));
+                if (method_exists($this->context->cookie, 'write')) {
+                    $this->context->cookie->write();
+                }
+            }
+
+            // If id_order is provided, upsert directly into database!
+            if ($idOrder > 0 && !empty($cleanData)) {
+                $order = new Order($idOrder);
+                if (Validate::isLoadedObject($order)) {
+                    $now = date('Y-m-d H:i:s');
+                    $ip = AttributionDataEngine::getClientIp();
+                    $userAgent = AttributionDataEngine::getUserAgent();
+
+                    $row = [
+                        'id_order' => (int)$order->id,
+                        'id_customer' => (int)$order->id_customer,
+                        'customer_ip' => !empty($ip) ? pSQL($ip) : null,
+                        'user_agent' => !empty($userAgent) ? pSQL(substr($userAgent, 0, 500)) : null,
+                        'date_add' => $now,
+                        'date_upd' => $now,
+                    ];
+
+                    $allFields = array_merge(
+                        AttributionDataEngine::$clickParams,
+                        AttributionDataEngine::$utmParams,
+                        array_values(AttributionDataEngine::$cookieParams)
+                    );
+
+                    foreach ($allFields as $field) {
+                        if (!empty($cleanData[$field])) {
+                            $row[$field] = pSQL($cleanData[$field]);
+                        }
+                    }
+
+                    if (!empty($cleanData['ga_client_id'])) {
+                        $row['ga_client_id'] = pSQL($cleanData['ga_client_id']);
+                    }
+                    if (!empty($cleanData['ga_session_id'])) {
+                        $row['ga_session_id'] = pSQL($cleanData['ga_session_id']);
+                    }
+
+                    AttributionDataEngine::upsertOrderAttributionRow($row);
+                }
+            }
+
+            die(json_encode([
+                'success' => true,
+                'synced_keys' => array_keys($cleanData),
+                'id_order' => $idOrder,
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        } catch (\Throwable $e) {
+            die(json_encode(['error' => $e->getMessage()]));
+        }
     }
 }

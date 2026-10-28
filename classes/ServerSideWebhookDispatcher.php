@@ -52,9 +52,7 @@ class ServerSideWebhookDispatcher
         }
 
         $attribution = AttributionDataEngine::getByOrderId((int)$refundData['transaction_id']);
-        if (!empty($attribution)) {
-            $params['attribution'] = $attribution;
-        }
+        self::injectAttributionIntoParams($params, $attribution);
 
         $envelope = [
             'client_id' => $clientId,
@@ -120,9 +118,7 @@ class ServerSideWebhookDispatcher
         }
 
         $attribution = AttributionDataEngine::getByOrderId((int)$order->id);
-        if (!empty($attribution)) {
-            $params['attribution'] = $attribution;
-        }
+        self::injectAttributionIntoParams($params, $attribution);
 
         $envelope = [
             'client_id' => $clientId,
@@ -302,9 +298,7 @@ class ServerSideWebhookDispatcher
         }
 
         $attribution = AttributionDataEngine::getByOrderId((int)$order->id);
-        if (!empty($attribution)) {
-            $params['attribution'] = $attribution;
-        }
+        self::injectAttributionIntoParams($params, $attribution);
 
         $statusContext = self::resolveStatusChangeContext($order, $newOrderStatus, (int)$previousStatusId);
         if (!empty($statusContext)) {
@@ -334,6 +328,35 @@ class ServerSideWebhookDispatcher
      * @param array $payload
      * @return bool
      */
+    /**
+     * Promotes key attribution click IDs and UTM parameters into top-level event parameters.
+     *
+     * @param array &$params
+     * @param array $attribution
+     * @return void
+     */
+    public static function injectAttributionIntoParams(array &$params, array $attribution)
+    {
+        if (empty($attribution)) {
+            return;
+        }
+
+        $params['attribution'] = $attribution;
+
+        $promotedKeys = [
+            'gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref',
+            'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid',
+            'fbp', 'fbc', 'ttp', 'scid', 'uetvid', 'uetsid',
+            'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+        ];
+
+        foreach ($promotedKeys as $pk) {
+            if (!empty($attribution[$pk]) && !isset($params[$pk])) {
+                $params[$pk] = $attribution[$pk];
+            }
+        }
+    }
+
     public static function sendHttpRequest($sgtmUrl, $eventName, array $payload, $previewHeader = null)
     {
         try {

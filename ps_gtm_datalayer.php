@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.43.2';
+        $this->version = '1.43.3';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -3674,20 +3674,37 @@ class Ps_Gtm_DataLayer extends Module
         }
     }
 
-    public function hookDisplayOrderConfirmation($params)
+        public function hookDisplayOrderConfirmation($params)
     {
         try {
-            if (!self::isEventEnabled('purchase')) {
-                return '';
-            }
-
             $order = isset($params['order']) ? $params['order'] : null;
             if (!$order || !Validate::isLoadedObject($order)) {
                 return '';
             }
 
+            // Infallible order attribution persistence during order confirmation lifecycle
+            require_once __DIR__ . '/classes/AttributionDataEngine.php';
+            AttributionDataEngine::saveOrderAttribution($order, $this->context);
+
+            if (!self::isEventEnabled('purchase')) {
+                return '<script type="text/javascript">
+                    window.psGtmConfig = window.psGtmConfig || {};
+                    window.psGtmConfig.orderId = ' . (int)$order->id . ';
+                    if (typeof window.__psGtmSyncAttribution === "function") {
+                        window.__psGtmSyncAttribution(' . (int)$order->id . ');
+                    }
+                </script>';
+            }
+
             if (DeduplicationManager::isTransactionTracked($order->id)) {
-                return '<!-- GTM DataLayer: Purchase transaction ' . (int)$order->id . ' already recorded -->';
+                return '<!-- GTM DataLayer: Purchase transaction ' . (int)$order->id . ' already recorded -->
+                <script type="text/javascript">
+                    window.psGtmConfig = window.psGtmConfig || {};
+                    window.psGtmConfig.orderId = ' . (int)$order->id . ';
+                    if (typeof window.__psGtmSyncAttribution === "function") {
+                        window.__psGtmSyncAttribution(' . (int)$order->id . ');
+                    }
+                </script>';
             }
 
             $eventPrefix = (string)Configuration::get('PS_GTM_EVENT_PREFIX');
@@ -3698,6 +3715,8 @@ class Ps_Gtm_DataLayer extends Module
 
             return '<script type="text/javascript">
                 window.dataLayer = window.dataLayer || [];
+                window.psGtmConfig = window.psGtmConfig || {};
+                window.psGtmConfig.orderId = ' . (int)$order->id . ';
                 window.dataLayer.push({
                     ecommerce: null,
                     meta: null,
@@ -3707,6 +3726,9 @@ class Ps_Gtm_DataLayer extends Module
                     microsoft_ads: null
                 });
                 window.dataLayer.push(' . json_encode($purchasePayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ');
+                if (typeof window.__psGtmSyncAttribution === "function") {
+                    window.__psGtmSyncAttribution(' . (int)$order->id . ');
+                }
             </script>';
         } catch (\Throwable $e) {
             return '';

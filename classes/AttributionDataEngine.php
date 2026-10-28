@@ -319,7 +319,56 @@ class AttributionDataEngine
                 'date_upd' => $now,
             ];
 
-            return Db::getInstance()->insert(self::TABLE_NAME, $row, false, true, Db::ON_DUPLICATE_KEY_UPDATE);
+            return self::upsertOrderAttributionRow($row);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Safely inserts or updates an attribution record in ps_gtm_order_attribution.
+     * Guaranteed cross-database compatibility without relying on non-existent constants.
+     *
+     * @param array $row
+     * @return bool
+     */
+    public static function upsertOrderAttributionRow(array $row)
+    {
+        if (empty($row['id_order']) || !class_exists('Db')) {
+            return false;
+        }
+
+        try {
+            self::createDatabaseTable();
+            $idOrder = (int)$row['id_order'];
+
+            $exists = (int)Db::getInstance()->getValue(
+                'SELECT `id_order` FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` WHERE `id_order` = ' . $idOrder
+            );
+
+            if ($exists > 0) {
+                // Merge with existing row so existing non-empty values are never overwritten with null
+                $existing = Db::getInstance()->getRow(
+                    'SELECT * FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` WHERE `id_order` = ' . $idOrder
+                );
+                if (!empty($existing) && is_array($existing)) {
+                    foreach ($existing as $col => $val) {
+                        if (!empty($val) && (!isset($row[$col]) || $row[$col] === null || $row[$col] === '')) {
+                            $row[$col] = $val;
+                        }
+                    }
+                }
+                $row['date_upd'] = date('Y-m-d H:i:s');
+                return (bool)Db::getInstance()->update(self::TABLE_NAME, $row, '`id_order` = ' . $idOrder, 1, true);
+            } else {
+                if (empty($row['date_add'])) {
+                    $row['date_add'] = date('Y-m-d H:i:s');
+                }
+                if (empty($row['date_upd'])) {
+                    $row['date_upd'] = date('Y-m-d H:i:s');
+                }
+                return (bool)Db::getInstance()->insert(self::TABLE_NAME, $row, true, false, Db::INSERT);
+            }
         } catch (\Throwable $e) {
             return false;
         }
@@ -346,14 +395,14 @@ class AttributionDataEngine
             $row = Db::getInstance()->getRow($sql);
             if (!empty($row) && is_array($row)) {
                 $payload = self::formatAttributionPayload($row);
-                if (!empty($payload['gclid']) || !empty($payload['fbclid']) || !empty($payload['ttclid']) || !empty($payload['msclkid']) || !empty($payload['utm_source']) || !empty($payload['utm_campaign'])) {
+                if (!empty($payload['gclid']) || !empty($payload['fbclid']) || !empty($payload['ttclid']) || !empty($payload['msclkid']) || !empty($payload['sccid']) || !empty($payload['utm_source']) || !empty($payload['utm_campaign'])) {
                     return $payload;
                 }
             }
 
             // Fallback: Recover from PrestaShop native connections_source (Sources / Quellen)
             $recovered = self::recoverFromPrestaShopConnections($idOrder);
-            if (!empty($recovered) && (!empty($recovered['gclid']) || !empty($recovered['fbclid']) || !empty($recovered['utm_source']))) {
+            if (!empty($recovered) && (!empty($recovered['gclid']) || !empty($recovered['fbclid']) || !empty($recovered['ttclid']) || !empty($recovered['msclkid']) || !empty($recovered['sccid']) || !empty($recovered['utm_source']) || !empty($recovered['utm_campaign']))) {
                 return self::formatAttributionPayload($recovered);
             }
 
@@ -367,7 +416,7 @@ class AttributionDataEngine
 
     /**
      * Recovers marketing attribution from PrestaShop's native ps_connections_source table
-     * using the order's cart and customer connection logs.
+     * using the order's cart, customer connection logs, and forensic IP time-window matching.
      *
      * @param int $idOrder
      * @return array
@@ -383,12 +432,18 @@ class AttributionDataEngine
             $rows = [];
 
             // 1. Official PrestaShop Core method (used by Back Office Sources panel)
+            if (!class_exists('ConnectionsSource') && defined('_PS_CLASS_DIR_') && file_exists(_PS_CLASS_DIR_ . 'ConnectionsSource.php')) {
+                require_once _PS_CLASS_DIR_ . 'ConnectionsSource.php';
+            }
             if (class_exists('ConnectionsSource') && method_exists('ConnectionsSource', 'getOrderSources')) {
-                $rows = ConnectionsSource::getOrderSources($idOrder);
+                $orderSources = ConnectionsSource::getOrderSources($idOrder);
+                if (!empty($orderSources) && is_array($orderSources)) {
+                    $rows = $orderSources;
+                }
             }
 
             // 2. PrestaShop Core SQL Join (orders -> guest -> connections -> connections_source)
-            if (empty($rows) || !is_array($rows)) {
+            if (empty($rows)) {
                 $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
                         FROM `' . _DB_PREFIX_ . 'orders` o
                         INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_customer` = o.`id_customer`)
@@ -396,11 +451,14 @@ class AttributionDataEngine
                         INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
                         WHERE o.`id_order` = ' . (int)$idOrder . '
                         ORDER BY cos.`date_add` DESC';
-                $rows = Db::getInstance()->executeS($sql);
+                $dbRows = Db::getInstance()->executeS($sql);
+                if (!empty($dbRows) && is_array($dbRows)) {
+                    $rows = $dbRows;
+                }
             }
 
             // 3. Fallback: by customer ID
-            if (empty($rows) || !is_array($rows)) {
+            if (empty($rows)) {
                 $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
                         FROM `' . _DB_PREFIX_ . 'orders` o
                         INNER JOIN `' . _DB_PREFIX_ . 'customer` cust ON (cust.`id_customer` = o.`id_customer`)
@@ -409,11 +467,14 @@ class AttributionDataEngine
                         INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
                         WHERE o.`id_order` = ' . (int)$idOrder . '
                         ORDER BY cos.`date_add` DESC';
-                $rows = Db::getInstance()->executeS($sql);
+                $dbRows = Db::getInstance()->executeS($sql);
+                if (!empty($dbRows) && is_array($dbRows)) {
+                    $rows = $dbRows;
+                }
             }
 
             // 4. Fallback: by cart guest
-            if (empty($rows) || !is_array($rows)) {
+            if (empty($rows)) {
                 $sql = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
                         FROM `' . _DB_PREFIX_ . 'orders` o
                         INNER JOIN `' . _DB_PREFIX_ . 'cart` cart ON (cart.`id_cart` = o.`id_cart`)
@@ -421,7 +482,42 @@ class AttributionDataEngine
                         INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
                         WHERE o.`id_order` = ' . (int)$idOrder . '
                         ORDER BY cos.`date_add` DESC';
-                $rows = Db::getInstance()->executeS($sql);
+                $dbRows = Db::getInstance()->executeS($sql);
+                if (!empty($dbRows) && is_array($dbRows)) {
+                    $rows = $dbRows;
+                }
+            }
+
+            // 5. Forensic Fallback: IP & Timestamp Window Lookup from ps_connections & ps_connections_source
+            $orderObj = new Order($idOrder);
+            if (Validate::isLoadedObject($orderObj)) {
+                $orderIp = '';
+                if ((int)$orderObj->id_customer > 0) {
+                    $ipSql = 'SELECT c.`ip_address`
+                              FROM `' . _DB_PREFIX_ . 'connections` c
+                              INNER JOIN `' . _DB_PREFIX_ . 'guest` g ON (g.`id_guest` = c.`id_guest`)
+                              WHERE g.`id_customer` = ' . (int)$orderObj->id_customer . '
+                              ORDER BY c.`date_add` DESC';
+                    $rawIp = Db::getInstance()->getValue($ipSql);
+                    if (!empty($rawIp)) {
+                        $orderIp = (string)$rawIp;
+                    }
+                }
+
+                if (!empty($orderIp)) {
+                    $ipCondition = is_numeric($orderIp) ? 'c.`ip_address` = ' . (int)$orderIp : 'c.`ip_address` = ' . (int)sprintf('%u', ip2long($orderIp));
+                    $ipQuery = 'SELECT cos.`http_referer`, cos.`request_uri`, cos.`keywords`, cos.`date_add`, c.`ip_address`
+                                FROM `' . _DB_PREFIX_ . 'connections` c
+                                INNER JOIN `' . _DB_PREFIX_ . 'connections_source` cos ON (cos.`id_connections` = c.`id_connections`)
+                                WHERE ' . $ipCondition . '
+                                  AND cos.`date_add` BETWEEN DATE_SUB(\'' . pSQL($orderObj->date_add) . '\', INTERVAL 48 HOUR) AND DATE_ADD(\'' . pSQL($orderObj->date_add) . '\', INTERVAL 1 HOUR)
+                                ORDER BY cos.`date_add` DESC
+                                LIMIT 20';
+                    $ipRows = Db::getInstance()->executeS($ipQuery);
+                    if (!empty($ipRows) && is_array($ipRows)) {
+                        $rows = array_merge($rows ? $rows : [], $ipRows);
+                    }
+                }
             }
 
             if (!empty($rows) && is_array($rows)) {
@@ -430,7 +526,7 @@ class AttributionDataEngine
 
                 foreach ($rows as $row) {
                     if (empty($clientIp) && !empty($row['ip_address'])) {
-                        $clientIp = long2ip((int)$row['ip_address']);
+                        $clientIp = is_numeric($row['ip_address']) ? long2ip((int)$row['ip_address']) : (string)$row['ip_address'];
                     }
 
                     $urlsToCheck = [
@@ -490,20 +586,29 @@ class AttributionDataEngine
                             'id_order' => (int)$order->id,
                             'id_customer' => (int)$order->id_customer,
                             'gclid' => !empty($recovered['gclid']) ? pSQL($recovered['gclid']) : null,
+                            'gbraid' => !empty($recovered['gbraid']) ? pSQL($recovered['gbraid']) : null,
+                            'wbraid' => !empty($recovered['wbraid']) ? pSQL($recovered['wbraid']) : null,
                             'fbclid' => !empty($recovered['fbclid']) ? pSQL($recovered['fbclid']) : null,
                             'ttclid' => !empty($recovered['ttclid']) ? pSQL($recovered['ttclid']) : null,
                             'msclkid' => !empty($recovered['msclkid']) ? pSQL($recovered['msclkid']) : null,
                             'sccid' => !empty($recovered['sccid']) ? pSQL($recovered['sccid']) : null,
                             'oppref' => !empty($recovered['oppref']) ? pSQL($recovered['oppref']) : null,
+                            'epik' => !empty($recovered['epik']) ? pSQL($recovered['epik']) : null,
+                            'li_fat_id' => !empty($recovered['li_fat_id']) ? pSQL($recovered['li_fat_id']) : null,
+                            'rdt_cid' => !empty($recovered['rdt_cid']) ? pSQL($recovered['rdt_cid']) : null,
+                            'twclid' => !empty($recovered['twclid']) ? pSQL($recovered['twclid']) : null,
+                            'dclid' => !empty($recovered['dclid']) ? pSQL($recovered['dclid']) : null,
                             'utm_source' => !empty($recovered['utm_source']) ? pSQL($recovered['utm_source']) : null,
                             'utm_medium' => !empty($recovered['utm_medium']) ? pSQL($recovered['utm_medium']) : null,
                             'utm_campaign' => !empty($recovered['utm_campaign']) ? pSQL($recovered['utm_campaign']) : null,
+                            'utm_content' => !empty($recovered['utm_content']) ? pSQL($recovered['utm_content']) : null,
+                            'utm_term' => !empty($recovered['utm_term']) ? pSQL($recovered['utm_term']) : null,
                             'customer_ip' => !empty($recovered['customer_ip']) ? pSQL($recovered['customer_ip']) : null,
                             'date_add' => $now,
                             'date_upd' => $now,
                         ];
 
-                        Db::getInstance()->insert(self::TABLE_NAME, $rowToSave, false, true, Db::ON_DUPLICATE_KEY_UPDATE);
+                        self::upsertOrderAttributionRow($rowToSave);
                     }
 
                     return $recovered;

@@ -210,4 +210,123 @@ describe('Order Attribution & Status Change Context Engine Test Suite', () => {
     assert.strictEqual(fullEnvelope.status_change_context.actor_type, 'administrator');
     assert.strictEqual(fullEnvelope.status_change_context.is_within_google_ads_window, true);
   });
+
+  it('8. Should safely merge existing attribution values in upsertOrderAttributionRow logic', () => {
+    function simulateUpsertMerge(existingRow, newRow) {
+      const merged = { ...newRow };
+      for (const [col, val] of Object.entries(existingRow)) {
+        if (val !== null && val !== undefined && val !== '' && (merged[col] === null || merged[col] === undefined || merged[col] === '')) {
+          merged[col] = val;
+        }
+      }
+      return merged;
+    }
+
+    const existingInDb = {
+      id_order: 1268,
+      id_customer: 1713,
+      ga_client_id: '1713.1793194296',
+      customer_ip: '113.11.34.171',
+      gclid: null,
+      fbclid: null,
+      utm_source: null
+    };
+
+    const incomingRecovered = {
+      id_order: 1268,
+      gclid: 'TEST_GCLID_998877',
+      fbclid: 'TEST_FBCLID_443322',
+      utm_source: 'google',
+      utm_medium: 'cpc',
+      utm_campaign: 'summer_sale',
+      ga_client_id: null
+    };
+
+    const finalRow = simulateUpsertMerge(existingInDb, incomingRecovered);
+    assert.strictEqual(finalRow.id_order, 1268);
+    assert.strictEqual(finalRow.gclid, 'TEST_GCLID_998877');
+    assert.strictEqual(finalRow.fbclid, 'TEST_FBCLID_443322');
+    assert.strictEqual(finalRow.utm_source, 'google');
+    assert.strictEqual(finalRow.utm_medium, 'cpc');
+    assert.strictEqual(finalRow.utm_campaign, 'summer_sale');
+    assert.strictEqual(finalRow.ga_client_id, '1713.1793194296'); // Preserved from existing!
+    assert.strictEqual(finalRow.customer_ip, '113.11.34.171');   // Preserved from existing!
+  });
+
+  it('9. Should promote top attribution click IDs and UTM parameters to first-class webhook params', () => {
+    function injectAttributionIntoParams(params, attribution) {
+      if (!attribution) return;
+      params.attribution = attribution;
+      const promotedKeys = [
+        'gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref',
+        'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid',
+        'fbp', 'fbc', 'ttp', 'scid', 'uetvid', 'uetsid',
+        'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+      ];
+      for (const pk of promotedKeys) {
+        if (attribution[pk] && !params[pk]) {
+          params[pk] = attribution[pk];
+        }
+      }
+    }
+
+    const params = {
+      transaction_id: '1268',
+      value: 17.50,
+      currency: 'EUR'
+    };
+
+    const attribution = {
+      gclid: 'TEST_GCLID_998877',
+      fbclid: 'TEST_FBCLID_443322',
+      utm_source: 'google',
+      utm_medium: 'cpc',
+      utm_campaign: 'summer_sale'
+    };
+
+    injectAttributionIntoParams(params, attribution);
+
+    // Verified nested
+    assert.ok(params.attribution);
+    assert.strictEqual(params.attribution.gclid, 'TEST_GCLID_998877');
+
+    // Verified promoted top-level for immediate sGTM client ingestion
+    assert.strictEqual(params.gclid, 'TEST_GCLID_998877');
+    assert.strictEqual(params.fbclid, 'TEST_FBCLID_443322');
+    assert.strictEqual(params.utm_source, 'google');
+    assert.strictEqual(params.utm_medium, 'cpc');
+    assert.strictEqual(params.utm_campaign, 'summer_sale');
+  });
+
+  it('10. Should accurately parse query parameters from native PrestaShop request_uri records', () => {
+    function extractParamsFromUri(uri) {
+      const qPos = uri.indexOf('?');
+      const queryStr = qPos !== -1 ? uri.substring(qPos + 1) : '';
+      const params = {};
+      if (queryStr) {
+        const searchParams = new URLSearchParams(queryStr);
+        for (const [k, v] of searchParams.entries()) {
+          if (v && v.trim() !== '') {
+            params[k] = sanitizeIdentifier(v.trim());
+          }
+        }
+      }
+      return params;
+    }
+
+    const uriFull = 'families-world.de/de/?gclid=TEST_GCLID_998877&fbclid=TEST_FBCLID_443322&utm_source=google&utm_medium=cpc&utm_campaign=summer_sale';
+    const parsedFull = extractParamsFromUri(uriFull);
+    assert.strictEqual(parsedFull.gclid, 'TEST_GCLID_998877');
+    assert.strictEqual(parsedFull.fbclid, 'TEST_FBCLID_443322');
+    assert.strictEqual(parsedFull.utm_source, 'google');
+    assert.strictEqual(parsedFull.utm_medium, 'cpc');
+    assert.strictEqual(parsedFull.utm_campaign, 'summer_sale');
+
+    const uriTruncated = 'families-world.de/de/?gclid=TEST_GCLID_998877&fbclid=TEST_FBCLID_443322&utm_source=google&utm_medium=';
+    const parsedTruncated = extractParamsFromUri(uriTruncated);
+    assert.strictEqual(parsedTruncated.gclid, 'TEST_GCLID_998877');
+    assert.strictEqual(parsedTruncated.fbclid, 'TEST_FBCLID_443322');
+    assert.strictEqual(parsedTruncated.utm_source, 'google');
+    assert.strictEqual(parsedTruncated.utm_medium, undefined);
+  });
 });

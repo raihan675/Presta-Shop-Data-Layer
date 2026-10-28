@@ -20,21 +20,45 @@
   // Universal Storefront Marketing Attribution & Ad Click ID Persistence
   (function captureClientAttribution() {
     try {
+      function setPersistentAttributionCookie(dataStr) {
+        var maxAge = 2592000; // 30 days
+        var isSecure = window.location.protocol === 'https:';
+        var secureFlag = isSecure ? '; Secure' : '';
+        var sameSiteFlag = '; SameSite=Lax';
+        var pathFlag = '; path=/';
+
+        // 1. Host cookie
+        document.cookie = 'ps_gtm_attribution=' + encodeURIComponent(dataStr) + '; max-age=' + maxAge + pathFlag + sameSiteFlag + secureFlag;
+
+        // 2. Wildcard root domain cookie (e.g. .familys-world.de)
+        var hostname = window.location.hostname;
+        if (hostname && hostname.indexOf('.') !== -1 && hostname !== 'localhost' && !/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+          var parts = hostname.split('.');
+          if (parts.length >= 2) {
+            var rootDomain = '.' + parts.slice(-2).join('.');
+            document.cookie = 'ps_gtm_attribution=' + encodeURIComponent(dataStr) + '; max-age=' + maxAge + pathFlag + '; domain=' + rootDomain + sameSiteFlag + secureFlag;
+          }
+        }
+      }
+
+      var data = {};
+      try {
+        var m = document.cookie.match(/(?:^|;\s*)ps_gtm_attribution=([^;]+)/);
+        if (m) {
+          data = JSON.parse(decodeURIComponent(m[1])) || {};
+        } else {
+          var ls = localStorage.getItem('ps_gtm_attribution');
+          if (ls) data = JSON.parse(ls) || {};
+        }
+      } catch(e) {}
+
+      var updated = false;
+
+      // Extract click and campaign identifiers from URL query
       var s = window.location.search;
       if (s && s.indexOf('?') !== -1) {
         var params = new URLSearchParams(s.substring(1));
         var keys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref', 'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
-        var data = {};
-        try {
-          var m = document.cookie.match(/(?:^|;\s*)ps_gtm_attribution=([^;]+)/);
-          if (m) {
-            data = JSON.parse(decodeURIComponent(m[1])) || {};
-          } else {
-            var ls = localStorage.getItem('ps_gtm_attribution');
-            if (ls) data = JSON.parse(ls) || {};
-          }
-        } catch(e) {}
-        var updated = false;
         for (var i = 0; i < keys.length; i++) {
           var v = params.get(keys[i]);
           if (v && typeof v === 'string' && v.trim() !== '') {
@@ -42,9 +66,29 @@
             updated = true;
           }
         }
-        if (updated) {
-          var str = JSON.stringify(data);
-          document.cookie = 'ps_gtm_attribution=' + encodeURIComponent(str) + '; path=/; max-age=2592000; SameSite=Lax';
+      }
+
+      // Extract first-party ad cookies
+      var cookieMap = {
+        '_fbp': 'fbp',
+        '_fbc': 'fbc',
+        '_ttp': 'ttp',
+        '_scid': 'scid',
+        '_uetvid': 'uetvid',
+        '_uetsid': 'uetsid'
+      };
+      for (var cName in cookieMap) {
+        var cm = document.cookie.match(new RegExp('(?:^|;\\s*)' + cName + '=([^;]+)'));
+        if (cm && cm[1] && !data[cookieMap[cName]]) {
+          data[cookieMap[cName]] = decodeURIComponent(cm[1]).trim();
+          updated = true;
+        }
+      }
+
+      if (updated || !localStorage.getItem('ps_gtm_attribution')) {
+        var str = JSON.stringify(data);
+        if (Object.keys(data).length > 0) {
+          setPersistentAttributionCookie(str);
           try { localStorage.setItem('ps_gtm_attribution', str); } catch(e) {}
         }
       }
@@ -1326,6 +1370,68 @@
 
       checkSearchDiscovery();
     })();
+
+    // 9. Order Confirmation & Checkout Marketing Attribution Synchronization
+    (function () {
+      function syncAttributionNow(orderId) {
+        try {
+          var raw = localStorage.getItem('ps_gtm_attribution');
+          if (!raw) {
+            var m = document.cookie.match(/(?:^|;\s*)ps_gtm_attribution=([^;]+)/);
+            if (m) raw = decodeURIComponent(m[1]);
+          }
+          if (!raw) return;
+
+          var ajaxUrl = (window.psGtmConfig && window.psGtmConfig.ajaxUrl) ? window.psGtmConfig.ajaxUrl : '';
+          if (!ajaxUrl && typeof prestashop !== 'undefined' && prestashop.urls && prestashop.urls.base_url) {
+            ajaxUrl = prestashop.urls.base_url + 'index.php?fc=module&module=ps_gtm_datalayer&controller=ajax';
+          }
+          if (!ajaxUrl) return;
+
+          var oId = orderId || (window.psGtmConfig && window.psGtmConfig.orderId) || 0;
+          if (!oId && window.location && window.location.search) {
+            var sp = new URLSearchParams(window.location.search);
+            if (sp.has('id_order')) {
+              oId = parseInt(sp.get('id_order'), 10) || 0;
+            }
+          }
+
+          var fd = new FormData();
+          fd.append('action', 'syncAttribution');
+          fd.append('attribution', raw);
+          if (oId > 0) {
+            fd.append('id_order', oId);
+          }
+
+          if (navigator.sendBeacon && oId > 0) {
+            navigator.sendBeacon(ajaxUrl, fd);
+          } else if (window.fetch) {
+            fetch(ajaxUrl, {
+              method: 'POST',
+              body: fd,
+              credentials: 'same-origin'
+            }).catch(function(){});
+          }
+        } catch(e) {}
+      }
+
+      window.__psGtmSyncAttribution = syncAttributionNow;
+
+      var isConfirmation = false;
+      if (window.psGtmConfig && window.psGtmConfig.orderId) {
+        isConfirmation = true;
+      } else if (window.location && window.location.pathname) {
+        var path = window.location.pathname.toLowerCase();
+        if (path.indexOf('order-confirmation') !== -1 || path.indexOf('bestellbestaetigung') !== -1 || path.indexOf('bestellbestatigung') !== -1 || path.indexOf('commande-confirmee') !== -1) {
+          isConfirmation = true;
+        }
+      }
+
+      if (isConfirmation) {
+        syncAttributionNow();
+      }
+    })();
+
   }
 
   if (document.readyState === 'loading') {

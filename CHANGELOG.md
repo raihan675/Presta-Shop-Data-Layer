@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.43.3] - 2026-10-28
+
+### Fixed & Enhanced
+- **Cross-Database Safe Attribution Upsert & Universal Recovery**:
+  - Replaced undefined constant references with universal, native PrestaShop database helper `upsertOrderAttributionRow()` that merges new values while strictly preserving existing non-empty metadata without overwriting.
+  - Implemented Layer 5 Forensic IP & Timestamp Window recovery in `AttributionDataEngine::recoverFromPrestaShopConnections()` to locate visitor connection records even when PrestaShop resets guest sessions upon checkout account registration.
+  - Added dedicated front-controller endpoint `ajax.php?action=syncAttribution` to asynchronously sync `localStorage` parameters into both customer session cookies and order attribution database.
+  - Enhanced `hookDisplayOrderConfirmation` to immediately persist attribution on the backend, set `window.psGtmConfig.orderId`, and trigger real-time client-to-server sync beacon on the confirmation page.
+  - Promoted primary attribution click IDs (`gclid`, `fbclid`, `ttclid`, `msclkid`, `utm_*`) directly into webhook params and flat JSON payload for immediate ingestion by sGTM Google Ads and Meta tags.
+
+---
+
 ## [1.43.2] - 2026-10-28
 
 ### Fixed & Enhanced
