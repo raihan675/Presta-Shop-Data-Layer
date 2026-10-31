@@ -1895,6 +1895,35 @@ class PayloadBuilder
             $purchasePayload['openai_ads'] = $platformNamespaces['openai_ads'];
         }
 
+        // Universal Marketing Attribution & Ad Click IDs injection
+        if (!class_exists('AttributionDataEngine')) {
+            require_once __DIR__ . '/AttributionDataEngine.php';
+        }
+        if (class_exists('AttributionDataEngine')) {
+            $structuredAttribution = AttributionDataEngine::getStructuredAttributionPayload((int)$order->id);
+            if (!empty($structuredAttribution)) {
+                $purchasePayload['marketing_attribution'] = $structuredAttribution;
+            }
+
+            $flatAttribution = AttributionDataEngine::getByOrderId((int)$order->id);
+            if (!empty($flatAttribution)) {
+                $purchasePayload['attribution'] = $flatAttribution;
+
+                $promotedKeys = [
+                    'gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref',
+                    'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid',
+                    'fbp', 'fbc', 'ttp', 'scid', 'uetvid', 'uetsid',
+                    'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term',
+                ];
+
+                foreach ($promotedKeys as $pk) {
+                    if (!empty($flatAttribution[$pk]) && !isset($purchasePayload[$pk])) {
+                        $purchasePayload[$pk] = $flatAttribution[$pk];
+                    }
+                }
+            }
+        }
+
         return $purchasePayload;
     }
 

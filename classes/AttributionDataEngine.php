@@ -11,6 +11,7 @@ if (!defined('_PS_VERSION_')) {
 class AttributionDataEngine
 {
     const TABLE_NAME = 'gtm_order_attribution';
+    const CART_TABLE_NAME = 'gtm_cart_attribution';
     const COOKIE_KEY = 'ps_gtm_attribution_data';
 
     /**
@@ -53,10 +54,16 @@ class AttributionDataEngine
         '_scid' => 'scid',
         '_uetvid' => 'uetvid',
         '_uetsid' => 'uetsid',
+        '_gcl_aw' => 'gcl_aw',
+        '_gcl_gb' => 'gcl_gb',
+        '_gcl_au' => 'gcl_au',
+        '_pin_unauth' => 'pin_unauth',
+        '_pinterest_ct_ua' => 'pinterest_ct_ua',
+        '_rdt_uuid' => 'rdt_uuid',
     ];
 
     /**
-     * Creates the database table for order attribution persistence.
+     * Creates the database tables for order & cart attribution persistence.
      *
      * @return bool
      */
@@ -68,8 +75,11 @@ class AttributionDataEngine
 
         try {
             $engine = defined('_MYSQL_ENGINE_') ? _MYSQL_ENGINE_ : 'InnoDB';
-            $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '` (
+
+            // 1. Order Attribution Table (Permanent Source of Truth)
+            $sqlOrder = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '` (
                 `id_order` INT(11) UNSIGNED NOT NULL,
+                `id_cart` INT(11) UNSIGNED NOT NULL DEFAULT 0,
                 `id_customer` INT(11) UNSIGNED NOT NULL DEFAULT 0,
                 `gclid` VARCHAR(255) NULL DEFAULT NULL,
                 `gbraid` VARCHAR(255) NULL DEFAULT NULL,
@@ -102,19 +112,70 @@ class AttributionDataEngine
                 `date_add` DATETIME NOT NULL,
                 `date_upd` DATETIME NOT NULL,
                 PRIMARY KEY (`id_order`),
+                INDEX `idx_cart` (`id_cart`),
                 INDEX `idx_customer` (`id_customer`),
                 INDEX `idx_gclid` (`gclid`),
                 INDEX `idx_fbclid` (`fbclid`)
             ) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8;';
 
-            return Db::getInstance()->execute($sql);
+            Db::getInstance()->execute($sqlOrder);
+
+            // Ensure id_cart column exists if upgrading from earlier version
+            try {
+                $columns = Db::getInstance()->executeS('SHOW COLUMNS FROM `' . _DB_PREFIX_ . self::TABLE_NAME . '` LIKE \'id_cart\'');
+                if (empty($columns)) {
+                    Db::getInstance()->execute('ALTER TABLE `' . _DB_PREFIX_ . self::TABLE_NAME . '` ADD `id_cart` INT(11) UNSIGNED NOT NULL DEFAULT 0 AFTER `id_order`, ADD INDEX `idx_cart` (`id_cart`)');
+                }
+            } catch (\Throwable $e) {}
+
+            // 2. Cart Attribution Table (Active Pre-Order Browsing Bridge)
+            $sqlCart = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . self::CART_TABLE_NAME . '` (
+                `id_cart` INT(11) UNSIGNED NOT NULL,
+                `id_customer` INT(11) UNSIGNED NOT NULL DEFAULT 0,
+                `gclid` VARCHAR(255) NULL DEFAULT NULL,
+                `gbraid` VARCHAR(255) NULL DEFAULT NULL,
+                `wbraid` VARCHAR(255) NULL DEFAULT NULL,
+                `fbclid` VARCHAR(255) NULL DEFAULT NULL,
+                `ttclid` VARCHAR(255) NULL DEFAULT NULL,
+                `sccid` VARCHAR(255) NULL DEFAULT NULL,
+                `msclkid` VARCHAR(255) NULL DEFAULT NULL,
+                `oppref` VARCHAR(255) NULL DEFAULT NULL,
+                `epik` VARCHAR(255) NULL DEFAULT NULL,
+                `li_fat_id` VARCHAR(255) NULL DEFAULT NULL,
+                `rdt_cid` VARCHAR(255) NULL DEFAULT NULL,
+                `twclid` VARCHAR(255) NULL DEFAULT NULL,
+                `dclid` VARCHAR(255) NULL DEFAULT NULL,
+                `fbp` VARCHAR(100) NULL DEFAULT NULL,
+                `fbc` VARCHAR(150) NULL DEFAULT NULL,
+                `ttp` VARCHAR(100) NULL DEFAULT NULL,
+                `scid` VARCHAR(100) NULL DEFAULT NULL,
+                `uetvid` VARCHAR(100) NULL DEFAULT NULL,
+                `uetsid` VARCHAR(100) NULL DEFAULT NULL,
+                `ga_client_id` VARCHAR(100) NULL DEFAULT NULL,
+                `ga_session_id` VARCHAR(50) NULL DEFAULT NULL,
+                `utm_source` VARCHAR(100) NULL DEFAULT NULL,
+                `utm_medium` VARCHAR(100) NULL DEFAULT NULL,
+                `utm_campaign` VARCHAR(150) NULL DEFAULT NULL,
+                `utm_content` VARCHAR(150) NULL DEFAULT NULL,
+                `utm_term` VARCHAR(150) NULL DEFAULT NULL,
+                `customer_ip` VARCHAR(45) NULL DEFAULT NULL,
+                `user_agent` VARCHAR(512) NULL DEFAULT NULL,
+                `date_add` DATETIME NOT NULL,
+                `date_upd` DATETIME NOT NULL,
+                PRIMARY KEY (`id_cart`),
+                INDEX `idx_cart_customer` (`id_customer`),
+                INDEX `idx_cart_gclid` (`gclid`),
+                INDEX `idx_cart_fbclid` (`fbclid`)
+            ) ENGINE=' . $engine . ' DEFAULT CHARSET=utf8;';
+
+            return Db::getInstance()->execute($sqlCart);
         } catch (\Throwable $e) {
             return false;
         }
     }
 
     /**
-     * Drops the database table during uninstall.
+     * Drops the database tables during uninstall.
      *
      * @return bool
      */
@@ -124,7 +185,13 @@ class AttributionDataEngine
             return false;
         }
 
-        return Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '`');
+        try {
+            Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . self::TABLE_NAME . '`');
+            Db::getInstance()->execute('DROP TABLE IF EXISTS `' . _DB_PREFIX_ . self::CART_TABLE_NAME . '`');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -206,7 +273,160 @@ class AttributionDataEngine
     }
 
     /**
+     * Persists marketing attribution for an active Cart into ps_gtm_cart_attribution.
+     * Provides pre-order attribution bridge so Click IDs and UTMs survive across browsing and checkout.
+     *
+     * @param int $idCart
+     * @param array $data
+     * @param int $idCustomer
+     * @return bool
+     */
+    public static function saveCartAttribution($idCart, array $data, $idCustomer = 0)
+    {
+        $idCart = (int)$idCart;
+        if ($idCart <= 0 || !class_exists('Db')) {
+            return false;
+        }
+
+        try {
+            self::createDatabaseTable();
+
+            $existing = Db::getInstance()->getRow(
+                'SELECT * FROM `' . _DB_PREFIX_ . self::CART_TABLE_NAME . '` WHERE `id_cart` = ' . $idCart
+            );
+
+            $now = date('Y-m-d H:i:s');
+            $ip = self::getClientIp();
+            $userAgent = self::getUserAgent();
+
+            $row = [
+                'id_cart' => $idCart,
+                'id_customer' => $idCustomer > 0 ? (int)$idCustomer : 0,
+                'date_upd' => $now,
+            ];
+
+            if (empty($existing)) {
+                $row['date_add'] = $now;
+                if (!empty($ip)) {
+                    $row['customer_ip'] = pSQL($ip);
+                }
+                if (!empty($userAgent)) {
+                    $row['user_agent'] = pSQL(substr($userAgent, 0, 500));
+                }
+            } else {
+                if (empty($row['id_customer']) && !empty($existing['id_customer'])) {
+                    $row['id_customer'] = (int)$existing['id_customer'];
+                }
+            }
+
+            $allFields = array_merge(
+                self::$clickParams,
+                self::$utmParams,
+                array_values(self::$cookieParams)
+            );
+
+            foreach ($allFields as $field) {
+                if (!empty($data[$field])) {
+                    $row[$field] = pSQL($data[$field]);
+                } elseif (!empty($existing[$field])) {
+                    $row[$field] = pSQL($existing[$field]);
+                }
+            }
+
+            if (!empty($data['ga_client_id'])) {
+                $row['ga_client_id'] = pSQL($data['ga_client_id']);
+            } elseif (!empty($existing['ga_client_id'])) {
+                $row['ga_client_id'] = pSQL($existing['ga_client_id']);
+            }
+
+            if (!empty($data['ga_session_id'])) {
+                $row['ga_session_id'] = pSQL($data['ga_session_id']);
+            } elseif (!empty($existing['ga_session_id'])) {
+                $row['ga_session_id'] = pSQL($existing['ga_session_id']);
+            }
+
+            if (!empty($existing)) {
+                return (bool)Db::getInstance()->update(self::CART_TABLE_NAME, $row, '`id_cart` = ' . $idCart, 1, true);
+            } else {
+                return (bool)Db::getInstance()->insert(self::CART_TABLE_NAME, $row, true, false, Db::INSERT);
+            }
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Seamlessly copies and promotes cart-level attribution to order-level attribution.
+     * Called during order validation (actionValidateOrder) to ensure zero attribution data loss.
+     *
+     * @param int $idCart
+     * @param int $idOrder
+     * @param int $idCustomer
+     * @return bool
+     */
+    public static function promoteCartAttributionToOrder($idCart, $idOrder, $idCustomer = 0)
+    {
+        $idCart = (int)$idCart;
+        $idOrder = (int)$idOrder;
+        if ($idCart <= 0 || $idOrder <= 0 || !class_exists('Db')) {
+            return false;
+        }
+
+        try {
+            self::createDatabaseTable();
+
+            $cartRow = Db::getInstance()->getRow(
+                'SELECT * FROM `' . _DB_PREFIX_ . self::CART_TABLE_NAME . '` WHERE `id_cart` = ' . $idCart
+            );
+
+            if (empty($cartRow) || !is_array($cartRow)) {
+                return false;
+            }
+
+            $now = date('Y-m-d H:i:s');
+            $rowToSave = [
+                'id_order' => $idOrder,
+                'id_cart' => $idCart,
+                'id_customer' => $idCustomer > 0 ? (int)$idCustomer : (int)$cartRow['id_customer'],
+                'date_add' => !empty($cartRow['date_add']) ? $cartRow['date_add'] : $now,
+                'date_upd' => $now,
+            ];
+
+            if (!empty($cartRow['customer_ip'])) {
+                $rowToSave['customer_ip'] = pSQL($cartRow['customer_ip']);
+            }
+            if (!empty($cartRow['user_agent'])) {
+                $rowToSave['user_agent'] = pSQL($cartRow['user_agent']);
+            }
+
+            $allFields = array_merge(
+                self::$clickParams,
+                self::$utmParams,
+                array_values(self::$cookieParams)
+            );
+
+            foreach ($allFields as $field) {
+                if (!empty($cartRow[$field])) {
+                    $rowToSave[$field] = pSQL($cartRow[$field]);
+                }
+            }
+
+            if (!empty($cartRow['ga_client_id'])) {
+                $rowToSave['ga_client_id'] = pSQL($cartRow['ga_client_id']);
+            }
+            if (!empty($cartRow['ga_session_id'])) {
+                $rowToSave['ga_session_id'] = pSQL($cartRow['ga_session_id']);
+            }
+
+            return self::upsertOrderAttributionRow($rowToSave);
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
      * Persists marketing attribution for an Order into ps_gtm_order_attribution.
+     * Automatically pulls and merges any pre-existing cart attribution.
      *
      * @param Order $order
      * @param Context|null $context
@@ -220,6 +440,11 @@ class AttributionDataEngine
             }
 
             self::createDatabaseTable();
+
+            // First: automatically promote cart-level attribution if present
+            if (!empty($order->id_cart) && (int)$order->id_cart > 0) {
+                self::promoteCartAttributionToOrder((int)$order->id_cart, (int)$order->id, (int)$order->id_customer);
+            }
 
             if (!$context) {
                 $context = class_exists('Context') ? Context::getContext() : null;
@@ -286,6 +511,7 @@ class AttributionDataEngine
 
             $row = [
                 'id_order' => (int)$order->id,
+                'id_cart' => !empty($order->id_cart) ? (int)$order->id_cart : 0,
                 'id_customer' => (int)$order->id_customer,
                 'gclid' => !empty($data['gclid']) ? pSQL($data['gclid']) : null,
                 'gbraid' => !empty($data['gbraid']) ? pSQL($data['gbraid']) : null,
@@ -375,8 +601,8 @@ class AttributionDataEngine
     }
 
     /**
-     * Resolves attribution data for an order by ID, falling back to PrestaShop's
-     * native connections_source traffic records if not already in ps_gtm_order_attribution.
+     * Resolves attribution data for an order by ID, falling back to cart attribution
+     * and PrestaShop's native connections_source traffic records if not already in ps_gtm_order_attribution.
      *
      * @param int $idOrder
      * @return array
@@ -400,7 +626,21 @@ class AttributionDataEngine
                 }
             }
 
-            // Fallback: Recover from PrestaShop native connections_source (Sources / Quellen)
+            // Fallback 1: Check cart attribution table if order object has id_cart
+            $order = new Order($idOrder);
+            if (Validate::isLoadedObject($order) && !empty($order->id_cart) && (int)$order->id_cart > 0) {
+                $cartSql = 'SELECT * FROM `' . _DB_PREFIX_ . self::CART_TABLE_NAME . '` WHERE `id_cart` = ' . (int)$order->id_cart;
+                $cartRow = Db::getInstance()->getRow($cartSql);
+                if (!empty($cartRow) && is_array($cartRow)) {
+                    $cartPayload = self::formatAttributionPayload($cartRow);
+                    if (!empty($cartPayload['gclid']) || !empty($cartPayload['fbclid']) || !empty($cartPayload['ttclid']) || !empty($cartPayload['msclkid']) || !empty($cartPayload['sccid']) || !empty($cartPayload['utm_source']) || !empty($cartPayload['utm_campaign'])) {
+                        self::promoteCartAttributionToOrder((int)$order->id_cart, $idOrder, (int)$order->id_customer);
+                        return $cartPayload;
+                    }
+                }
+            }
+
+            // Fallback 2: Recover from PrestaShop native connections_source (Sources / Quellen)
             $recovered = self::recoverFromPrestaShopConnections($idOrder);
             if (!empty($recovered) && (!empty($recovered['gclid']) || !empty($recovered['fbclid']) || !empty($recovered['ttclid']) || !empty($recovered['msclkid']) || !empty($recovered['sccid']) || !empty($recovered['utm_source']) || !empty($recovered['utm_campaign']))) {
                 return self::formatAttributionPayload($recovered);
@@ -412,6 +652,62 @@ class AttributionDataEngine
         } catch (\Throwable $e) {}
 
         return [];
+    }
+
+    /**
+     * Returns structured attribution payload split cleanly into:
+     * - click_ids
+     * - browser_cookies
+     * - utm_parameters
+     * - analytics_identifiers
+     *
+     * @param int $idOrder
+     * @return array
+     */
+    public static function getStructuredAttributionPayload($idOrder)
+    {
+        $flat = self::getByOrderId($idOrder);
+        if (empty($flat)) {
+            return [];
+        }
+
+        $structured = [
+            'click_ids' => [],
+            'browser_cookies' => [],
+            'utm_parameters' => [],
+            'analytics_identifiers' => [],
+        ];
+
+        // 1. Click IDs
+        foreach (self::$clickParams as $cp) {
+            if (!empty($flat[$cp])) {
+                $structured['click_ids'][$cp] = $flat[$cp];
+            }
+        }
+
+        // 2. Browser Cookies
+        foreach (self::$cookieParams as $cookieName => $targetKey) {
+            if (!empty($flat[$targetKey])) {
+                $structured['browser_cookies'][$targetKey] = $flat[$targetKey];
+            }
+        }
+
+        // 3. UTM Parameters
+        foreach (self::$utmParams as $utm) {
+            if (!empty($flat[$utm])) {
+                $structured['utm_parameters'][$utm] = $flat[$utm];
+            }
+        }
+
+        // 4. Analytics Identifiers
+        if (!empty($flat['ga_client_id'])) {
+            $structured['analytics_identifiers']['client_id'] = $flat['ga_client_id'];
+        }
+        if (!empty($flat['ga_session_id'])) {
+            $structured['analytics_identifiers']['session_id'] = $flat['ga_session_id'];
+        }
+
+        return $structured;
     }
 
     /**

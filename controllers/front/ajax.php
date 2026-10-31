@@ -138,6 +138,21 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
                 }
             }
 
+            $idCart = (int)Tools::getValue('id_cart');
+            if ($idCart <= 0 && $this->context && isset($this->context->cart) && (int)$this->context->cart->id > 0) {
+                $idCart = (int)$this->context->cart->id;
+            }
+
+            $idCustomer = 0;
+            if ($this->context && isset($this->context->customer) && (int)$this->context->customer->id > 0) {
+                $idCustomer = (int)$this->context->customer->id;
+            }
+
+            // If id_cart is provided or resolved, persist into ps_gtm_cart_attribution immediately
+            if ($idCart > 0 && !empty($cleanData)) {
+                AttributionDataEngine::saveCartAttribution($idCart, $cleanData, $idCustomer);
+            }
+
             // If id_order is provided, upsert directly into database!
             if ($idOrder > 0 && !empty($cleanData)) {
                 $order = new Order($idOrder);
@@ -148,6 +163,7 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
 
                     $row = [
                         'id_order' => (int)$order->id,
+                        'id_cart' => $idCart > 0 ? $idCart : (!empty($order->id_cart) ? (int)$order->id_cart : 0),
                         'id_customer' => (int)$order->id_customer,
                         'customer_ip' => !empty($ip) ? pSQL($ip) : null,
                         'user_agent' => !empty($userAgent) ? pSQL(substr($userAgent, 0, 500)) : null,

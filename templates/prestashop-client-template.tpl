@@ -140,6 +140,13 @@ if (payload.events && payload.events.length > 0) {
   }
 }
 
+// Canonical GA4 Event Mapping: Map refund transitions to official 'refund' event name
+const originalEventName = eventName;
+const isRefundTransition = (params.status_transition_type === 'refund_issued' || params.is_refunded === true || eventName === 'refund');
+if (isRefundTransition) {
+  eventName = 'refund';
+}
+
 const timestamp = getTimestampMillis();
 const uniqueEventId = '' + timestamp + '_' + generateRandom(100000000, 999999999);
 const clientId = payload.client_id || params.client_id || ('ps_' + timestamp + '.' + generateRandom(1000, 9999));
@@ -147,6 +154,7 @@ const clientId = payload.client_id || params.client_id || ('ps_' + timestamp + '
 // Initialize Common Event Data
 const eventData = {
   event_name: eventName,
+  original_event_name: originalEventName,
   client_id: clientId,
   unique_event_id: uniqueEventId,
   timestamp: timestamp,
@@ -215,6 +223,70 @@ if (userDataSrc) {
     if (userDataSrc.address.country) userData.address.country = userDataSrc.address.country;
   }
   eventData.user_data = userData;
+}
+
+// Map Universal Advertising Attribution & Ad Click IDs
+const attrSource = params.attribution || (params.marketing_attribution && params.marketing_attribution.click_ids) || {};
+const clickIdKeys = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref', 'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid'];
+for (let i = 0; i < clickIdKeys.length; i++) {
+  const ck = clickIdKeys[i];
+  const cval = params[ck] || attrSource[ck];
+  if (cval !== undefined && cval !== null && cval !== '') {
+    eventData[ck] = '' + cval;
+  }
+}
+
+// Map First-Party Browser IDs & Cookies
+const fbpVal = params.fbp || attrSource.fbp || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.fbp);
+if (fbpVal) {
+  eventData.fbp = '' + fbpVal;
+  eventData['x-fb-ck-fbp'] = '' + fbpVal;
+}
+const fbcVal = params.fbc || attrSource.fbc || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.fbc);
+if (fbcVal) {
+  eventData.fbc = '' + fbcVal;
+  eventData['x-fb-ck-fbc'] = '' + fbcVal;
+}
+const ttpVal = params.ttp || attrSource.ttp || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.ttp);
+if (ttpVal) eventData.ttp = '' + ttpVal;
+const scidVal = params.scid || attrSource.scid || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.scid);
+if (scidVal) eventData.scid = '' + scidVal;
+const uetvidVal = params.uetvid || attrSource.uetvid || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.uetvid);
+if (uetvidVal) eventData.uetvid = '' + uetvidVal;
+const uetsidVal = params.uetsid || attrSource.uetsid || (params.marketing_attribution && params.marketing_attribution.browser_cookies && params.marketing_attribution.browser_cookies.uetsid);
+if (uetsidVal) eventData.uetsid = '' + uetsidVal;
+
+// Map Analytics Identifiers
+const gaClientId = params.ga_client_id || attrSource.ga_client_id || (params.marketing_attribution && params.marketing_attribution.analytics_identifiers && params.marketing_attribution.analytics_identifiers.client_id);
+if (gaClientId) {
+  eventData.ga_client_id = '' + gaClientId;
+  eventData['x-ga-client_id'] = '' + gaClientId;
+}
+const gaSessionId = params.session_id || params.ga_session_id || attrSource.ga_session_id || (params.marketing_attribution && params.marketing_attribution.analytics_identifiers && params.marketing_attribution.analytics_identifiers.session_id);
+if (gaSessionId) {
+  eventData.session_id = '' + gaSessionId;
+  eventData['x-ga-session_id'] = '' + gaSessionId;
+}
+
+// Map UTM Campaign parameters
+const utmSource = params.attribution || (params.marketing_attribution && params.marketing_attribution.utm_parameters) || {};
+const utmKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+for (let i = 0; i < utmKeys.length; i++) {
+  const uk = utmKeys[i];
+  const uval = params[uk] || utmSource[uk] || attrSource[uk];
+  if (uval !== undefined && uval !== null && uval !== '') {
+    eventData[uk] = '' + uval;
+  }
+}
+if (eventData.utm_source) eventData.campaign_source = eventData.utm_source;
+if (eventData.utm_medium) eventData.campaign_medium = eventData.utm_medium;
+if (eventData.utm_campaign) eventData.campaign_name = eventData.utm_campaign;
+if (eventData.utm_content) eventData.campaign_content = eventData.utm_content;
+if (eventData.utm_term) eventData.campaign_term = eventData.utm_term;
+
+// Map Status Change Context
+if (params.status_change_context && typeof params.status_change_context === 'object') {
+  eventData.status_change_context = params.status_change_context;
 }
 
 // Set response headers and execute container tags

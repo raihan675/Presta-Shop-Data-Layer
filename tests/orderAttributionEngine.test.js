@@ -329,4 +329,127 @@ describe('Order Attribution & Status Change Context Engine Test Suite', () => {
     assert.strictEqual(parsedTruncated.utm_source, 'google');
     assert.strictEqual(parsedTruncated.utm_medium, undefined);
   });
+
+  it('11. Should cleanly split flat attribution into structured marketing_attribution categories', () => {
+    function getStructuredAttributionPayload(flat) {
+      if (!flat || Object.keys(flat).length === 0) return {};
+      const structured = {
+        click_ids: {},
+        browser_cookies: {},
+        utm_parameters: {},
+        analytics_identifiers: {},
+      };
+      const clickParams = ['gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref', 'epik', 'li_fat_id', 'rdt_cid', 'twclid', 'dclid'];
+      const cookieParams = {
+        '_fbp': 'fbp', '_fbc': 'fbc', '_ttp': 'ttp', '_scid': 'scid',
+        '_uetvid': 'uetvid', '_uetsid': 'uetsid', '_gcl_aw': 'gcl_aw',
+        '_gcl_gb': 'gcl_gb', '_gcl_au': 'gcl_au', '_pin_unauth': 'pin_unauth',
+        '_pinterest_ct_ua': 'pinterest_ct_ua', '_rdt_uuid': 'rdt_uuid',
+      };
+      const utmParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+
+      for (const cp of clickParams) {
+        if (flat[cp]) structured.click_ids[cp] = flat[cp];
+      }
+      for (const tKey of Object.values(cookieParams)) {
+        if (flat[tKey]) structured.browser_cookies[tKey] = flat[tKey];
+      }
+      for (const utm of utmParams) {
+        if (flat[utm]) structured.utm_parameters[utm] = flat[utm];
+      }
+      if (flat.ga_client_id) structured.analytics_identifiers.client_id = flat.ga_client_id;
+      if (flat.ga_session_id) structured.analytics_identifiers.session_id = flat.ga_session_id;
+
+      return structured;
+    }
+
+    const flatInput = {
+      gclid: 'TEST_GCLID_111',
+      fbclid: 'TEST_FBCLID_222',
+      fbp: 'fb.1.12345678',
+      fbc: 'fb.1.12345678.TEST_FBCLID_222',
+      utm_source: 'google',
+      utm_medium: 'cpc',
+      utm_campaign: 'summer_sale',
+      ga_client_id: '12345.67890',
+      ga_session_id: '1793092415'
+    };
+
+    const structured = getStructuredAttributionPayload(flatInput);
+    assert.strictEqual(structured.click_ids.gclid, 'TEST_GCLID_111');
+    assert.strictEqual(structured.click_ids.fbclid, 'TEST_FBCLID_222');
+    assert.strictEqual(structured.browser_cookies.fbp, 'fb.1.12345678');
+    assert.strictEqual(structured.browser_cookies.fbc, 'fb.1.12345678.TEST_FBCLID_222');
+    assert.strictEqual(structured.utm_parameters.utm_source, 'google');
+    assert.strictEqual(structured.analytics_identifiers.client_id, '12345.67890');
+    assert.strictEqual(structured.analytics_identifiers.session_id, '1793092415');
+  });
+
+  it('12. Should promote cart attribution to order attribution during order validation', () => {
+    const cartDb = {
+      101: {
+        id_cart: 101,
+        id_customer: 55,
+        gclid: 'CART_GCLID_999',
+        fbclid: 'CART_FBCLID_888',
+        utm_source: 'facebook',
+        date_add: '2026-10-31 10:00:00'
+      }
+    };
+    const orderDb = {};
+
+    function promoteCartAttributionToOrder(idCart, idOrder, idCustomer) {
+      const cartRow = cartDb[idCart];
+      if (!cartRow) return false;
+      orderDb[idOrder] = {
+        id_order: idOrder,
+        id_cart: idCart,
+        id_customer: idCustomer || cartRow.id_customer,
+        gclid: cartRow.gclid,
+        fbclid: cartRow.fbclid,
+        utm_source: cartRow.utm_source,
+        date_add: cartRow.date_add,
+        date_upd: '2026-10-31 10:15:00'
+      };
+      return true;
+    }
+
+    const success = promoteCartAttributionToOrder(101, 501, 55);
+    assert.strictEqual(success, true);
+    assert.strictEqual(orderDb[501].gclid, 'CART_GCLID_999');
+    assert.strictEqual(orderDb[501].fbclid, 'CART_FBCLID_888');
+    assert.strictEqual(orderDb[501].id_cart, 101);
+  });
+
+  it('13. Should map refund status transitions to canonical refund event in Server GTM client', () => {
+    function mapServerGtmEvent(params) {
+      let eventName = 'order_status_update';
+      const originalEventName = eventName;
+      const isRefundTransition = (params.status_transition_type === 'refund_issued' || params.is_refunded === true);
+      if (isRefundTransition) {
+        eventName = 'refund';
+      }
+      return {
+        event_name: eventName,
+        original_event_name: originalEventName,
+        conversion_action: params.conversion_action || (isRefundTransition ? 'retract' : 'maintain')
+      };
+    }
+
+    const refundTransition = mapServerGtmEvent({
+      status_transition_type: 'refund_issued',
+      is_refunded: true,
+      conversion_action: 'retract'
+    });
+    assert.strictEqual(refundTransition.event_name, 'refund');
+    assert.strictEqual(refundTransition.conversion_action, 'retract');
+
+    const shippedTransition = mapServerGtmEvent({
+      status_transition_type: 'status_changed_while_paid',
+      is_refunded: false,
+      conversion_action: 'maintain'
+    });
+    assert.strictEqual(shippedTransition.event_name, 'order_status_update');
+    assert.strictEqual(shippedTransition.conversion_action, 'maintain');
+  });
 });

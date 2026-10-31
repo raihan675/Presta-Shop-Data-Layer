@@ -75,12 +75,44 @@
         '_ttp': 'ttp',
         '_scid': 'scid',
         '_uetvid': 'uetvid',
-        '_uetsid': 'uetsid'
+        '_uetsid': 'uetsid',
+        '_gcl_aw': 'gcl_aw',
+        '_gcl_gb': 'gcl_gb',
+        '_gcl_au': 'gcl_au',
+        '_pin_unauth': 'pin_unauth',
+        '_pinterest_ct_ua': 'pinterest_ct_ua',
+        '_rdt_uuid': 'rdt_uuid'
       };
       for (var cName in cookieMap) {
         var cm = document.cookie.match(new RegExp('(?:^|;\\s*)' + cName + '=([^;]+)'));
         if (cm && cm[1] && !data[cookieMap[cName]]) {
           data[cookieMap[cName]] = decodeURIComponent(cm[1]).trim();
+          updated = true;
+        }
+      }
+
+      // Extract GA4 Client ID from _ga cookie
+      var gaMatch = document.cookie.match(/(?:^|;\s*)_ga=([^;]+)/);
+      if (gaMatch && gaMatch[1] && !data['ga_client_id']) {
+        var gaParts = decodeURIComponent(gaMatch[1]).split('.');
+        if (gaParts.length >= 4) {
+          data['ga_client_id'] = gaParts[2] + '.' + gaParts[3];
+          data['client_id'] = data['ga_client_id'];
+          updated = true;
+        } else if (gaParts.length === 2) {
+          data['ga_client_id'] = gaMatch[1];
+          data['client_id'] = data['ga_client_id'];
+          updated = true;
+        }
+      }
+
+      // Extract GA4 Session ID from _ga_<container> cookie
+      var sessionMatch = document.cookie.match(/(?:^|;\s*)_ga_[A-Z0-9]+=([^;]+)/);
+      if (sessionMatch && sessionMatch[1] && !data['ga_session_id']) {
+        var sParts = decodeURIComponent(sessionMatch[1]).split('.');
+        if (sParts.length >= 3 && !isNaN(sParts[2])) {
+          data['ga_session_id'] = sParts[2];
+          data['session_id'] = sParts[2];
           updated = true;
         }
       }
@@ -1396,14 +1428,21 @@
             }
           }
 
+          var cId = (typeof prestashop !== 'undefined' && prestashop.cart && prestashop.cart.id)
+            ? parseInt(prestashop.cart.id, 10)
+            : ((window.psGtmConfig && window.psGtmConfig.cartId) ? parseInt(window.psGtmConfig.cartId, 10) : 0);
+
           var fd = new FormData();
           fd.append('action', 'syncAttribution');
           fd.append('attribution', raw);
           if (oId > 0) {
             fd.append('id_order', oId);
           }
+          if (cId > 0) {
+            fd.append('id_cart', cId);
+          }
 
-          if (navigator.sendBeacon && oId > 0) {
+          if (navigator.sendBeacon && (oId > 0 || cId > 0)) {
             navigator.sendBeacon(ajaxUrl, fd);
           } else if (window.fetch) {
             fetch(ajaxUrl, {
@@ -1417,18 +1456,16 @@
 
       window.__psGtmSyncAttribution = syncAttributionNow;
 
-      var isConfirmation = false;
-      if (window.psGtmConfig && window.psGtmConfig.orderId) {
-        isConfirmation = true;
-      } else if (window.location && window.location.pathname) {
-        var path = window.location.pathname.toLowerCase();
-        if (path.indexOf('order-confirmation') !== -1 || path.indexOf('bestellbestaetigung') !== -1 || path.indexOf('bestellbestatigung') !== -1 || path.indexOf('commande-confirmee') !== -1) {
-          isConfirmation = true;
-        }
-      }
+      // Automatically sync attribution across browsing, cart creation, checkout, and order confirmation
+      syncAttributionNow();
 
-      if (isConfirmation) {
-        syncAttributionNow();
+      if (typeof prestashop !== 'undefined' && typeof prestashop.on === 'function') {
+        prestashop.on('updatedCart', function() {
+          syncAttributionNow();
+        });
+        prestashop.on('updateCart', function() {
+          syncAttributionNow();
+        });
       }
     })();
 

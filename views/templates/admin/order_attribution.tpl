@@ -115,6 +115,51 @@
                 <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
               </tr>
             {/if}
+            {if !empty($attribution.epik)}
+              <tr>
+                <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#bd081c;color:white;font-size:10px;">Pinterest Ads</span></td>
+                <td style="padding: 10px 16px; font-family: monospace; font-weight: 600; color: #2563eb;">epik</td>
+                <td style="padding: 10px 16px; color: #64748b; font-size: 12px;">Priority 1 Click ID</td>
+                <td style="padding: 10px 16px; font-family: monospace; font-size: 12px; word-break: break-all; color: #0f172a;">{$attribution.epik|escape:'html':'UTF-8'}</td>
+                <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
+              </tr>
+            {/if}
+            {if !empty($attribution.li_fat_id)}
+              <tr>
+                <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#0a66c2;color:white;font-size:10px;">LinkedIn Ads</span></td>
+                <td style="padding: 10px 16px; font-family: monospace; font-weight: 600; color: #2563eb;">li_fat_id</td>
+                <td style="padding: 10px 16px; color: #64748b; font-size: 12px;">Attribution Identifier</td>
+                <td style="padding: 10px 16px; font-family: monospace; font-size: 12px; word-break: break-all; color: #0f172a;">{$attribution.li_fat_id|escape:'html':'UTF-8'}</td>
+                <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
+              </tr>
+            {/if}
+            {if !empty($attribution.rdt_cid)}
+              <tr>
+                <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#ff4500;color:white;font-size:10px;">Reddit Ads</span></td>
+                <td style="padding: 10px 16px; font-family: monospace; font-weight: 600; color: #2563eb;">rdt_cid</td>
+                <td style="padding: 10px 16px; color: #64748b; font-size: 12px;">Conversion Click ID</td>
+                <td style="padding: 10px 16px; font-family: monospace; font-size: 12px; word-break: break-all; color: #0f172a;">{$attribution.rdt_cid|escape:'html':'UTF-8'}</td>
+                <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
+              </tr>
+            {/if}
+            {if !empty($attribution.twclid)}
+              <tr>
+                <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#000000;color:white;font-size:10px;">X (Twitter) Ads</span></td>
+                <td style="padding: 10px 16px; font-family: monospace; font-weight: 600; color: #2563eb;">twclid</td>
+                <td style="padding: 10px 16px; color: #64748b; font-size: 12px;">Priority 1 Click ID</td>
+                <td style="padding: 10px 16px; font-family: monospace; font-size: 12px; word-break: break-all; color: #0f172a;">{$attribution.twclid|escape:'html':'UTF-8'}</td>
+                <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
+              </tr>
+            {/if}
+            {if !empty($attribution.dclid)}
+              <tr>
+                <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#4285f4;color:white;font-size:10px;">Google Marketing Platform</span></td>
+                <td style="padding: 10px 16px; font-family: monospace; font-weight: 600; color: #2563eb;">dclid</td>
+                <td style="padding: 10px 16px; color: #64748b; font-size: 12px;">Display Click ID</td>
+                <td style="padding: 10px 16px; font-family: monospace; font-size: 12px; word-break: break-all; color: #0f172a;">{$attribution.dclid|escape:'html':'UTF-8'}</td>
+                <td style="padding: 10px 16px; text-align: center;"><span class="badge badge-success" style="background:#10b981;color:white;font-size:10px;">Ready</span></td>
+              </tr>
+            {/if}
             {if !empty($attribution.fbp)}
               <tr>
                 <td style="padding: 10px 16px; font-weight: 600; color: #1e293b;"><span class="badge" style="background:#1877f2;color:white;font-size:10px;">Meta Pixel</span></td>

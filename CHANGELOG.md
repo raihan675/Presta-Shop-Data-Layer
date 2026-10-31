@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.44.0] - 2026-10-28
+
+### Added & Enhanced
+- **Universal 3-Layer Marketing Attribution Architecture**:
+  - **Layer 1 (Browser Storage)**: Captures 13+ ad click IDs (`gclid`, `fbclid`, `ttclid`, `msclkid`, `sccid`, `epik`, etc.), ad cookies (`_fbp`, `_fbc`, `_ttp`, `_scid`, `_uetvid`, etc.), GA4 client and session IDs, and full UTM campaigns in `localStorage` and first-party cookies.
+  - **Layer 2 (Database Source of Truth with Cart Bridge)**: Introduced `gtm_cart_attribution` table and `id_cart` indexing. Carts automatically retain attribution while browsing and checkout; on `actionValidateOrder`, cart attribution is seamlessly promoted to `gtm_order_attribution`.
+  - **Layer 3 (Storefront & Back Office Data Table)**:
+    - Injected structured `marketing_attribution` (`click_ids`, `browser_cookies`, `utm_parameters`, `analytics_identifiers`) and top-level click IDs directly into the storefront `purchase` event dataLayer.
+    - Expanded PrestaShop Back Office order attribution table to display all major advertising networks.
+- **Order Lifecycle Webhook & Server-Side GTM Client**:
+  - Webhooks for order status updates, offline orders, and refunds now rehydrate complete attribution and status change context, passing GA4 client ID and session ID for complete analytics continuity.
+  - Updated Server GTM Custom Client template (`prestashop-client-template.tpl`) to claim `/ps-webhook`, unpack full attribution into Common Event Data, and map refund transitions to canonical GA4 `refund` events with `conversion_action: 'retract'`.
+
+---
+
 ## [1.43.4] - 2026-10-28
 
 ### Fixed & Enhanced

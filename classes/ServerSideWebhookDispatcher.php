@@ -54,6 +54,13 @@ class ServerSideWebhookDispatcher
         $attribution = AttributionDataEngine::getByOrderId((int)$refundData['transaction_id']);
         self::injectAttributionIntoParams($params, $attribution);
 
+        if (!empty($attribution['ga_client_id'])) {
+            $clientId = (string)$attribution['ga_client_id'];
+        }
+        if (!empty($attribution['ga_session_id'])) {
+            $params['session_id'] = (string)$attribution['ga_session_id'];
+        }
+
         $envelope = [
             'client_id' => $clientId,
             'events' => [
@@ -300,6 +307,13 @@ class ServerSideWebhookDispatcher
         $attribution = AttributionDataEngine::getByOrderId((int)$order->id);
         self::injectAttributionIntoParams($params, $attribution);
 
+        if (!empty($attribution['ga_client_id'])) {
+            $clientId = (string)$attribution['ga_client_id'];
+        }
+        if (!empty($attribution['ga_session_id'])) {
+            $params['session_id'] = (string)$attribution['ga_session_id'];
+        }
+
         $statusContext = self::resolveStatusChangeContext($order, $newOrderStatus, (int)$previousStatusId);
         if (!empty($statusContext)) {
             $params['status_change_context'] = $statusContext;
@@ -319,17 +333,8 @@ class ServerSideWebhookDispatcher
     }
 
     /**
-     * Sends the non-blocking HTTP POST request to the Server GTM container endpoint.
-     * Transmits canonical PrestaShop JSON carrying event_name, financial totals, items,
-     * status transitions, and hashed user_data directly to the sGTM Webhook Client.
-     *
-     * @param string $sgtmUrl
-     * @param string $eventName
-     * @param array $payload
-     * @return bool
-     */
-    /**
-     * Promotes key attribution click IDs and UTM parameters into top-level event parameters.
+     * Promotes key attribution click IDs, browser cookies, and UTM parameters into top-level
+     * event parameters and injects structured marketing_attribution object into payload.
      *
      * @param array &$params
      * @param array $attribution
@@ -342,6 +347,37 @@ class ServerSideWebhookDispatcher
         }
 
         $params['attribution'] = $attribution;
+
+        $structured = [
+            'click_ids' => [],
+            'browser_cookies' => [],
+            'utm_parameters' => [],
+            'analytics_identifiers' => [],
+        ];
+
+        foreach (AttributionDataEngine::$clickParams as $cp) {
+            if (!empty($attribution[$cp])) {
+                $structured['click_ids'][$cp] = $attribution[$cp];
+            }
+        }
+        foreach (AttributionDataEngine::$cookieParams as $cName => $tKey) {
+            if (!empty($attribution[$tKey])) {
+                $structured['browser_cookies'][$tKey] = $attribution[$tKey];
+            }
+        }
+        foreach (AttributionDataEngine::$utmParams as $utm) {
+            if (!empty($attribution[$utm])) {
+                $structured['utm_parameters'][$utm] = $attribution[$utm];
+            }
+        }
+        if (!empty($attribution['ga_client_id'])) {
+            $structured['analytics_identifiers']['client_id'] = $attribution['ga_client_id'];
+        }
+        if (!empty($attribution['ga_session_id'])) {
+            $structured['analytics_identifiers']['session_id'] = $attribution['ga_session_id'];
+        }
+
+        $params['marketing_attribution'] = $structured;
 
         $promotedKeys = [
             'gclid', 'gbraid', 'wbraid', 'fbclid', 'ttclid', 'sccid', 'msclkid', 'oppref',

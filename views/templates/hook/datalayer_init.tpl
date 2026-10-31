@@ -14,6 +14,9 @@
   {if isset($ajax_url)}
   window.psGtmConfig.ajaxUrl = '{$ajax_url|escape:'javascript':'UTF-8'}';
   {/if}
+  {if isset($cart_id) && $cart_id > 0}
+  window.psGtmConfig.cartId = {$cart_id|intval};
+  {/if}
   {if isset($product_combinations)}
   try {
     window.psGtmConfig.productCombinations = {$product_combinations nofilter};

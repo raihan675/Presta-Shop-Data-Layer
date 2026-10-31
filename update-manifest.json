@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.43.4",
+    "latest_version":  "1.44.0",
     "release_date":  "2026-10-28",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.43.4/ps_gtm_datalayer.zip",
-    "checksum":  "d677e9b5f3c5da2130a8779fdf2341e4154514f264d5e5a1b0ab23bb5c65b426",
-    "release_type":  "patch",
-    "release_notes":  "Restored clean datalayer_init.tpl inline script execution, ensuring 100% of storefront dataLayer events (view_item, view_item_list, purchase) push to GTM flawlessly."
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.44.0/ps_gtm_datalayer.zip",
+    "checksum":  "6f46689a621cb60d3e274fdbc02a4e380106adddea0beb92bdc69e1ff89d6e5a",
+    "release_type":  "minor",
+    "release_notes":  "Universal marketing attribution across 3 storage layers (Browser, Cart/Order DB, DataLayer), full order lifecycle status \u0026 refund webhook rehydration, and Server GTM Client mapping."
 }
