@@ -1,11 +1,11 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.45.4",
+    "latest_version":  "1.45.5",
+    "version":  "1.45.5",
     "release_date":  "2026-11-02",
     "min_ps_version":  "1.7.0.0",
     "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.5/ps_gtm_datalayer.zip",
-    "checksum":  "306232a111e4c92141bbefadceec126c61930e3f42057686fd94564691378270",
-    "release_type":  "minor",
-    "release_notes":  "Authoritative Cart \u0026 Variant Pricing Parity: Synchronized unrounded 6-decimal customer price across ProductIdentityResolver and client adapter. 100% mathematical consistency across add_to_cart, view_cart, remove_from_cart (qty 2 = 25.99 Ã¢â€šÂ¬, qty 3 = 38.99 Ã¢â€šÂ¬, qty 4 = 51.98 Ã¢â€šÂ¬) with zero line_total in items array.",
-    "version":  "1.45.5"
+    "checksum":  "1a12a2ccd24a2062d603fb8bef50bf55c9bd6e88e29f1bac51c4d5c37f6dbc2b",
+    "release_type":  "patch",
+    "release_notes":  "Authoritative Cart \u0026 Variant Pricing Parity: Synchronized unrounded 6-decimal customer price across ProductIdentityResolver and client adapter. 100% mathematical consistency across add_to_cart, view_cart, remove_from_cart (qty 2 = 25.99 â‚¬, qty 3 = 38.99 â‚¬, qty 4 = 51.98 â‚¬) with zero line_total in items array."
 }

@@ -76,16 +76,17 @@ class UpdateManager
 
         $cleanResponse = preg_replace('/^\xEF\xBB\xBF/', '', trim($response));
         $manifest = json_decode($cleanResponse, true);
-        if (!$manifest || !isset($manifest['latest_version'])) {
+        $latestVersion = ($manifest && !empty($manifest['latest_version'])) ? $manifest['latest_version'] : (($manifest && !empty($manifest['version'])) ? $manifest['version'] : null);
+        if (!$manifest || empty($latestVersion)) {
             return ['has_update' => false, 'error' => 'Malformed release manifest.'];
         }
 
-        $hasUpdate = version_compare($manifest['latest_version'], $this->module->version, '>');
+        $hasUpdate = version_compare($latestVersion, $this->module->version, '>');
 
         $result = [
             'has_update' => $hasUpdate,
             'current_version' => $this->module->version,
-            'latest_version' => $manifest['latest_version'],
+            'latest_version' => $latestVersion,
             'release_notes' => isset($manifest['release_notes']) ? $manifest['release_notes'] : '',
             'download_url' => isset($manifest['download_url']) ? $manifest['download_url'] : '',
             'checksum' => isset($manifest['checksum']) ? $manifest['checksum'] : '',
