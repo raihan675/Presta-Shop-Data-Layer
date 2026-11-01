@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.44.0",
-    "release_date":  "2026-10-28",
+    "latest_version":  "1.45.0",
+    "release_date":  "2026-11-01",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.44.0/ps_gtm_datalayer.zip",
-    "checksum":  "6f46689a621cb60d3e274fdbc02a4e380106adddea0beb92bdc69e1ff89d6e5a",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.0/ps_gtm_datalayer.zip",
+    "checksum":  "990ac6e74df6e5f28d9cfcf66b7bc3717cc5bac0a01858fce2679a7bf3fa03b9",
     "release_type":  "minor",
-    "release_notes":  "Universal marketing attribution across 3 storage layers (Browser, Cart/Order DB, DataLayer), full order lifecycle status \u0026 refund webhook rehydration, and Server GTM Client mapping."
+    "release_notes":  "Authoritative PrestaShop Store Pricing \u0026 Rounding Engine: Eliminates rounded unit-price math discrepancies, guarantees database-backed unrounded line total accuracy, preserves historical order fidelity, and aligns ecommerce values across GA4, Meta, TikTok, Pinterest, Google Ads, and Microsoft Advertising."
 }

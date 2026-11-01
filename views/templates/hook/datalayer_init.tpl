@@ -38,6 +38,13 @@
     window.psGtmConfig.cartProductsData = {};
   }
   {/if}
+  {if isset($cart_totals)}
+  try {
+    window.psGtmConfig.cartTotals = {$cart_totals nofilter};
+  } catch(e) {
+    window.psGtmConfig.cartTotals = null;
+  }
+  {/if}
   {if isset($wishlist_capabilities)}
   try {
     window.psGtmConfig.wishlist = {$wishlist_capabilities nofilter};

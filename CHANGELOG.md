@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.0] - 2026-11-01
+
+### Added & Enhanced
+- **Authoritative PrestaShop Dynamic Pricing & Rounding Engine**:
+  - **Single Source of Truth for Financial Totals**: Solved the commercial rounding discrepancy where 2 units with unrounded unit price 12.995 € (displayed as 13.00 € on frontend) produced 26.00 € when summing rounded unit prices, rather than PrestaShop's authoritative cart subtotal of 25.99 €.
+  - **Shared Internal Pricing Model**: Added `PricingEngine::resolvePriceModel()`, `PricingEngine::getCartTotalsModel()`, and `PricingEngine::getOrderTotalsModel()` returning structured unit prices (tax incl/excl), regular catalog prices, line totals, tax amount, and discount amounts.
+  - **PS_ROUND_TYPE Compliance**: Fully honors store configuration for `ROUND_ITEM` (1), `ROUND_LINE` (2), and `ROUND_TOTAL` (3) when calculating line totals.
+  - **Historical Order Preservation**: Purchase payloads strictly prioritize recorded `$order->total_products_wt` and historical order line prices from `order_detail` database records over current catalog prices, preventing changes to live catalog prices from corrupting historical order analytics.
+  - **Multi-Platform Monetary Parity**: Aligned `ecommerce.value`, Meta `value`, TikTok `value`, Pinterest `line_items`, Google Ads `cart_data`, and Microsoft Advertising `items` with authoritative database line totals and subtotals.
+  - **Frontend Cart Delta Alignment**: Enhanced `EDL.calculateCartValue()` and `EDL.processCartDelta()` to prioritize authoritative PrestaShop line totals (`total_wt`, `total_amount`) over manual multiplication of rounded unit prices.
+  - **Comprehensive 13-Scenario Pricing Verification Suite**: Added `tests/authoritativePricing.test.js` verifying regular prices, combination impacts, specific prices, volume tiers, customer groups, vouchers, tax regimes, multi-currency precision (EUR/USD, JPY, BHD), shipping thresholds, multi-item carts, historical orders, partial refunds, and advertising platform payloads.
+
+---
+
 ## [1.44.0] - 2026-10-28
 
 ### Added & Enhanced

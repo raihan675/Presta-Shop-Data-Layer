@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.44.0';
+        $this->version = '1.45.0';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -3424,6 +3424,7 @@ class Ps_Gtm_DataLayer extends Module
             // Pre-hydrate active cart products map (100% backend-driven, ZERO DOM)
             $cartProductsMap = [];
             $cartProductsData = [];
+            $cartTotalsData = null;
             if ($this->context->cart && Validate::isLoadedObject($this->context->cart)) {
                 $prods = $this->context->cart->getProducts();
                 if (is_array($prods)) {
@@ -3437,6 +3438,11 @@ class Ps_Gtm_DataLayer extends Module
                             : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
                         $price = PricingEngine::roundHalfUp($priceRaw, $currencyPrecision);
 
+                        $lineTotalRaw = $isTaxIncl
+                            ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
+                            : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
+                        $lineTotal = PricingEngine::roundHalfUp($lineTotalRaw, $currencyPrecision);
+
                         $cartProductsData[$k] = [
                             'item_id' => (string)$p['id_product'],
                             'variant_id' => !empty($p['id_product_attribute']) ? (string)$p['id_product_attribute'] : '',
@@ -3446,10 +3452,12 @@ class Ps_Gtm_DataLayer extends Module
                             'item_category' => !empty($p['category']) ? (string)$p['category'] : '',
                             'item_variant' => !empty($p['attributes']) ? (string)$p['attributes'] : (!empty($p['attributes_small']) ? (string)$p['attributes_small'] : ''),
                             'price' => $price,
+                            'line_total' => $lineTotal,
                             'quantity' => (int)$p['cart_quantity']
                         ];
                     }
                 }
+                $cartTotalsData = PricingEngine::getCartTotalsModel($this->context->cart, $this->context);
             }
 
             $advMaster = Configuration::get('PS_GTM_ADV_MASTER_ENABLED') !== '0';
@@ -3614,6 +3622,7 @@ class Ps_Gtm_DataLayer extends Module
                 'product_combinations' => json_encode($combosMap, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'cart_products' => !empty($cartProductsMap) ? json_encode($cartProductsMap, JSON_UNESCAPED_SLASHES) : null,
                 'cart_products_data' => !empty($cartProductsData) ? json_encode($cartProductsData, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) : null,
+                'cart_totals' => !empty($cartTotalsData) ? json_encode($cartTotalsData, JSON_UNESCAPED_SLASHES) : null,
                 'wishlist_capabilities' => json_encode(WishlistIntegrationLayer::getWishlistCapabilities(), JSON_UNESCAPED_SLASHES),
                 'catalog_id_strategy' => (Configuration::get('PS_GTM_CATALOG_ID_STRATEGY') ?: 'composite'),
                 'advertising_settings' => json_encode($advSettings, JSON_UNESCAPED_SLASHES),

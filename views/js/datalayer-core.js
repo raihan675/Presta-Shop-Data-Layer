@@ -154,6 +154,10 @@
       quantity: sanitizeInt(raw.quantity)
     };
 
+    if (raw.line_total !== undefined && raw.line_total !== null && !isNaN(raw.line_total)) {
+      item.line_total = sanitizeFloat(raw.line_total, prec);
+    }
+
     if (raw.item_category2) item.item_category2 = String(raw.item_category2);
     if (raw.item_category3) item.item_category3 = String(raw.item_category3);
     if (raw.index !== undefined) item.index = parseInt(raw.index, 10);
@@ -187,9 +191,16 @@
         : 2);
     var total = 0.0;
     for (var i = 0; i < items.length; i++) {
-      var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
-      var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
-      total += p * q;
+      var lineTot = (items[i].line_total !== undefined && items[i].line_total !== null && !isNaN(items[i].line_total))
+        ? (typeof items[i].line_total === 'number' ? items[i].line_total : parseFloat(items[i].line_total))
+        : null;
+      if (lineTot !== null && !isNaN(lineTot) && lineTot > 0) {
+        total += lineTot;
+      } else {
+        var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
+        var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
+        total += p * q;
+      }
     }
     return roundHalfUp(total, dec);
   }
@@ -1221,6 +1232,9 @@
       var rawPrice = parseFloat(item.price_wt || item.price_amount || item.price || 0.0);
       var price = roundHalfUp(rawPrice, prec);
 
+      var rawLineTotal = parseFloat(item.total_wt || item.total_amount || item.total || 0.0);
+      var lineTotal = (!isNaN(rawLineTotal) && rawLineTotal > 0) ? roundHalfUp(rawLineTotal, prec) : null;
+
       var brand = String(item.manufacturer_name || item.item_brand || item.manufacturer || '');
       if (!brand && options.currentProduct && String(options.currentProduct.item_id) === idProd) {
         brand = String(options.currentProduct.item_brand || '');
@@ -1251,6 +1265,9 @@
         price: price,
         quantity: qty
       };
+      if (lineTotal !== null) {
+        itemDetails.line_total = lineTotal;
+      }
       newProductsData[key] = itemDetails;
 
       var prevQty = parseInt(prevQuantities[key], 10) || 0;
@@ -1258,9 +1275,20 @@
 
       if (delta > 0) {
         var addedItem = Object.assign({}, itemDetails, { quantity: delta });
+        if (delta === qty && lineTotal !== null) {
+          addedItem.line_total = lineTotal;
+        } else if (lineTotal !== null && qty > 0) {
+          addedItem.line_total = roundHalfUp((lineTotal / qty) * delta, prec);
+        }
         itemsAdded.push(addedItem);
       } else if (delta < 0) {
-        var removedItem = Object.assign({}, itemDetails, { quantity: Math.abs(delta) });
+        var removedQty = Math.abs(delta);
+        var removedItem = Object.assign({}, itemDetails, { quantity: removedQty });
+        if (delta === -prevQty && prevProductsData[key] && prevProductsData[key].line_total) {
+          removedItem.line_total = prevProductsData[key].line_total;
+        } else {
+          removedItem.line_total = roundHalfUp(price * removedQty, prec);
+        }
         itemsRemoved.push(removedItem);
       }
     }

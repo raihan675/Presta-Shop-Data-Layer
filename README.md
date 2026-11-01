@@ -470,6 +470,18 @@ To bypass path collisions on `/g/collect` and ensure 100% deterministic paramete
 
 ---
 
+### 5. Authoritative PrestaShop Store Pricing & Commercial Rounding Engine (Zero DOM)
+The module implements a strict backend-driven pricing architecture that uses PrestaShop's native calculation engine (`Product::getPriceStatic`, `Cart::getOrderTotal`, `OrderDetail` tables) rather than frontend DOM parsing or naive arithmetic:
+* **Unrounded Line Calculation Parity**: When products have unrounded promotional unit prices (e.g., 25.99 € with a 50% discount = 12.995 €), PrestaShop displays 13.00 € on the storefront, but calculates line subtotal as 12.995 × 2 = **25.99 €** (and grand total 30.49 € with 4.50 € shipping). The module captures this exact authoritative line subtotal (25.99 €) for `ecommerce.value` rather than summing rounded unit prices (26.00 €), eliminating financial discrepancies between tracking reports and PrestaShop invoices.
+* **Separation of Monetary Dimensions**:
+  * **Unit Price**: `price` reflects the single-unit retail price in the store's currency precision.
+  * **Line Total**: `line_total` reflects the exact PrestaShop cart line amount adhering to `PS_ROUND_TYPE` (`ROUND_ITEM`, `ROUND_LINE`, or `ROUND_TOTAL`).
+  * **Order & Cart Totals**: `ecommerce.value` strictly mirrors PrestaShop's authoritative order and cart totals (`Cart::ONLY_PRODUCTS`, `$order->total_products_wt`).
+  * **Shipping, Tax, & Discounts**: Kept strictly distinct and never blended into item unit prices.
+* **Historical Order Fidelity**: Purchase events and offline conversion webhooks strictly read recorded `order_detail` and `orders` tables. Any subsequent alterations to catalog pricing or combination prices will never distort completed transaction analytics.
+
+---
+
 ## Installation & Setup
 
 ### Method 1: PrestaShop Back Office Upload (Recommended)

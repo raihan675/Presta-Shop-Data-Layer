@@ -44,6 +44,10 @@ class CanonicalDataModel
             'quantity' => $quantity,
         ];
 
+        if (isset($raw['line_total']) && is_numeric($raw['line_total']) && (float)$raw['line_total'] > 0) {
+            $item['line_total'] = (float)$raw['line_total'];
+        }
+
         if (isset($raw['index']) && is_numeric($raw['index'])) {
             $item['index'] = (int)$raw['index'];
         }
@@ -68,7 +72,8 @@ class CanonicalDataModel
     }
 
     /**
-     * Calculates the exact monetary value of an array of canonical items.
+     * Calculates the exact monetary value of an array of canonical items,
+     * prioritizing authoritative line totals when available.
      *
      * @param array $items
      * @param int $precision
@@ -78,9 +83,13 @@ class CanonicalDataModel
     {
         $total = 0.0;
         foreach ($items as $item) {
-            $price = isset($item['price']) ? (float)$item['price'] : 0.0;
-            $qty = isset($item['quantity']) ? (int)$item['quantity'] : 1;
-            $total += $price * $qty;
+            if (isset($item['line_total']) && is_numeric($item['line_total']) && (float)$item['line_total'] > 0) {
+                $total += (float)$item['line_total'];
+            } else {
+                $price = isset($item['price']) ? (float)$item['price'] : 0.0;
+                $qty = isset($item['quantity']) ? (int)$item['quantity'] : 1;
+                $total += $price * $qty;
+            }
         }
 
         return round($total, (int)$precision, PHP_ROUND_HALF_UP);

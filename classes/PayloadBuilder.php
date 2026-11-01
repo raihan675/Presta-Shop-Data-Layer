@@ -1526,20 +1526,33 @@ class PayloadBuilder
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
             if (!empty($p['manufacturer_name'])) {
                 $productObj->manufacturer_name = $p['manufacturer_name'];
             }
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $unitPrice = $isTaxIncl
+                ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+            $lineTotal = $isTaxIncl
+                ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
+                : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
+
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
         }
 
-        $itemsSum = 0.0;
-        foreach ($items as $it) {
-            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        // Authoritative PrestaShop cart product subtotal (Zero DOM)
+        $cartSubtotal = 0.0;
+        try {
+            $cartSubtotal = (float)$cart->getOrderTotal($isTaxIncl, Cart::ONLY_PRODUCTS);
+        } catch (\Throwable $e) {}
+
+        if ($cartSubtotal <= 0) {
+            $cartSubtotal = CanonicalDataModel::calculateItemsValue($items, $currencyPrecision);
         }
-        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $totalValue = PricingEngine::roundHalfUp($cartSubtotal, $currencyPrecision);
         $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
         $platformNamespaces = $this->buildPlatformNamespaces('view_cart', $items, $currencyCode, $totalValue);
@@ -1566,20 +1579,33 @@ class PayloadBuilder
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
             if (!empty($p['manufacturer_name'])) {
                 $productObj->manufacturer_name = $p['manufacturer_name'];
             }
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $unitPrice = $isTaxIncl
+                ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+            $lineTotal = $isTaxIncl
+                ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
+                : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
+
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
         }
 
-        $itemsSum = 0.0;
-        foreach ($items as $it) {
-            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        // Authoritative PrestaShop cart product subtotal (Zero DOM)
+        $cartSubtotal = 0.0;
+        try {
+            $cartSubtotal = (float)$cart->getOrderTotal($isTaxIncl, Cart::ONLY_PRODUCTS);
+        } catch (\Throwable $e) {}
+
+        if ($cartSubtotal <= 0) {
+            $cartSubtotal = CanonicalDataModel::calculateItemsValue($items, $currencyPrecision);
         }
-        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $totalValue = PricingEngine::roundHalfUp($cartSubtotal, $currencyPrecision);
         $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
         $platformNamespaces = $this->buildPlatformNamespaces('begin_checkout', $items, $currencyCode, $totalValue);
@@ -1616,20 +1642,33 @@ class PayloadBuilder
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
             if (!empty($p['manufacturer_name'])) {
                 $productObj->manufacturer_name = $p['manufacturer_name'];
             }
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $unitPrice = $isTaxIncl
+                ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+            $lineTotal = $isTaxIncl
+                ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
+                : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
+
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
         }
 
-        $itemsSum = 0.0;
-        foreach ($items as $it) {
-            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        // Authoritative PrestaShop cart product subtotal (Zero DOM)
+        $cartSubtotal = 0.0;
+        try {
+            $cartSubtotal = (float)$cart->getOrderTotal($isTaxIncl, Cart::ONLY_PRODUCTS);
+        } catch (\Throwable $e) {}
+
+        if ($cartSubtotal <= 0) {
+            $cartSubtotal = CanonicalDataModel::calculateItemsValue($items, $currencyPrecision);
         }
-        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $totalValue = PricingEngine::roundHalfUp($cartSubtotal, $currencyPrecision);
         $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
         if (empty($shippingTier)) {
@@ -1682,20 +1721,33 @@ class PayloadBuilder
         $items = [];
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
+        $isTaxIncl = PlatformAdapter::isTaxIncluded($this->context);
 
         foreach ($cartProducts as $p) {
             $productObj = new Product((int)$p['id_product'], false, $idLanguage);
             if (!empty($p['manufacturer_name'])) {
                 $productObj->manufacturer_name = $p['manufacturer_name'];
             }
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], (float)$p['price_wt']);
+            $unitPrice = $isTaxIncl
+                ? (isset($p['price_wt']) ? (float)$p['price_wt'] : (float)$p['price'])
+                : (isset($p['price']) ? (float)$p['price'] : (float)$p['price_wt']);
+            $lineTotal = $isTaxIncl
+                ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
+                : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
+
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
         }
 
-        $itemsSum = 0.0;
-        foreach ($items as $it) {
-            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
+        // Authoritative PrestaShop cart product subtotal (Zero DOM)
+        $cartSubtotal = 0.0;
+        try {
+            $cartSubtotal = (float)$cart->getOrderTotal($isTaxIncl, Cart::ONLY_PRODUCTS);
+        } catch (\Throwable $e) {}
+
+        if ($cartSubtotal <= 0) {
+            $cartSubtotal = CanonicalDataModel::calculateItemsValue($items, $currencyPrecision);
         }
-        $totalValue = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
+        $totalValue = PricingEngine::roundHalfUp($cartSubtotal, $currencyPrecision);
         $currencyCode = $this->context->currency ? (string)$this->context->currency->iso_code : 'EUR';
 
         if (empty($paymentType)) {
@@ -1751,6 +1803,9 @@ class PayloadBuilder
                 $brand = (string)Manufacturer::getNameById((int)$productObj->id_manufacturer);
             }
 
+            $unitPrice = (float)$p['unit_price_tax_incl'];
+            $lineTotal = isset($p['total_price_tax_incl']) ? (float)$p['total_price_tax_incl'] : ($unitPrice * (int)$p['product_quantity']);
+
             $item = [
                 'item_id' => (string)$productObj->id, // Base product ID
                 'variant_id' => $identifiers['variant_id'],
@@ -1759,8 +1814,9 @@ class PayloadBuilder
                 'item_brand' => $brand,
                 'item_category' => '',
                 'item_variant' => $identifiers['item_variant'],
-                'price' => PricingEngine::roundHalfUp((float)$p['unit_price_tax_incl'], $currencyPrecision),
+                'price' => PricingEngine::roundHalfUp($unitPrice, $currencyPrecision),
                 'quantity' => (int)$p['product_quantity'],
+                'line_total' => PricingEngine::roundHalfUp($lineTotal, $currencyPrecision),
             ];
 
             $category = new Category((int)$productObj->id_category_default, $idLanguage);
@@ -1780,19 +1836,16 @@ class PayloadBuilder
         $orderShipping = PricingEngine::roundHalfUp((float)$order->total_shipping_tax_incl, $currencyPrecision);
         $orderTotal = PricingEngine::roundHalfUp((float)$order->total_paid_tax_incl, $currencyPrecision);
 
-        // PrestaShop authoritative product subtotal
+        // PrestaShop authoritative recorded product subtotal
         $productSubtotal = (isset($order->total_products_wt) && (float)$order->total_products_wt > 0)
             ? PricingEngine::roundHalfUp((float)$order->total_products_wt, $currencyPrecision)
-            : 0.0;
+            : ((isset($order->total_products) && (float)$order->total_products > 0)
+                ? PricingEngine::roundHalfUp((float)$order->total_products, $currencyPrecision)
+                : 0.0);
 
-        // GA4 item value = sum of (item price * quantity), excluding shipping and separate from tax
-        $itemsSum = 0.0;
-        foreach ($items as $it) {
-            $itemsSum += (float)$it['price'] * (int)$it['quantity'];
-        }
-        $itemsSum = PricingEngine::roundHalfUp($itemsSum, $currencyPrecision);
-
-        $ga4Value = ($itemsSum > 0) ? $itemsSum : ($productSubtotal > 0 ? $productSubtotal : $orderTotal);
+        // GA4 item value = recorded product subtotal (or line items total)
+        $itemsSum = CanonicalDataModel::calculateItemsValue($items, $currencyPrecision);
+        $ga4Value = ($productSubtotal > 0) ? $productSubtotal : (($itemsSum > 0) ? $itemsSum : $orderTotal);
         if ($productSubtotal <= 0) {
             $productSubtotal = $ga4Value;
         }
@@ -1927,11 +1980,12 @@ class PayloadBuilder
         return $purchasePayload;
     }
 
-    public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null)
+    public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null, $lineTotal = null)
     {
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
+        $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
         $price = $overridePrice !== null 
-            ? PricingEngine::roundHalfUp($overridePrice)
+            ? PricingEngine::roundHalfUp($overridePrice, $currencyPrecision)
             : PricingEngine::getCustomerPrice($product, $idAttribute, $quantity, $this->context);
 
         $identifiers = ProductIdentityResolver::resolveProductIdentifiers($product, $idAttribute, $idLanguage);
@@ -1945,7 +1999,7 @@ class PayloadBuilder
             $brand = (string)Manufacturer::getNameById((int)$product->id_manufacturer);
         }
 
-        return CanonicalDataModel::formatItem([
+        $rawItem = [
             'item_id' => (string)$product->id, // Canonical base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
@@ -1955,6 +2009,12 @@ class PayloadBuilder
             'item_variant' => $identifiers['item_variant'],
             'price' => (float)$price,
             'quantity' => (int)$quantity,
-        ]);
+        ];
+
+        if ($lineTotal !== null) {
+            $rawItem['line_total'] = PricingEngine::roundHalfUp($lineTotal, $currencyPrecision);
+        }
+
+        return CanonicalDataModel::formatItem($rawItem);
     }
 }
