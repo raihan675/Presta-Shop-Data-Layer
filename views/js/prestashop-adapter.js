@@ -136,6 +136,7 @@
   var lastCartEventSignature = '';
   var lastRemoveSignature = '';
   var lastRemoveTime = 0;
+  var lastCartSubtotal = null;
 
   function initCartState() {
     if (window.psGtmConfig && window.psGtmConfig.cartProducts && typeof window.psGtmConfig.cartProducts === 'object') {
@@ -151,6 +152,9 @@
           cartProductsData[String(kd)] = window.psGtmConfig.cartProductsData[kd];
         }
       }
+    }
+    if (window.psGtmConfig && window.psGtmConfig.cartTotals && window.psGtmConfig.cartTotals.products_subtotal !== undefined) {
+      lastCartSubtotal = parseFloat(window.psGtmConfig.cartTotals.products_subtotal);
     }
   }
   initCartState();
@@ -395,7 +399,7 @@
       ? parseInt(window.psGtmConfig.currencyPrecision, 10)
       : 2;
 
-    resolveBackendProduct(idProduct, normAttr, removeQty, function (resolvedItem) {
+    resolveBackendProduct(idProduct, normAttr, removeQty, function (resolvedItem, fullResp) {
       var item = resolvedItem ? resolvedItem : (cartProductsData[key] || {
         item_id: String(idProduct),
         variant_id: normAttr,
@@ -407,9 +411,15 @@
 
       var normItems = EDL.normalizeItems([item], prec);
       if (normItems.length > 0) {
+        var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
+          ? parseFloat(item._line_value)
+          : ((fullResp && fullResp.line_value !== undefined)
+            ? parseFloat(fullResp.line_value)
+            : EDL.calculateCartValue(normItems, prec));
+
         EDL.pushEvent('remove_from_cart', {
           currency: currencyCode,
-          value: EDL.calculateCartValue(normItems, prec),
+          value: removeVal,
           items: normItems
         });
       }
@@ -765,6 +775,18 @@
             productCombinations: (window.psGtmConfig && window.psGtmConfig.productCombinations) ? window.psGtmConfig.productCombinations : null
           });
 
+          // Compute authoritative delta value from PrestaShop's core cart subtotal if available
+          var newCartSubtotal = (cart.subtotals && cart.subtotals.products && cart.subtotals.products.amount !== undefined)
+            ? parseFloat(cart.subtotals.products.amount)
+            : null;
+          var subtotalDelta = (lastCartSubtotal !== null && newCartSubtotal !== null)
+            ? EDL.roundHalfUp(Math.abs(newCartSubtotal - lastCartSubtotal), prec)
+            : null;
+
+          if (newCartSubtotal !== null) {
+            lastCartSubtotal = newCartSubtotal;
+          }
+
           // Update in-memory state
           cartQuantities = deltaResult.updatedQuantities;
           cartProductsData = deltaResult.updatedProductsData;
@@ -775,9 +797,15 @@
             isCartUpdating = true;
             setTimeout(function () { isCartUpdating = false; }, 2500);
 
+            var addVal = (subtotalDelta !== null && subtotalDelta > 0)
+              ? subtotalDelta
+              : (deltaResult.addedValue !== undefined && deltaResult.addedValue > 0
+                ? deltaResult.addedValue
+                : EDL.calculateCartValue(deltaResult.itemsAdded, prec));
+
             EDL.pushEvent('add_to_cart', {
               currency: currencyCode,
-              value: EDL.calculateCartValue(deltaResult.itemsAdded, prec),
+              value: addVal,
               items: deltaResult.itemsAdded
             });
           }
@@ -794,9 +822,15 @@
               filteredRemoved.push(rItem);
             }
             if (filteredRemoved.length > 0) {
+              var removeVal = (subtotalDelta !== null && subtotalDelta > 0)
+                ? subtotalDelta
+                : (deltaResult.removedValue !== undefined && deltaResult.removedValue > 0
+                  ? deltaResult.removedValue
+                  : EDL.calculateCartValue(filteredRemoved, prec));
+
               EDL.pushEvent('remove_from_cart', {
                 currency: currencyCode,
-                value: EDL.calculateCartValue(filteredRemoved, prec),
+                value: removeVal,
                 items: filteredRemoved
               });
             }
@@ -864,7 +898,7 @@
             removeQty = cartQuantities[cachedKey];
           }
 
-          resolveBackendProduct(removedIdProduct, normRemovedAttr, removeQty, function (resolvedItem) {
+          resolveBackendProduct(removedIdProduct, normRemovedAttr, removeQty, function (resolvedItem, fullResp) {
             var item = resolvedItem ? resolvedItem : (cartProductsData[cachedKey] || {
               item_id: String(removedIdProduct),
               variant_id: normRemovedAttr,
@@ -876,9 +910,15 @@
 
             var normItems = EDL.normalizeItems([item], prec);
             if (normItems.length > 0) {
+              var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
+                ? parseFloat(item._line_value)
+                : ((fullResp && fullResp.line_value !== undefined)
+                  ? parseFloat(fullResp.line_value)
+                  : EDL.calculateCartValue(normItems, prec));
+
               EDL.pushEvent('remove_from_cart', {
                 currency: currencyCode,
-                value: EDL.calculateCartValue(normItems, prec),
+                value: removeVal,
                 items: normItems
               });
             }

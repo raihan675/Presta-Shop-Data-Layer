@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.2] - 2026-11-01
+
+### Fixed & Enhanced
+- **Authoritative Cart Subtotal Deltas for Add/Remove Operations**:
+  - Bound `add_to_cart` and `remove_from_cart` event values directly to PrestaShop's core cart product subtotal deltas (`cart.subtotals.products.amount`), resolving rounding discrepancies when adding or removing multiple quantities of discounted items (e.g. 3 units @ 12.995 € correctly pushes 38.99 € matching `view_cart` and PrestaShop invoices rather than naive rounded unit multiplication 39.00 €).
+  - Preserved internal `_line_value` during client-side cart reconciliation while strictly stripping it prior to dataLayer push, guaranteeing clean canonical GA4 schema with zero extraneous parameters.
+
+---
+
 ## [1.45.1] - 2026-11-01
 
 ### Fixed & Cleaned

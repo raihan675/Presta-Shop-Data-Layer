@@ -57,6 +57,8 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
         $eventPrefix = Configuration::get('PS_GTM_EVENT_PREFIX');
         $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $item = $payloadBuilder->formatItem($product, $idProductAttribute, $quantity);
+        $linePrice = PricingEngine::getLinePrice($product, $idProductAttribute, $quantity, $this->context);
+        $item['_line_value'] = $linePrice;
 
         $idCategoryDefault = (int)$product->id_category_default;
         $category = new Category($idCategoryDefault, $idLanguage);
@@ -73,6 +75,7 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
             'success' => true,
             'currency' => $currency,
             'item' => $item,
+            'line_value' => $linePrice,
             'default_category_id' => $idCategoryDefault,
             'default_category_name' => $categoryName,
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));

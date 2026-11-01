@@ -2,7 +2,7 @@
  * Authoritative PrestaShop Store Pricing Verification Test Suite
  *
  * Verifies PrestaShop's authoritative application logic and database-backed records
- * across all 13 core pricing scenarios, ensuring items strictly adhere to canonical
+ * across all core pricing scenarios, ensuring items strictly adhere to canonical
  * GA4 fields (zero extraneous line_total) while ecommerce.value reflects authoritative
  * PrestaShop financial calculations.
  */
@@ -69,6 +69,47 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
 
     assert.strictEqual(payload.ecommerce.value, 25.99);
     assert.strictEqual(payload.ecommerce.items[0].line_total, undefined);
+  });
+
+  // Scenario 2B: Removing 3 units of product with 50% discount emits remove_from_cart with exact back office value 38.99 € (NOT 39 €)
+  it('Scenario 2B: Removing 3 units of product with 50% discount emits remove_from_cart with exact back office value 38.99 € (NOT 39 €)', () => {
+    const rawPrice = 25.99 * 0.5; // 12.995
+    const unitPrice = coreScript.roundHalfUp(rawPrice, 2); // 13.00
+    const authoritativeSubtotal = coreScript.roundHalfUp(rawPrice * 3, 2); // 38.99
+
+    assert.strictEqual(unitPrice, 13.00);
+    assert.strictEqual(authoritativeSubtotal, 38.99);
+
+    const prevQuantities = { '68_299': 3 };
+    const prevProductsData = {
+      '68_299': {
+        item_id: '68',
+        variant_id: '299',
+        sku_id: 'BHK125-B',
+        item_name: 'Trink und Snack Tasse',
+        item_brand: 'Haakaa - Think Green Ltd.',
+        item_category: 'Baby Geschirr',
+        item_variant: 'Farbe1: Stahlblau',
+        price: unitPrice,
+        quantity: 3,
+        _line_value: authoritativeSubtotal
+      }
+    };
+    const newCartProducts = []; // Completely removed from cart
+
+    const deltaResult = coreScript.processCartDelta(prevQuantities, prevProductsData, newCartProducts, { precision: 2 });
+    assert.strictEqual(deltaResult.itemsRemoved.length, 1);
+    assert.strictEqual(deltaResult.itemsRemoved[0].quantity, 3);
+    assert.strictEqual(deltaResult.itemsRemoved[0].price, 13.00);
+    // Discrepancy eliminated: deltaResult.removedValue matches PrestaShop back office calculation 38.99 € (NOT 39.00 €)
+    assert.strictEqual(deltaResult.removedValue, 38.99);
+
+    // And items strictly omit _line_value and line_total
+    const norm = deltaResult.itemsRemoved[0];
+    assert.strictEqual(norm.line_total, undefined);
+    assert.strictEqual(norm._line_value, undefined);
+    assert.strictEqual(norm.price, 13.00);
+    assert.strictEqual(norm.quantity, 3);
   });
 
   // Scenario 3: Product combinations and variant-specific prices

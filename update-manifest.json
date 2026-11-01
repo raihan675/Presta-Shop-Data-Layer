@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.45.1",
+    "latest_version":  "1.45.2",
     "release_date":  "2026-11-01",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.1/ps_gtm_datalayer.zip",
-    "checksum":  "c69a43b14b3f51404dccddb5978bf16d45edd436dfbee03f5d10777dd8a1e541",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.2/ps_gtm_datalayer.zip",
+    "checksum":  "6e81de49d95679ccc8108b35b005ca79974dacb211f50601c29aa40fa56d096d",
     "release_type":  "minor",
-    "release_notes":  "Strict GA4 Items Schema Compliance: Cleaned items array to strictly omit line_total while maintaining 100% authoritative PrestaShop ecommerce.value subtotal calculations."
+    "release_notes":  "Synchronized Cart Delta Values: Add-to-cart and remove-from-cart events strictly reflect PrestaShop authoritative cart subtotal deltas, eliminating rounding discrepancies across multi-quantity operations."
 }

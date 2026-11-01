@@ -187,9 +187,13 @@
         : 2);
     var total = 0.0;
     for (var i = 0; i < items.length; i++) {
-      var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
-      var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
-      total += p * q;
+      if (items[i]._line_value !== undefined && items[i]._line_value !== null && !isNaN(items[i]._line_value) && parseFloat(items[i]._line_value) > 0) {
+        total += parseFloat(items[i]._line_value);
+      } else {
+        var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
+        var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
+        total += p * q;
+      }
     }
     return roundHalfUp(total, dec);
   }
@@ -1289,9 +1293,29 @@
       }
     }
 
+    var totalAddedVal = 0.0;
+    for (var a = 0; a < itemsAdded.length; a++) {
+      if (itemsAdded[a]._line_value !== undefined && itemsAdded[a]._line_value !== null && !isNaN(itemsAdded[a]._line_value) && parseFloat(itemsAdded[a]._line_value) > 0) {
+        totalAddedVal += parseFloat(itemsAdded[a]._line_value);
+      } else {
+        totalAddedVal += (parseFloat(itemsAdded[a].price) || 0) * (parseInt(itemsAdded[a].quantity, 10) || 1);
+      }
+    }
+
+    var totalRemovedVal = 0.0;
+    for (var r = 0; r < itemsRemoved.length; r++) {
+      if (itemsRemoved[r]._line_value !== undefined && itemsRemoved[r]._line_value !== null && !isNaN(itemsRemoved[r]._line_value) && parseFloat(itemsRemoved[r]._line_value) > 0) {
+        totalRemovedVal += parseFloat(itemsRemoved[r]._line_value);
+      } else {
+        totalRemovedVal += (parseFloat(itemsRemoved[r].price) || 0) * (parseInt(itemsRemoved[r].quantity, 10) || 1);
+      }
+    }
+
     return {
       itemsAdded: normalizeItems(itemsAdded, prec),
       itemsRemoved: normalizeItems(itemsRemoved, prec),
+      addedValue: roundHalfUp(totalAddedVal, prec),
+      removedValue: roundHalfUp(totalRemovedVal, prec),
       updatedQuantities: newQuantities,
       updatedProductsData: newProductsData
     };
