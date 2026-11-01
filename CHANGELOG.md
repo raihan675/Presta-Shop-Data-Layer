@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.3] - 2026-11-02
+
+### Fixed & Enhanced
+- **Universal Initial Add-to-Cart Authoritative Subtotal Synchronization**:
+  - Resolved empty cart initial state tracking where guest users adding multi-quantity discounted items (e.g. 2 units of unrounded 12.995 €) previously fell back to multiplying rounded unit prices (`13 * 2 = 26.00 €`).
+  - Added universal subtotal resolution across all AJAX structures (including `cart.products[].total_wt` summation and empty cart initialization `0.0`), guaranteeing `add_to_cart` emits exact PrestaShop store calculations (`25.99 €`) across GA4, Meta, TikTok, Pinterest, Google Ads, Microsoft, and Snapchat.
+  - Hydrated combinations with `_line_value` and `_raw_price` to maintain full mathematical alignment across PDP quick additions.
+
+---
+
 ## [1.45.2] - 2026-11-01
 
 ### Fixed & Enhanced

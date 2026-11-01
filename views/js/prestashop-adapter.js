@@ -155,6 +155,9 @@
     }
     if (window.psGtmConfig && window.psGtmConfig.cartTotals && window.psGtmConfig.cartTotals.products_subtotal !== undefined) {
       lastCartSubtotal = parseFloat(window.psGtmConfig.cartTotals.products_subtotal);
+    } else {
+      var hasItems = Object.keys(cartQuantities).length > 0;
+      lastCartSubtotal = hasItems ? null : 0.0;
     }
   }
   initCartState();
@@ -186,6 +189,10 @@
       // If variant requested, check pre-hydrated database combinations map
       if (idAttrStr && window.psGtmConfig.productCombinations && window.psGtmConfig.productCombinations[idAttrStr]) {
         var combo = window.psGtmConfig.productCombinations[idAttrStr];
+        var rawComboPrice = (combo._raw_price !== undefined) ? parseFloat(combo._raw_price) : (parseFloat(combo.price) || 0.0);
+        var comboLineVal = (combo._line_value !== undefined && qty === 1)
+          ? parseFloat(combo._line_value)
+          : EDL.roundHalfUp(rawComboPrice * qty, prec);
         var item = {
           item_id: String(combo.item_id),
           variant_id: String(combo.variant_id),
@@ -195,13 +202,18 @@
           item_category: String(currProd.item_category || ''),
           item_variant: String(combo.item_variant || ''),
           price: parseFloat(combo.price) || parseFloat(currProd.price) || 0.0,
-          quantity: qty
+          quantity: qty,
+          _line_value: comboLineVal
         };
-        callback(item);
+        callback(item, { line_value: comboLineVal });
         return;
       } else if (!idAttrStr) {
         // Simple product or base combination
         var hasCombinations = window.psGtmConfig.productCombinations && Object.keys(window.psGtmConfig.productCombinations).length > 0;
+        var rawProdPrice = (currProd._raw_price !== undefined) ? parseFloat(currProd._raw_price) : (parseFloat(currProd.price) || 0.0);
+        var prodLineVal = (currProd._line_value !== undefined && qty === 1)
+          ? parseFloat(currProd._line_value)
+          : EDL.roundHalfUp(rawProdPrice * qty, prec);
         var itemBase = {
           item_id: String(currProd.item_id),
           variant_id: (hasCombinations && currProd.variant_id && parseInt(currProd.variant_id, 10) > 0) ? String(currProd.variant_id) : '',
@@ -211,9 +223,10 @@
           item_category: String(currProd.item_category || ''),
           item_variant: hasCombinations ? String(currProd.item_variant || '') : '',
           price: parseFloat(currProd.price) || 0.0,
-          quantity: qty
+          quantity: qty,
+          _line_value: prodLineVal
         };
-        callback(itemBase);
+        callback(itemBase, { line_value: prodLineVal });
         return;
       }
     }
@@ -775,10 +788,41 @@
             productCombinations: (window.psGtmConfig && window.psGtmConfig.productCombinations) ? window.psGtmConfig.productCombinations : null
           });
 
-          // Compute authoritative delta value from PrestaShop's core cart subtotal if available
-          var newCartSubtotal = (cart.subtotals && cart.subtotals.products && cart.subtotals.products.amount !== undefined)
-            ? parseFloat(cart.subtotals.products.amount)
-            : null;
+          // Resolve new cart products subtotal across all PrestaShop versions & themes
+          var newCartSubtotal = null;
+          if (cart) {
+            if (cart.subtotals && cart.subtotals.products && cart.subtotals.products.amount !== undefined) {
+              newCartSubtotal = parseFloat(cart.subtotals.products.amount);
+            } else if (cart.subtotals && Array.isArray(cart.subtotals)) {
+              for (var s = 0; s < cart.subtotals.length; s++) {
+                if (cart.subtotals[s] && (cart.subtotals[s].type === 'products' || cart.subtotals[s].name === 'products') && cart.subtotals[s].amount !== undefined) {
+                  newCartSubtotal = parseFloat(cart.subtotals[s].amount);
+                  break;
+                }
+              }
+            } else if (cart.totals && cart.totals.total_products && cart.totals.total_products.amount !== undefined) {
+              newCartSubtotal = parseFloat(cart.totals.total_products.amount);
+            } else if (Array.isArray(cart.products)) {
+              var calcSub = 0.0;
+              for (var cp = 0; cp < cart.products.length; cp++) {
+                var pItem = cart.products[cp];
+                var pLine = (pItem.total_wt !== undefined && !isNaN(parseFloat(pItem.total_wt)))
+                  ? parseFloat(pItem.total_wt)
+                  : ((pItem.total_amount !== undefined && !isNaN(parseFloat(pItem.total_amount)))
+                    ? parseFloat(pItem.total_amount)
+                    : ((pItem.total !== undefined && !isNaN(parseFloat(pItem.total)))
+                      ? parseFloat(pItem.total)
+                      : 0.0));
+                calcSub += pLine;
+              }
+              newCartSubtotal = EDL.roundHalfUp(calcSub, prec);
+            }
+          }
+
+          if (lastCartSubtotal === null && Object.keys(cartQuantities).length === 0) {
+            lastCartSubtotal = 0.0;
+          }
+
           var subtotalDelta = (lastCartSubtotal !== null && newCartSubtotal !== null)
             ? EDL.roundHalfUp(Math.abs(newCartSubtotal - lastCartSubtotal), prec)
             : null;
@@ -871,13 +915,19 @@
             qty = parseInt(reason.qty, 10);
           }
 
-          resolveBackendProduct(addedIdProduct, addedIdAttr, qty, function (resolvedItem) {
+          resolveBackendProduct(addedIdProduct, addedIdAttr, qty, function (resolvedItem, fullResp) {
             if (resolvedItem) {
               var norm = EDL.normalizeItems([resolvedItem], prec);
               if (norm.length > 0) {
+                var addVal = (fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
+                  ? parseFloat(fullResp.line_value)
+                  : ((resolvedItem._line_value !== undefined && parseFloat(resolvedItem._line_value) > 0)
+                    ? parseFloat(resolvedItem._line_value)
+                    : EDL.calculateCartValue(norm, prec));
+
                 EDL.pushEvent('add_to_cart', {
                   currency: currencyCode,
-                  value: EDL.calculateCartValue(norm, prec),
+                  value: addVal,
                   items: norm
                 });
               }

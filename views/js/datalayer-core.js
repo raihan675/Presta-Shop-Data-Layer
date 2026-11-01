@@ -1225,6 +1225,15 @@
       var rawPrice = parseFloat(item.price_wt || item.price_amount || item.price || 0.0);
       var price = roundHalfUp(rawPrice, prec);
 
+      // Extract PrestaShop's authoritative line total directly from the product payload
+      var rawLine = (item.total_wt !== undefined && !isNaN(parseFloat(item.total_wt)))
+        ? parseFloat(item.total_wt)
+        : ((item.total_amount !== undefined && !isNaN(parseFloat(item.total_amount)))
+          ? parseFloat(item.total_amount)
+          : ((item.total !== undefined && !isNaN(parseFloat(item.total)))
+            ? parseFloat(item.total)
+            : roundHalfUp(rawPrice * qty, prec)));
+      var lineVal = roundHalfUp(rawLine, prec);
 
       var brand = String(item.manufacturer_name || item.item_brand || item.manufacturer || '');
       if (!brand && options.currentProduct && String(options.currentProduct.item_id) === idProd) {
@@ -1254,19 +1263,28 @@
         item_category: category,
         item_variant: variant,
         price: price,
-        quantity: qty
+        quantity: qty,
+        _line_value: lineVal,
+        _raw_price: rawPrice
       };
       newProductsData[key] = itemDetails;
 
       var prevQty = parseInt(prevQuantities[key], 10) || 0;
+      var prevDetails = prevProductsData[key];
+      var prevLine = (prevDetails && prevDetails._line_value !== undefined && !isNaN(parseFloat(prevDetails._line_value)))
+        ? parseFloat(prevDetails._line_value)
+        : roundHalfUp(rawPrice * prevQty, prec);
+
       var delta = qty - prevQty;
 
       if (delta > 0) {
-        var addedItem = Object.assign({}, itemDetails, { quantity: delta });
+        var addedLineVal = (prevQty === 0) ? lineVal : roundHalfUp(Math.max(0, lineVal - prevLine), prec);
+        var addedItem = Object.assign({}, itemDetails, { quantity: delta, _line_value: addedLineVal });
         itemsAdded.push(addedItem);
       } else if (delta < 0) {
         var removedQty = Math.abs(delta);
-        var removedItem = Object.assign({}, itemDetails, { quantity: removedQty });
+        var removedLineVal = roundHalfUp(Math.max(0, prevLine - lineVal), prec);
+        var removedItem = Object.assign({}, itemDetails, { quantity: removedQty, _line_value: removedLineVal });
         itemsRemoved.push(removedItem);
       }
     }
@@ -1287,7 +1305,10 @@
               price: 0.0
             };
           }
-          var fullyRemovedItem = Object.assign({}, details, { quantity: oldQ });
+          var fullyRemovedLine = (details && details._line_value !== undefined && !isNaN(parseFloat(details._line_value)))
+            ? parseFloat(details._line_value)
+            : roundHalfUp((details && details.price ? parseFloat(details.price) : 0) * oldQ, prec);
+          var fullyRemovedItem = Object.assign({}, details, { quantity: oldQ, _line_value: fullyRemovedLine });
           itemsRemoved.push(fullyRemovedItem);
         }
       }

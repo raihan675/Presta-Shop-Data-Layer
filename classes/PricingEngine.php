@@ -122,6 +122,7 @@ class PricingEngine
         }
 
         $unitPrice = $isTaxIncl ? $unitPriceTaxIncl : $unitPriceTaxExcl;
+        $rawUnitPrice = $isTaxIncl ? $rawDiscountedIncl : $rawDiscountedExcl;
         $lineTotal = $isTaxIncl ? $lineTotalTaxIncl : $lineTotalTaxExcl;
         $taxAmount = max(0.0, self::roundHalfUp($lineTotalTaxIncl - $lineTotalTaxExcl, $precision));
         $discountAmount = max(0.0, self::roundHalfUp(($regularPriceTaxIncl - $unitPriceTaxIncl) * $qty, $precision));
@@ -133,6 +134,7 @@ class PricingEngine
             'currency' => $currencyCode,
             'precision' => $precision,
             'is_tax_incl' => $isTaxIncl,
+            'raw_unit_price' => $rawUnitPrice,
             'unit_price_tax_incl' => $unitPriceTaxIncl,
             'unit_price_tax_excl' => $unitPriceTaxExcl,
             'unit_price' => $unitPrice,

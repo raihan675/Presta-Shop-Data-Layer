@@ -112,6 +112,47 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
     assert.strictEqual(norm.quantity, 3);
   });
 
+  // Scenario 2C: Adding 2 units of product with unrounded 12.995 € emits add_to_cart with exact back office value 25.99 € (NOT 26.00 €)
+  it('Scenario 2C: Adding 2 units of product with unrounded 12.995 € emits add_to_cart with exact back office value 25.99 € (NOT 26.00 €)', () => {
+    const rawPrice = 25.99 * 0.5; // 12.995
+    const unitPrice = coreScript.roundHalfUp(rawPrice, 2); // 13.00
+    const authoritativeSubtotal = coreScript.roundHalfUp(rawPrice * 2, 2); // 25.99
+
+    assert.strictEqual(unitPrice, 13.00);
+    assert.strictEqual(authoritativeSubtotal, 25.99);
+
+    const prevQuantities = {};
+    const prevProductsData = {};
+    const newCartProducts = [
+      {
+        id_product: '68',
+        id_product_attribute: '299',
+        reference: 'BHK125-B',
+        name: 'Trink und Snack Tasse',
+        manufacturer_name: 'Haakaa - Think Green Ltd.',
+        category_name: 'Baby Geschirr',
+        attributes: 'Farbe1: Stahlblau',
+        price_wt: 12.995,
+        total_wt: 25.99,
+        quantity: 2
+      }
+    ];
+
+    const deltaResult = coreScript.processCartDelta(prevQuantities, prevProductsData, newCartProducts, { precision: 2 });
+    assert.strictEqual(deltaResult.itemsAdded.length, 1);
+    assert.strictEqual(deltaResult.itemsAdded[0].quantity, 2);
+    assert.strictEqual(deltaResult.itemsAdded[0].price, 13.00);
+    // Discrepancy eliminated: deltaResult.addedValue matches PrestaShop back office calculation 25.99 € (NOT 26.00 €)
+    assert.strictEqual(deltaResult.addedValue, 25.99);
+
+    // And items strictly omit _line_value and line_total
+    const norm = deltaResult.itemsAdded[0];
+    assert.strictEqual(norm.line_total, undefined);
+    assert.strictEqual(norm._line_value, undefined);
+    assert.strictEqual(norm.price, 13.00);
+    assert.strictEqual(norm.quantity, 2);
+  });
+
   // Scenario 3: Product combinations and variant-specific prices
   it('Scenario 3: Product combination with attribute price impact calculates accurate variant price', () => {
     const basePrice = 50.00;
