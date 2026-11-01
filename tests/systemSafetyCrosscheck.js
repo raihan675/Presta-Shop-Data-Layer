@@ -236,7 +236,7 @@ const versionInXml = (xmlCode.match(/<version><!\[CDATA\[(.*?)\]\]><\/version>/)
 const versionInPhp = (mainModuleCode.match(/\$this->version\s*=\s*'([^']+)'/) || [])[1];
 
 report('config.xml is well-formed with closing </module>', xmlCode.includes('</module>'));
-report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.45.4', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
+report(`Version alignment (${versionInPhp}) between PHP and XML`, versionInPhp === versionInXml && versionInPhp === '1.45.5', `PHP version: ${versionInPhp}, XML version: ${versionInXml}`);
 
 // Smarty PHP 8 compatibility check: ensure no .tpl files use illegal or PHP-only modifiers like |implode
 const allTplFiles = [];

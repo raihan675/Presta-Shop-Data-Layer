@@ -3,8 +3,9 @@
     "latest_version":  "1.45.4",
     "release_date":  "2026-11-02",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.4/ps_gtm_datalayer.zip",
-    "checksum":  "9ebbdbd897a52ba0245261ff10d4e02cf824719cf246e2ba34e7463a711a70d4",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.5/ps_gtm_datalayer.zip",
+    "checksum":  "306232a111e4c92141bbefadceec126c61930e3f42057686fd94564691378270",
     "release_type":  "minor",
-    "release_notes":  "End-to-End Authoritative Pricing Harmonization: Unified multi-quantity calculations across add_to_cart, view_cart, begin_checkout, and remove_from_cart so all events consistently reflect PrestaShop back office totals (e.g. 2 units = 25.99 Ã¢â€šÂ¬, 3 units = 38.99 Ã¢â€šÂ¬, 5 units = 64.98 Ã¢â€šÂ¬) with 100% clean GA4 items schema."
+    "release_notes":  "Authoritative Cart \u0026 Variant Pricing Parity: Synchronized unrounded 6-decimal customer price across ProductIdentityResolver and client adapter. 100% mathematical consistency across add_to_cart, view_cart, remove_from_cart (qty 2 = 25.99 Ã¢â€šÂ¬, qty 3 = 38.99 Ã¢â€šÂ¬, qty 4 = 51.98 Ã¢â€šÂ¬) with zero line_total in items array.",
+    "version":  "1.45.5"
 }

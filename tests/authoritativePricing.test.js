@@ -187,6 +187,38 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
     assert.strictEqual(val2, 25.99); // Matches PrestaShop Back Office 25.99 € (NOT 26.00 €)
   });
 
+
+  // Scenario 2E: Removing 4 units emits remove_from_cart with exact back office value 51.98 € (NOT 52.00 €)
+  it('Scenario 2E: Removing 4 units emits remove_from_cart with exact back office value 51.98 € (NOT 52.00 €)', () => {
+    const rawPrice = 25.99 * 0.5; // 12.995
+    assert.strictEqual(coreScript.roundHalfUp(rawPrice * 4, 2), 51.98);
+
+    const prevQuantities = { '68_299': 4 };
+    const prevProductsData = {
+      '68_299': {
+        item_id: '68',
+        variant_id: '299',
+        sku_id: 'BHK125-B',
+        item_name: 'Trink und Snack Tasse',
+        price: 13.00,
+        quantity: 4,
+        _line_value: 51.98,
+        _raw_price: 12.995
+      }
+    };
+    const newCartProducts = [];
+
+    const deltaResult = coreScript.processCartDelta(prevQuantities, prevProductsData, newCartProducts, { precision: 2 });
+    assert.strictEqual(deltaResult.itemsRemoved.length, 1);
+    assert.strictEqual(deltaResult.itemsRemoved[0].quantity, 4);
+    assert.strictEqual(deltaResult.itemsRemoved[0].price, 13.00);
+    // Value matches back office 51.98 € (NOT 52.00 €)
+    assert.strictEqual(deltaResult.removedValue, 51.98);
+    // Items strictly omit line_total and internal properties
+    assert.strictEqual(deltaResult.itemsRemoved[0].line_total, undefined);
+    assert.strictEqual(deltaResult.itemsRemoved[0]._line_value, undefined);
+  });
+
   // Scenario 3: Product combinations and variant-specific prices
   it('Scenario 3: Product combination with attribute price impact calculates accurate variant price', () => {
     const basePrice = 50.00;

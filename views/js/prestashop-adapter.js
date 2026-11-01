@@ -439,11 +439,13 @@
       if (normItems.length > 0) {
         var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
           ? parseFloat(item._line_value)
-          : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
-            ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
-            : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
-              ? parseFloat(fullResp.line_value)
-              : EDL.calculateCartValue([item], prec)));
+          : ((item.line_total !== undefined && removeQty === item.quantity)
+            ? parseFloat(item.line_total)
+            : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
+              ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
+              : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
+                ? parseFloat(fullResp.line_value)
+                : EDL.calculateCartValue([item], prec))));
 
         EDL.pushEvent('remove_from_cart', {
           currency: currencyCode,
@@ -938,7 +940,11 @@
                   ? parseFloat(fullResp.line_value)
                   : ((resolvedItem._line_value !== undefined && parseFloat(resolvedItem._line_value) > 0)
                     ? parseFloat(resolvedItem._line_value)
-                    : EDL.calculateCartValue(norm, prec));
+                    : ((resolvedItem.line_total !== undefined && parseFloat(resolvedItem.line_total) > 0)
+                      ? parseFloat(resolvedItem.line_total)
+                      : ((resolvedItem._raw_price !== undefined && parseFloat(resolvedItem._raw_price) > 0)
+                        ? EDL.roundHalfUp(parseFloat(resolvedItem._raw_price) * qty, prec)
+                        : EDL.calculateCartValue([resolvedItem], prec))));
 
                 EDL.pushEvent('add_to_cart', {
                   currency: currencyCode,
@@ -977,11 +983,13 @@
             if (normItems.length > 0) {
               var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
                 ? parseFloat(item._line_value)
-                : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
-                  ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
-                  : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
-                    ? parseFloat(fullResp.line_value)
-                    : EDL.calculateCartValue([item], prec)));
+                : ((item.line_total !== undefined && removeQty === item.quantity)
+                  ? parseFloat(item.line_total)
+                  : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
+                    ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
+                    : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
+                      ? parseFloat(fullResp.line_value)
+                      : EDL.calculateCartValue([item], prec))));
 
               EDL.pushEvent('remove_from_cart', {
                 currency: currencyCode,

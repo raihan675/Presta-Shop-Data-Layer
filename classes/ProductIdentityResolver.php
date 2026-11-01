@@ -163,6 +163,7 @@ class ProductIdentityResolver
 
                     if (!isset($map[$idAttr])) {
                         $price = self::getCustomerPrice($product, (int)$idAttr, 1);
+                        $rawPrice = PricingEngine::getRawCustomerPrice($product, (int)$idAttr, 1);
                         $map[$idAttr] = [
                             'item_id' => (string)$product->id,
                             'variant_id' => $idAttr,
@@ -170,6 +171,8 @@ class ProductIdentityResolver
                             'item_name' => (string)$product->name,
                             'item_variant' => $label,
                             'price' => (float)$price,
+                            '_raw_price' => (float)$rawPrice,
+                            '_line_value' => (float)$price,
                         ];
                     } else {
                         if ($label) {

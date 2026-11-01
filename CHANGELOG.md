@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.5] - 2026-11-02
+
+### Fixed & Enhanced
+- **Authoritative PDP Combination & Multi-Quantity Cart Deletion Parity**:
+  - Populated `_raw_price` and `_line_value` in `ProductIdentityResolver::getProductCombinationsMap()` so multi-quantity additions directly on product detail pages compute exact PrestaShop cart subtotals (e.g. 2 units = 25.99 €).
+  - Enhanced `prestashop-adapter.js` to evaluate line totals and unrounded raw price models before item normalization, ensuring cart deletions (e.g. 4 units = 51.98 €) never fall back to rounded unit multiplications.
+  - Enforced strict GA4 item schema compliance: zero `line_total` and zero internal properties in `items[]` across every event while `ecommerce.value` strictly mirrors PrestaShop Back Office calculations.
+
+---
+
 ## [1.45.4] - 2026-11-02
 
 ### Fixed & Enhanced
