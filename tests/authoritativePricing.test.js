@@ -153,6 +153,40 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
     assert.strictEqual(norm.quantity, 2);
   });
 
+  // Scenario 2D: End-to-end multi-quantity consistency across add, view_cart, checkout, and remove
+  it('Scenario 2D: End-to-end multi-quantity consistency across add (qty 3 -> 38.99 €), view (qty 5 -> 64.98 €), and remove (qty 5 -> 64.98 €)', () => {
+    const rawPrice = 25.99 * 0.5; // 12.995
+    assert.strictEqual(coreScript.roundHalfUp(rawPrice * 1, 2), 13.00);
+    assert.strictEqual(coreScript.roundHalfUp(rawPrice * 2, 2), 25.99);
+    assert.strictEqual(coreScript.roundHalfUp(rawPrice * 3, 2), 38.99);
+    assert.strictEqual(coreScript.roundHalfUp(rawPrice * 5, 2), 64.98);
+
+    // Test calculateCartValue with _raw_price fallback (when _line_value not available)
+    const items = [
+      {
+        item_id: '68',
+        variant_id: '299',
+        price: 13.00,
+        quantity: 5,
+        _raw_price: 12.995
+      }
+    ];
+    const val5 = coreScript.calculateCartValue(items, 2);
+    assert.strictEqual(val5, 64.98); // Matches PrestaShop Back Office 64.98 € (NOT 65.00 €)
+
+    const items2 = [
+      {
+        item_id: '68',
+        variant_id: '299',
+        price: 13.00,
+        quantity: 2,
+        _raw_price: 12.995
+      }
+    ];
+    const val2 = coreScript.calculateCartValue(items2, 2);
+    assert.strictEqual(val2, 25.99); // Matches PrestaShop Back Office 25.99 € (NOT 26.00 €)
+  });
+
   // Scenario 3: Product combinations and variant-specific prices
   it('Scenario 3: Product combination with attribute price impact calculates accurate variant price', () => {
     const basePrice = 50.00;

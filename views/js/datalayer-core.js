@@ -49,11 +49,10 @@
   }
 
   function roundHalfUp(val, decimals) {
-    var d = decimals !== undefined ? decimals : 2;
-    var factor = Math.pow(10, d);
+    var d = (decimals !== undefined && decimals !== null) ? parseInt(decimals, 10) : 2;
     var num = Number(val);
     if (isNaN(num)) return 0.0;
-    return Math.round((num + Number.EPSILON) * factor) / factor;
+    return Number(Math.round(Number(num + 'e' + d)) + 'e-' + d);
   }
 
   function sanitizeFloat(val, decimals) {
@@ -189,6 +188,9 @@
     for (var i = 0; i < items.length; i++) {
       if (items[i]._line_value !== undefined && items[i]._line_value !== null && !isNaN(items[i]._line_value) && parseFloat(items[i]._line_value) > 0) {
         total += parseFloat(items[i]._line_value);
+      } else if (items[i]._raw_price !== undefined && items[i]._raw_price !== null && !isNaN(items[i]._raw_price) && parseFloat(items[i]._raw_price) > 0) {
+        var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;
+        total += roundHalfUp(parseFloat(items[i]._raw_price) * q, dec);
       } else {
         var p = typeof items[i].price === 'number' ? items[i].price : parseFloat(items[i].price) || 0;
         var q = typeof items[i].quantity === 'number' ? items[i].quantity : parseInt(items[i].quantity, 10) || 1;

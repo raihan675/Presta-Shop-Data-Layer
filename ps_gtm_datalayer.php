@@ -27,7 +27,7 @@ class Ps_Gtm_DataLayer extends Module
     {
         $this->name = 'ps_gtm_datalayer';
         $this->tab = 'analytics_stats';
-        $this->version = '1.45.3';
+        $this->version = '1.45.4';
         $this->author = 'Raihan';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
@@ -3452,8 +3452,9 @@ class Ps_Gtm_DataLayer extends Module
                             'item_category' => !empty($p['category']) ? (string)$p['category'] : '',
                             'item_variant' => !empty($p['attributes']) ? (string)$p['attributes'] : (!empty($p['attributes_small']) ? (string)$p['attributes_small'] : ''),
                             'price' => $price,
-                            'line_total' => $lineTotal,
-                            'quantity' => (int)$p['cart_quantity']
+                            'quantity' => (int)$p['cart_quantity'],
+                            '_line_value' => $lineTotal,
+                            '_raw_price' => $priceRaw,
                         ];
                     }
                 }

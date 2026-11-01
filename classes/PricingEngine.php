@@ -30,6 +30,21 @@ class PricingEngine
     }
 
     /**
+     * Resolves unrounded customer unit price directly from PrestaShop core pricing engine.
+     *
+     * @param Product|int $product
+     * @param int $idAttribute
+     * @param int $quantity
+     * @param Context|null $context
+     * @return float
+     */
+    public static function getRawCustomerPrice($product, $idAttribute = 0, $quantity = 1, Context $context = null)
+    {
+        $model = self::resolvePriceModel($product, $idAttribute, $quantity, $context);
+        return isset($model['raw_unit_price']) ? (float)$model['raw_unit_price'] : (float)$model['unit_price'];
+    }
+
+    /**
      * Shared Internal Price Model: Resolves a complete, multi-dimensional price model
      * directly from PrestaShop's core calculation engine without DOM scraping.
      *

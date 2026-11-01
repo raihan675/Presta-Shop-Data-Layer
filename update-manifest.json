@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.45.3",
+    "latest_version":  "1.45.4",
     "release_date":  "2026-11-02",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.3/ps_gtm_datalayer.zip",
-    "checksum":  "f4ac0740f6c83904c8be3d97cf60da8a2da7a5b6584a85b0485f100bda9ced47",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.4/ps_gtm_datalayer.zip",
+    "checksum":  "9ebbdbd897a52ba0245261ff10d4e02cf824719cf246e2ba34e7463a711a70d4",
     "release_type":  "minor",
-    "release_notes":  "Universal Initial Add-to-Cart Subtotal Sync: Synchronized empty-cart initial subtotal tracking and multi-tier line calculation so that adding multi-quantity discounted items to an empty cart emits the exact authoritative PrestaShop subtotal (25.99 â‚¬ instead of 26.00 â‚¬)."
+    "release_notes":  "End-to-End Authoritative Pricing Harmonization: Unified multi-quantity calculations across add_to_cart, view_cart, begin_checkout, and remove_from_cart so all events consistently reflect PrestaShop back office totals (e.g. 2 units = 25.99 Ã¢â€šÂ¬, 3 units = 38.99 Ã¢â€šÂ¬, 5 units = 64.98 Ã¢â€šÂ¬) with 100% clean GA4 items schema."
 }

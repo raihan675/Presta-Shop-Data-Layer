@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.4] - 2026-11-02
+
+### Fixed & Enhanced
+- **End-to-End Authoritative Pricing Harmonization Across All Cart & Checkout Events**:
+  - Unified multi-quantity calculations across `add_to_cart`, `view_cart`, `begin_checkout`, and `remove_from_cart` so that event `value` consistently reflects PrestaShop Back Office cart product subtotals (e.g. 2 units = 25.99 €, 3 units = 38.99 €, 5 units = 64.98 €) instead of naively multiplying rounded unit prices (`13 * 2 = 26.00 €`, `13 * 5 = 65.00 €`).
+  - Implemented MDN exponential decimal rounding in `roundHalfUp()` to eliminate IEEE 754 binary floating point precision artifacts across high multi-quantity cart totals.
+  - Attached internal `_raw_price` and `_line_value` to cart data models, combinations, and AJAX resolvers while ensuring the emitted GA4 `items[]` array strictly contains only canonical parameters (zero `line_total` and zero `_line_value`).
+
+---
+
 ## [1.45.3] - 2026-11-02
 
 ### Fixed & Enhanced

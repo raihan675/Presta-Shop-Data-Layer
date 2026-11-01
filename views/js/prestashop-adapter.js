@@ -167,6 +167,9 @@
    * Completely independent of DOM structure.
    */
   function resolveBackendProduct(idProduct, idProductAttribute, quantity, callback) {
+    var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined)
+      ? parseInt(window.psGtmConfig.currencyPrecision, 10)
+      : 2;
     var idProdStr = String(idProduct || '').trim();
     var idAttrStr = (idProductAttribute && parseInt(idProductAttribute, 10) > 0) ? String(idProductAttribute).trim() : '';
     var qty = parseInt(quantity, 10) || 1;
@@ -179,7 +182,15 @@
     if (cartItem) {
       var itemCopy = Object.assign({}, cartItem);
       itemCopy.quantity = qty;
-      callback(itemCopy);
+      var rawP = (cartItem._raw_price !== undefined && !isNaN(parseFloat(cartItem._raw_price)))
+        ? parseFloat(cartItem._raw_price)
+        : (parseFloat(cartItem.price) || 0.0);
+      var lineVal = (qty === parseInt(cartItem.quantity, 10) && cartItem._line_value !== undefined && !isNaN(parseFloat(cartItem._line_value)))
+        ? parseFloat(cartItem._line_value)
+        : EDL.roundHalfUp(rawP * qty, prec);
+      itemCopy._line_value = lineVal;
+      itemCopy._raw_price = rawP;
+      callback(itemCopy, { line_value: lineVal });
       return;
     }
 
@@ -203,7 +214,8 @@
           item_variant: String(combo.item_variant || ''),
           price: parseFloat(combo.price) || parseFloat(currProd.price) || 0.0,
           quantity: qty,
-          _line_value: comboLineVal
+          _line_value: comboLineVal,
+          _raw_price: rawComboPrice
         };
         callback(item, { line_value: comboLineVal });
         return;
@@ -224,7 +236,8 @@
           item_variant: hasCombinations ? String(currProd.item_variant || '') : '',
           price: parseFloat(currProd.price) || 0.0,
           quantity: qty,
-          _line_value: prodLineVal
+          _line_value: prodLineVal,
+          _raw_price: rawProdPrice
         };
         callback(itemBase, { line_value: prodLineVal });
         return;
@@ -426,9 +439,11 @@
       if (normItems.length > 0) {
         var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
           ? parseFloat(item._line_value)
-          : ((fullResp && fullResp.line_value !== undefined)
-            ? parseFloat(fullResp.line_value)
-            : EDL.calculateCartValue(normItems, prec));
+          : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
+            ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
+            : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
+              ? parseFloat(fullResp.line_value)
+              : EDL.calculateCartValue([item], prec)));
 
         EDL.pushEvent('remove_from_cart', {
           currency: currencyCode,
@@ -962,9 +977,11 @@
             if (normItems.length > 0) {
               var removeVal = (item._line_value !== undefined && removeQty === item.quantity)
                 ? parseFloat(item._line_value)
-                : ((fullResp && fullResp.line_value !== undefined)
-                  ? parseFloat(fullResp.line_value)
-                  : EDL.calculateCartValue(normItems, prec));
+                : ((item._raw_price !== undefined && !isNaN(parseFloat(item._raw_price)))
+                  ? EDL.roundHalfUp(parseFloat(item._raw_price) * removeQty, prec)
+                  : ((fullResp && fullResp.line_value !== undefined && parseFloat(fullResp.line_value) > 0)
+                    ? parseFloat(fullResp.line_value)
+                    : EDL.calculateCartValue([item], prec)));
 
               EDL.pushEvent('remove_from_cart', {
                 currency: currencyCode,
@@ -1218,12 +1235,13 @@
       }
 
       var rawItems = getCheckoutItems();
-      var normItems = EDL.normalizeItems(rawItems);
-      if (normItems.length === 0) return;
-
       var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
       var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
-      var val = EDL.calculateCartValue(normItems, prec);
+      var val = (window.psGtmConfig && window.psGtmConfig.cartTotals && window.psGtmConfig.cartTotals.products_subtotal !== undefined && parseFloat(window.psGtmConfig.cartTotals.products_subtotal) > 0)
+        ? parseFloat(window.psGtmConfig.cartTotals.products_subtotal)
+        : EDL.calculateCartValue(rawItems, prec);
+      var normItems = EDL.normalizeItems(rawItems, prec);
+      if (normItems.length === 0) return;
       var coupon = (window.psGtmConfig && window.psGtmConfig.coupon) || '';
 
       lastTrackedShippingTier = tier;
@@ -1354,12 +1372,13 @@
       }
 
       var rawItems = getCheckoutItems();
-      var normItems = EDL.normalizeItems(rawItems);
-      if (normItems.length === 0) return;
-
       var currency = (window.psGtmConfig && window.psGtmConfig.currency) || 'EUR';
       var prec = (window.psGtmConfig && window.psGtmConfig.currencyPrecision !== undefined) ? parseInt(window.psGtmConfig.currencyPrecision, 10) : 2;
-      var val = EDL.calculateCartValue(normItems, prec);
+      var val = (window.psGtmConfig && window.psGtmConfig.cartTotals && window.psGtmConfig.cartTotals.products_subtotal !== undefined && parseFloat(window.psGtmConfig.cartTotals.products_subtotal) > 0)
+        ? parseFloat(window.psGtmConfig.cartTotals.products_subtotal)
+        : EDL.calculateCartValue(rawItems, prec);
+      var normItems = EDL.normalizeItems(rawItems, prec);
+      if (normItems.length === 0) return;
       var coupon = (window.psGtmConfig && window.psGtmConfig.coupon) || '';
 
       lastTrackedPaymentType = pType;

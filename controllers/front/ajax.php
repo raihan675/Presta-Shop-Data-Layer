@@ -58,7 +58,9 @@ class Ps_Gtm_DataLayerAjaxModuleFrontController extends ModuleFrontController
         $payloadBuilder = new PayloadBuilder($this->context, $eventPrefix);
         $item = $payloadBuilder->formatItem($product, $idProductAttribute, $quantity);
         $linePrice = PricingEngine::getLinePrice($product, $idProductAttribute, $quantity, $this->context);
+        $rawPrice = PricingEngine::getRawCustomerPrice($product, $idProductAttribute, 1, $this->context);
         $item['_line_value'] = $linePrice;
+        $item['_raw_price'] = $rawPrice;
 
         $idCategoryDefault = (int)$product->id_category_default;
         $category = new Category($idCategoryDefault, $idLanguage);
