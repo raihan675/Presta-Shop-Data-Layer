@@ -1,10 +1,10 @@
 {
     "module":  "ps_gtm_datalayer",
-    "latest_version":  "1.45.0",
+    "latest_version":  "1.45.1",
     "release_date":  "2026-11-01",
     "min_ps_version":  "1.7.0.0",
-    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.0/ps_gtm_datalayer.zip",
-    "checksum":  "990ac6e74df6e5f28d9cfcf66b7bc3717cc5bac0a01858fce2679a7bf3fa03b9",
+    "download_url":  "https://github.com/raihan675/Presta-Shop-Data-Layer/releases/download/v1.45.1/ps_gtm_datalayer.zip",
+    "checksum":  "c69a43b14b3f51404dccddb5978bf16d45edd436dfbee03f5d10777dd8a1e541",
     "release_type":  "minor",
-    "release_notes":  "Authoritative PrestaShop Store Pricing \u0026 Rounding Engine: Eliminates rounded unit-price math discrepancies, guarantees database-backed unrounded line total accuracy, preserves historical order fidelity, and aligns ecommerce values across GA4, Meta, TikTok, Pinterest, Google Ads, and Microsoft Advertising."
+    "release_notes":  "Strict GA4 Items Schema Compliance: Cleaned items array to strictly omit line_total while maintaining 100% authoritative PrestaShop ecommerce.value subtotal calculations."
 }

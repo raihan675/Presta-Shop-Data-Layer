@@ -1540,7 +1540,7 @@ class PayloadBuilder
                 ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
                 : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
 
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice);
         }
 
         // Authoritative PrestaShop cart product subtotal (Zero DOM)
@@ -1593,7 +1593,7 @@ class PayloadBuilder
                 ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
                 : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
 
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice);
         }
 
         // Authoritative PrestaShop cart product subtotal (Zero DOM)
@@ -1656,7 +1656,7 @@ class PayloadBuilder
                 ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
                 : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
 
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice);
         }
 
         // Authoritative PrestaShop cart product subtotal (Zero DOM)
@@ -1735,7 +1735,7 @@ class PayloadBuilder
                 ? (isset($p['total_wt']) ? (float)$p['total_wt'] : (float)$p['total'])
                 : (isset($p['total']) ? (float)$p['total'] : (float)$p['total_wt']);
 
-            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice, $lineTotal);
+            $items[] = $this->formatItem($productObj, (int)$p['id_product_attribute'], (int)$p['cart_quantity'], $unitPrice);
         }
 
         // Authoritative PrestaShop cart product subtotal (Zero DOM)
@@ -1804,7 +1804,6 @@ class PayloadBuilder
             }
 
             $unitPrice = (float)$p['unit_price_tax_incl'];
-            $lineTotal = isset($p['total_price_tax_incl']) ? (float)$p['total_price_tax_incl'] : ($unitPrice * (int)$p['product_quantity']);
 
             $item = [
                 'item_id' => (string)$productObj->id, // Base product ID
@@ -1816,7 +1815,6 @@ class PayloadBuilder
                 'item_variant' => $identifiers['item_variant'],
                 'price' => PricingEngine::roundHalfUp($unitPrice, $currencyPrecision),
                 'quantity' => (int)$p['product_quantity'],
-                'line_total' => PricingEngine::roundHalfUp($lineTotal, $currencyPrecision),
             ];
 
             $category = new Category((int)$productObj->id_category_default, $idLanguage);
@@ -1980,7 +1978,7 @@ class PayloadBuilder
         return $purchasePayload;
     }
 
-    public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null, $lineTotal = null)
+    public function formatItem(Product $product, $idAttribute = 0, $quantity = 1, $overridePrice = null)
     {
         $idLanguage = $this->context->language ? (int)$this->context->language->id : 1;
         $currencyPrecision = PlatformAdapter::getCurrencyPrecision($this->context);
@@ -1999,7 +1997,7 @@ class PayloadBuilder
             $brand = (string)Manufacturer::getNameById((int)$product->id_manufacturer);
         }
 
-        $rawItem = [
+        return CanonicalDataModel::formatItem([
             'item_id' => (string)$product->id, // Canonical base product ID
             'variant_id' => $identifiers['variant_id'],
             'sku_id' => $identifiers['sku_id'],
@@ -2009,12 +2007,6 @@ class PayloadBuilder
             'item_variant' => $identifiers['item_variant'],
             'price' => (float)$price,
             'quantity' => (int)$quantity,
-        ];
-
-        if ($lineTotal !== null) {
-            $rawItem['line_total'] = PricingEngine::roundHalfUp($lineTotal, $currencyPrecision);
-        }
-
-        return CanonicalDataModel::formatItem($rawItem);
+        ]);
     }
 }

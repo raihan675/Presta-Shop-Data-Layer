@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [1.45.1] - 2026-11-01
+
+### Fixed & Cleaned
+- **Strict GA4 Items Schema Compliance**:
+  - Eliminated `line_total` from inside the `items` array across all ecommerce events (`view_item`, `view_item_list`, `view_search_results`, `add_to_cart`, `remove_from_cart`, `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, and `purchase`).
+  - Preserved authoritative PrestaShop subtotal calculations for `ecommerce.value` ($25.99 instead of $26.00) and canonical item fields (`item_id`, `item_name`, `price`, `quantity`, `item_brand`, `item_category`, `item_variant`, `sku_id`, `variant_id`).
+
+---
+
 ## [1.45.0] - 2026-11-01
 
 ### Added & Enhanced

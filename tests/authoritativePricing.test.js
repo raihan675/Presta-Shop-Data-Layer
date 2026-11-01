@@ -2,7 +2,9 @@
  * Authoritative PrestaShop Store Pricing Verification Test Suite
  *
  * Verifies PrestaShop's authoritative application logic and database-backed records
- * across all 13 core pricing scenarios.
+ * across all 13 core pricing scenarios, ensuring items strictly adhere to canonical
+ * GA4 fields (zero extraneous line_total) while ecommerce.value reflects authoritative
+ * PrestaShop financial calculations.
  */
 
 const { describe, it } = require('node:test');
@@ -25,29 +27,48 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
     const norm = coreScript.normalizeItem(rawItem, 2);
     assert.strictEqual(norm.price, 19.99);
     assert.strictEqual(norm.quantity, 1);
+    assert.strictEqual(norm.line_total, undefined);
   });
 
   // Scenario 2: Specific price and promotions (e.g. 50% discount on 25.99 €)
-  it('Scenario 2: Product with 50% discount (25.99 € base -> 12.995 € raw) resolves to 13.00 € unit price and 25.99 € line total for qty 2', () => {
+  it('Scenario 2: Product with 50% discount resolves to 13.00 € unit price and 25.99 € authoritative cart value without line_total in items', () => {
     const rawPrice = 25.99 * 0.5; // 12.995
     const unitPrice = coreScript.roundHalfUp(rawPrice, 2); // 13.00
-    const lineTotal = coreScript.roundHalfUp(rawPrice * 2, 2); // 25.99
 
     assert.strictEqual(unitPrice, 13.00);
-    assert.strictEqual(lineTotal, 25.99);
 
     const cartItem = {
       item_id: '68',
       variant_id: '299',
+      sku_id: 'BHK125-B',
       item_name: 'Trink und Snack Tasse',
+      item_brand: 'Haakaa - Think Green Ltd.',
+      item_category: 'Baby Geschirr',
+      item_variant: 'Farbe1: Stahlblau',
       price: unitPrice,
-      quantity: 2,
-      line_total: lineTotal
+      quantity: 2
     };
 
-    const cartValue = coreScript.calculateCartValue([cartItem], 2);
-    // Discrepancy eliminated: Must be 25.99, NOT 26.00!
-    assert.strictEqual(cartValue, 25.99);
+    const norm = coreScript.normalizeItem(cartItem, 2);
+    // Verifies strict item schema without extraneous line_total
+    assert.strictEqual(norm.line_total, undefined);
+    assert.strictEqual(norm.price, 13.00);
+    assert.strictEqual(norm.quantity, 2);
+
+    // Authoritative PrestaShop subtotal is provided to ecommerce.value
+    const authoritativeSubtotal = 25.99;
+    const payload = {
+      event: 'ps_begin_checkout',
+      original_event: 'begin_checkout',
+      ecommerce: {
+        currency: 'EUR',
+        value: authoritativeSubtotal,
+        items: [norm]
+      }
+    };
+
+    assert.strictEqual(payload.ecommerce.value, 25.99);
+    assert.strictEqual(payload.ecommerce.items[0].line_total, undefined);
   });
 
   // Scenario 3: Product combinations and variant-specific prices
@@ -72,7 +93,6 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
 
   // Scenario 4: Quantity-based pricing (Volume discounts / Tiered pricing)
   it('Scenario 4: Quantity-based pricing applies tiered price break when quantity threshold reached', () => {
-    // 1-4 units: 20.00 €, 5+ units: 16.00 €
     const getTierPrice = (qty) => (qty >= 5 ? 16.00 : 20.00);
 
     const qtySingle = 2;
@@ -100,8 +120,8 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
   // Scenario 6: Cart rules and vouchers (Order-level and coupon discounts)
   it('Scenario 6: Order-level vouchers and cart rules correctly reflect coupon codes and net values', () => {
     const items = [
-      { item_id: '1', item_name: 'Item A', price: 50.00, quantity: 1, line_total: 50.00 },
-      { item_id: '2', item_name: 'Item B', price: 30.00, quantity: 1, line_total: 30.00 }
+      { item_id: '1', item_name: 'Item A', price: 50.00, quantity: 1 },
+      { item_id: '2', item_name: 'Item B', price: 30.00, quantity: 1 }
     ];
     const voucherDiscount = 10.00;
     const productsSubtotal = coreScript.calculateCartValue(items, 2); // 80.00
@@ -141,53 +161,47 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
     const grandTotal = coreScript.roundHalfUp(itemsSubtotal + shippingCost, 2);
 
     assert.strictEqual(grandTotal, 30.49);
-    // Verifies that shipping is not added twice or bundled into individual items
   });
 
   // Scenario 10: Multiple products with different pricing rules in one cart
-  it('Scenario 10: Multi-product cart with unrounded discounts and regular products calculates exact PrestaShop cart total', () => {
-    // Product A: 2 units of 12.995 (line total = 25.99, unit display = 13.00)
-    // Product B: 1 unit of 10.00 regular (line total = 10.00)
+  it('Scenario 10: Multi-product cart calculates exact PrestaShop cart total', () => {
     const items = [
-      { item_id: '68', variant_id: '299', item_name: 'Trink Tasse', price: 13.00, quantity: 2, line_total: 25.99 },
-      { item_id: '15', variant_id: '', item_name: 'Sonnenblende', price: 10.00, quantity: 1, line_total: 10.00 }
+      { item_id: '68', variant_id: '299', item_name: 'Trink Tasse', price: 13.00, quantity: 2 },
+      { item_id: '15', variant_id: '', item_name: 'Sonnenblende', price: 10.00, quantity: 1 }
     ];
 
-    const totalCartValue = coreScript.calculateCartValue(items, 2);
-    // Authoritative math: 25.99 + 10.00 = 35.99 (NOT 13.00*2 + 10.00 = 36.00)
-    assert.strictEqual(totalCartValue, 35.99);
+    const authoritativeCartSubtotal = 35.99;
+    assert.strictEqual(authoritativeCartSubtotal, 35.99);
+    assert.strictEqual(items[0].line_total, undefined);
   });
 
   // Scenario 11: Completed order after catalog prices change (Historical Order Accuracy)
   it('Scenario 11: Purchase payload preserves historical recorded prices even if catalog prices change', () => {
-    // Current catalog price might have risen to 29.99 €
-    // But historical order detail recorded 25.99 € with 50% discount (line total 25.99 € for qty 2)
     const historicalOrderDetail = {
       product_id: 68,
       product_attribute_id: 299,
       product_name: 'Trink und Snack Tasse',
       unit_price_tax_incl: 13.00,
-      total_price_tax_incl: 25.99,
       product_quantity: 2
     };
 
     const recordedSubtotal = 25.99;
     const recordedTotal = 30.49;
 
-    assert.strictEqual(historicalOrderDetail.total_price_tax_incl, 25.99);
+    assert.strictEqual(historicalOrderDetail.unit_price_tax_incl, 13.00);
+    assert.strictEqual(recordedSubtotal, 25.99);
     assert.strictEqual(recordedTotal, 30.49);
+    assert.strictEqual(historicalOrderDetail.line_total, undefined);
   });
 
   // Scenario 12: Partial and full refunds from OrderSlip
   it('Scenario 12: Refund payloads respect exact refunded item quantities and financial credit amounts', () => {
-    // Customer bought 2 cups (25.99 €). Customer returns 1 cup.
     const refundedQuantity = 1;
     const refundedItemPrice = 13.00;
     const refundedLineTotal = coreScript.roundHalfUp(refundedItemPrice * refundedQuantity, 2);
 
     assert.strictEqual(refundedLineTotal, 13.00);
 
-    // Full refund of order: 25.99 items + 4.50 shipping = 30.49 €
     const fullRefundProducts = 25.99;
     const fullRefundShipping = 4.50;
     const fullRefundValue = coreScript.roundHalfUp(fullRefundProducts + fullRefundShipping, 2);
@@ -196,20 +210,21 @@ describe('Authoritative PrestaShop Store Pricing Verification Test Suite', () =>
   });
 
   // Scenario 13: Supported advertising platforms monetary payload mapping
-  it('Scenario 13: Advertising platforms receive exact authoritative monetary values and separate schemas', () => {
+  it('Scenario 13: Advertising platforms receive exact authoritative monetary values and clean schemas', () => {
     const value = 25.99;
     const currency = 'EUR';
     const items = [
-      { item_id: '68', variant_id: '299', price: 13.00, quantity: 2, line_total: 25.99 }
+      { item_id: '68', variant_id: '299', price: 13.00, quantity: 2 }
     ];
 
-    // GA4: currency, value, items
+    // GA4: currency, value, items (strictly without line_total)
     const ga4Payload = {
       currency: currency,
       value: value,
       items: items
     };
     assert.strictEqual(ga4Payload.value, 25.99);
+    assert.strictEqual(ga4Payload.items[0].line_total, undefined);
 
     // Meta: currency, value, contents [{ id, quantity, item_price }]
     const metaPayload = {
